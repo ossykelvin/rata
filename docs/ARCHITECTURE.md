@@ -123,4 +123,4 @@ Use UI Automation first. Vision/coordinate automation is a fallback.
 - Microsoft Graph: delegated user permissions for Outlook Mail, Calendar, Contacts.
 - Browser: Playwright behind tool contracts.
 - AI: provider adapters for OpenAI, Anthropic, Gemini and local models.
-- Voice: dedicated STT and TTS adapters.
+- Voice: dedicated STT and TTS adapters. The first STT path is Chromium `SpeechRecognition` in `src/hooks/useVoice.ts`. Main denies renderer `media` permission when `microphoneEnabled` is false (REVIEW-001 M4). Cloud STT/TTS adapters still belong behind `packages/agent-core/voice/` and a Lane G contract.
