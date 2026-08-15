@@ -75,7 +75,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, awaiting merge |
 | Codex | FIX-001 idempotent startup | `codex/FIX-001-idempotent-startup` | REVIEW REQUESTED |
 | Codex | P0-1 modular IPC boundary | `codex/P0-1-modular-ipc-boundary` | IN PROGRESS — awaiting Lane G contracts/tests + Claude review |
-| Cursor | — | — | idle |
+| Cursor | ISSUE-17 restore character image | `cursor/ISSUE-17-restore-character-image` | IN PROGRESS |
 
 ---
 
@@ -161,6 +161,17 @@ One line per agent. Keep it current — this is the first thing another agent re
 ---
 
 ## Cursor
+
+### 2026-08-15 — ISSUE-17 — Restore original Rata character image
+
+**Status:** IN PROGRESS
+**Branch:** `cursor/ISSUE-17-restore-character-image`
+
+**Scope:** Lane B only. Keep the RATA-003 event-driven state engine, classes, labels, and silhouette fallback. Show `public/rata-concept.png` as the temporary crop until production per-state assets replace it. No Electron, contracts, or agent-core edits.
+
+**Files currently touching:** `AGENT_WORKBOOK.md` (claim only; implementation follows).
+
+---
 
 ### 2026-08-15 — RATA-003 — Character animation engine
 
