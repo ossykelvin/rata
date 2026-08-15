@@ -77,6 +77,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Codex | P0-1 modular IPC boundary | `codex/P0-1-modular-ipc-boundary` | IN PROGRESS — awaiting Lane G contracts/tests + Claude review |
 | Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | READY FOR REVIEW, PR #16 |
 | Codex | P0-2 modular tool registration | `codex/P0-2-modular-tool-registration` | DRAFT PR #20 — awaiting Lane H tests + Claude review |
+| Codex | P0-3 skill manifest fragments | `codex/P0-3-skill-manifest-fragments` | IN PROGRESS |
 | Cursor | — | — | idle |
 | Cursor | ISSUE-17 restore character image | `cursor/ISSUE-17-restore-character-image` | DONE, PR #18 |
 
@@ -152,6 +153,16 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 ---
 
 ## Codex
+
+### 2026-08-15 — P0-3 — Skills manifest to per-skill fragments
+
+**Status:** IN PROGRESS
+**Branch:** `codex/P0-3-skill-manifest-fragments`
+**Base:** `main` after P0-2 merged
+
+**Scope:** Replace the shared root `skills.manifest.json` array with one `skills/<id>/skill.json` fragment per skill. Update the skills registry/contracts so fragments are discovered deterministically and validation fails closed per fragment: an invalid skill is excluded and reported without disabling valid skills. Preserve declarative-only skills, prompt path confinement, public skill shape, routing behaviour, and current IDs.
+
+**Planned validation:** migrate every manifest record without semantic drift, exercise malformed/duplicate/path-escape fragments with focused checks, run `npm run verify`, update architecture/source-map documentation, and request Claude review plus Lane H tests before merge.
 
 ### 2026-08-15 — P0-2 — Modularize tool registration
 
