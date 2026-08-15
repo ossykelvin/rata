@@ -51,7 +51,7 @@ The clipboard operation should request approval with the default settings.
 
 - `src/`: React UI only.
 - `electron/`: desktop process, IPC, tray, persistence glue.
-- `electron/mvp-tools.cjs`: dependency-injected allow-listed native adapters.
+- `electron/tools/`: auto-composed, dependency-injected allow-listed native adapters. `electron/mvp-tools.cjs` is a compatibility export only.
 - `packages/agent-core/`: model-independent agent/tool/policy foundation.
 - `packages/contracts/`: runtime validation for privileged IPC contracts.
 - `packages/skills/`: skill registry, prompt loader and deterministic router.

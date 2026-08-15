@@ -39,13 +39,15 @@ Skills may be selected and described. Only registered tools may act.
 - `electron/main.cjs`: Electron lifecycle and dependency composition only.
 - `electron/ipc/`: auto-discovered per-domain main-process handler modules. Each module declares the contract keys it owns and cannot register undeclared channels.
 - `electron/bridge/`: auto-discovered per-domain preload fragments. Duplicate bridge properties or channel ownership fail closed before exposure. The build generates one `dist-electron/preload.cjs` artifact containing every fragment because sandboxed Electron preloads cannot import local CommonJS modules at runtime.
-- `electron/mvp-tools.cjs`: allow-listed native tool adapters for the MVP.
+- `electron/tools/`: auto-discovered per-domain tool modules. Each module declares the tool IDs it owns and creates complete registry definitions from injected native dependencies. Composition fails closed on duplicate or undeclared IDs. `electron/mvp-tools.cjs` remains a compatibility export only.
 - `packages/contracts/`: runtime validation at privileged IPC boundaries.
 - `packages/agent-core/`: provider-independent policy, tool registration and orchestration foundations.
 - `packages/skills/`: skill registry, prompt loader and deterministic router.
 - `skills/`: declarative skill prompt packs. Not executable.
 
 Tool execution is centralized in `ToolRegistry.execute()`. A registered tool must declare its risk, confirmation policy and input validator before it can execute.
+
+Adding a tool domain means adding one trusted module under `electron/tools/`; it does not require editing the composition index or Electron lifecycle. Tool modules are application code packaged with Rata, never user- or model-supplied plugins.
 
 Adding an IPC-backed capability extends the trusted boundary with a handler module and a preload bridge fragment instead of editing the shared main/preload hubs. `npm run build:preload` discovers and statically bundles new bridge fragments. Contract channel fragments are owned separately under `packages/contracts/`.
 
