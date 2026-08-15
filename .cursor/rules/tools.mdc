@@ -1,0 +1,27 @@
+---
+description: Tool registry and policy requirements
+globs: packages/agent-core/**/*.cjs,electron/mvp-tools.cjs
+alwaysApply: false
+---
+
+# Tool rules
+
+- Register tools with a namespaced id, description, risk, confirmation policy, `validateInput`, and `execute`.
+- External-write tools cannot use `confirmation: 'never'`.
+- Destructive tools stay blocked in this MVP.
+- Never give the model `eval`, shell, or unrestricted filesystem access. The calculator parses arithmetic; it does not execute JavaScript.
+- Add or update tests in `tests/` when tool behaviour changes.
+
+```javascript
+// ❌ BAD
+registry.register({ id: 'shell.run', execute: input => eval(input.code) })
+
+// ✅ GOOD
+registry.register({
+  id: 'calculator.evaluate',
+  risk: 'read',
+  confirmation: 'never',
+  validateInput: input => ({ expression: requireExpression(input) }),
+  execute: async ({ expression }) => ({ summary, message })
+})
+```

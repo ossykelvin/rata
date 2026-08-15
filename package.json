@@ -1,0 +1,66 @@
+{
+  "name": "rata-office-assistant-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Rata Office Assistant - Windows-first draggable desktop AI assistant MVP",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
+    "build": "vite build",
+    "start": "electron .",
+    "check:node": "node scripts/check-node.cjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.cjs",
+    "verify": "npm run check:node && npm test && npm run typecheck && npm run build",
+    "pack:win": "npm run build && electron-builder --win dir",
+    "dist:win": "npm run build && electron-builder --win nsis"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.5",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "concurrently": "^10.0.5",
+    "electron": "^43.4.0",
+    "electron-builder": "^26.15.3",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1",
+    "wait-on": "^9.1.0"
+  },
+  "build": {
+    "appId": "uk.koptechnology.rata",
+    "productName": "Rata Office Assistant",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "packages/**/*",
+      "skills/**/*",
+      "skills.manifest.json",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "public/rata-concept.png",
+        "to": "rata-concept.png"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

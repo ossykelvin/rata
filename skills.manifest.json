@@ -1,0 +1,479 @@
+{
+  "schema_version": 1,
+  "pack": "rata-office-assistant-core-skills",
+  "version": "1.0.0",
+  "description": "Core skill prompts and permission contracts for the Rata Office Assistant.",
+  "skills": [
+    {
+      "id": "file-finder",
+      "name": "File Finder",
+      "path": "skills/file-finder/SKILL.md",
+      "category": "desktop",
+      "risk": "read-only",
+      "background_capable": true,
+      "permissions": [
+        "file.search",
+        "file.metadata.read"
+      ],
+      "tools": [
+        "file.search",
+        "file.stat",
+        "file.reveal"
+      ],
+      "confirmation": "none_for_read_only",
+      "triggers": [
+        "Find the spreadsheet I worked on yesterday",
+        "Search my computer for files named deployment",
+        "Where is the presentation about CompliCare?"
+      ]
+    },
+    {
+      "id": "local-content-search",
+      "name": "Local Content Search",
+      "path": "skills/local-content-search/SKILL.md",
+      "category": "desktop",
+      "risk": "read-only",
+      "background_capable": true,
+      "permissions": [
+        "file.search",
+        "file.read"
+      ],
+      "tools": [
+        "file.searchContent",
+        "file.readText",
+        "file.stat"
+      ],
+      "confirmation": "none_for_read_only",
+      "triggers": [
+        "Find the document where I mentioned CQC",
+        "Search my files for ORA-01591",
+        "Which local document contains the deployment steps?"
+      ]
+    },
+    {
+      "id": "filesystem-scan",
+      "name": "Filesystem Scan",
+      "path": "skills/filesystem-scan/SKILL.md",
+      "category": "desktop",
+      "risk": "read-only",
+      "background_capable": true,
+      "permissions": [
+        "filesystem.scan",
+        "file.metadata.read"
+      ],
+      "tools": [
+        "filesystem.scan",
+        "filesystem.diskUsage",
+        "filesystem.hash"
+      ],
+      "confirmation": "confirm_if_scope_is_entire_system_or_protected",
+      "triggers": [
+        "Scan my C drive and tell me what is taking space",
+        "Find large files",
+        "Check this folder for duplicates",
+        "Give me a storage health report"
+      ]
+    },
+    {
+      "id": "app-launcher",
+      "name": "Application Launcher",
+      "path": "skills/app-launcher/SKILL.md",
+      "category": "desktop",
+      "risk": "local-write",
+      "background_capable": false,
+      "permissions": [
+        "app.list",
+        "app.launch",
+        "app.focus"
+      ],
+      "tools": [
+        "app.find",
+        "app.launch",
+        "app.focus"
+      ],
+      "confirmation": "none_for_normal_apps_confirm_for_elevation_or_unknown_executable",
+      "triggers": [
+        "Open Excel",
+        "Launch Notepad",
+        "Bring Outlook to the front",
+        "Start Calculator"
+      ]
+    },
+    {
+      "id": "keep-awake",
+      "name": "Keep Awake",
+      "path": "skills/keep-awake/SKILL.md",
+      "category": "system",
+      "risk": "local-state",
+      "background_capable": true,
+      "permissions": [
+        "system.power.keepAwake"
+      ],
+      "tools": [
+        "system.keepAwake.start",
+        "system.keepAwake.stop",
+        "system.keepAwake.status"
+      ],
+      "confirmation": "none_when_user_explicitly_requests_duration",
+      "triggers": [
+        "Keep my PC awake for two hours",
+        "Don't let the computer sleep during this download",
+        "Stop keeping the computer awake"
+      ]
+    },
+    {
+      "id": "web-search",
+      "name": "Web Search",
+      "path": "skills/web-search/SKILL.md",
+      "category": "internet",
+      "risk": "external-read",
+      "background_capable": true,
+      "permissions": [
+        "web.search",
+        "web.open"
+      ],
+      "tools": [
+        "web.search",
+        "web.fetch"
+      ],
+      "confirmation": "none_for_read_only",
+      "triggers": [
+        "Search the internet for...",
+        "Find the latest documentation for...",
+        "Look up current information about..."
+      ]
+    },
+    {
+      "id": "ai-research",
+      "name": "AI Research",
+      "path": "skills/ai-research/SKILL.md",
+      "category": "reasoning",
+      "risk": "mixed-read",
+      "background_capable": true,
+      "permissions": [
+        "ai.reason",
+        "web.search",
+        "file.search",
+        "file.read"
+      ],
+      "tools": [
+        "web.search",
+        "web.fetch",
+        "file.search",
+        "file.readText"
+      ],
+      "confirmation": "none_for_read_only",
+      "triggers": [
+        "Research this for me",
+        "Compare what is online with my documents",
+        "Do an AI search on...",
+        "Investigate and give me the best answer"
+      ]
+    },
+    {
+      "id": "calculator",
+      "name": "Calculator",
+      "path": "skills/calculator/SKILL.md",
+      "category": "utility",
+      "risk": "none",
+      "background_capable": false,
+      "permissions": [
+        "utility.calculate"
+      ],
+      "tools": [
+        "calculator.evaluate"
+      ],
+      "confirmation": "none",
+      "triggers": [
+        "Calculate 15% of 2400",
+        "What is 36 * 14?",
+        "Work out the monthly average",
+        "Convert this formula into a result"
+      ]
+    },
+    {
+      "id": "trivia",
+      "name": "Trivia & General Knowledge",
+      "path": "skills/trivia/SKILL.md",
+      "category": "knowledge",
+      "risk": "none",
+      "background_capable": false,
+      "permissions": [
+        "ai.reason"
+      ],
+      "tools": [
+        "web.search"
+      ],
+      "confirmation": "none",
+      "triggers": [
+        "Who invented...",
+        "Tell me a trivia fact",
+        "Quiz me",
+        "What is the capital of..."
+      ]
+    },
+    {
+      "id": "critical-thinking",
+      "name": "Critical Thinking",
+      "path": "skills/critical-thinking/SKILL.md",
+      "category": "reasoning",
+      "risk": "none",
+      "background_capable": false,
+      "permissions": [
+        "ai.reason"
+      ],
+      "tools": [
+        "calculator.evaluate",
+        "web.search"
+      ],
+      "confirmation": "none",
+      "triggers": [
+        "Think critically about this",
+        "Challenge my assumptions",
+        "What am I missing?",
+        "Evaluate these options"
+      ]
+    },
+    {
+      "id": "problem-solver",
+      "name": "Simple Problem Solver",
+      "path": "skills/problem-solver/SKILL.md",
+      "category": "reasoning",
+      "risk": "none",
+      "background_capable": false,
+      "permissions": [
+        "ai.reason",
+        "utility.calculate"
+      ],
+      "tools": [
+        "calculator.evaluate"
+      ],
+      "confirmation": "none",
+      "triggers": [
+        "Help me solve this",
+        "Work out the simplest way to...",
+        "Why isn't this simple workflow working?",
+        "Break this problem down"
+      ]
+    },
+    {
+      "id": "presentation-builder",
+      "name": "Presentation Builder",
+      "path": "skills/presentation-builder/SKILL.md",
+      "category": "office",
+      "risk": "file-write",
+      "background_capable": true,
+      "permissions": [
+        "presentation.create",
+        "file.write"
+      ],
+      "tools": [
+        "presentation.create",
+        "presentation.render",
+        "file.save"
+      ],
+      "confirmation": "confirm_before_overwriting_existing_file",
+      "triggers": [
+        "Create a presentation about...",
+        "Turn these notes into slides",
+        "Prepare a deck for my meeting",
+        "Build a PowerPoint from this report"
+      ]
+    },
+    {
+      "id": "document-assistant",
+      "name": "Document Assistant",
+      "path": "skills/document-assistant/SKILL.md",
+      "category": "office",
+      "risk": "file-write",
+      "background_capable": false,
+      "permissions": [
+        "file.read",
+        "document.create",
+        "file.write"
+      ],
+      "tools": [
+        "file.readText",
+        "document.create",
+        "file.save"
+      ],
+      "confirmation": "confirm_before_overwrite",
+      "triggers": [
+        "Draft a report",
+        "Turn these notes into a document",
+        "Prepare a memo",
+        "Summarize this file into a document"
+      ]
+    },
+    {
+      "id": "clipboard-assistant",
+      "name": "Clipboard Assistant",
+      "path": "skills/clipboard-assistant/SKILL.md",
+      "category": "desktop",
+      "risk": "local-state",
+      "background_capable": false,
+      "permissions": [
+        "clipboard.read",
+        "clipboard.write"
+      ],
+      "tools": [
+        "clipboard.read",
+        "clipboard.write"
+      ],
+      "confirmation": "confirm_for_write_unless_user_explicitly_said_copy",
+      "triggers": [
+        "What's on my clipboard?",
+        "Copy this for me",
+        "Clean up the text I copied",
+        "Put this result on the clipboard"
+      ]
+    },
+    {
+      "id": "screenshot-inspector",
+      "name": "Screenshot Inspector",
+      "path": "skills/screenshot-inspector/SKILL.md",
+      "category": "desktop",
+      "risk": "screen-read",
+      "background_capable": false,
+      "permissions": [
+        "screen.capture",
+        "ai.vision"
+      ],
+      "tools": [
+        "screen.capture",
+        "vision.analyze"
+      ],
+      "confirmation": "respect_screen_capture_policy_and_exclusions",
+      "triggers": [
+        "What is on my screen?",
+        "Look at this error",
+        "Help me understand this window",
+        "Find the button on this screen"
+      ]
+    },
+    {
+      "id": "system-info",
+      "name": "System Information",
+      "path": "skills/system-info/SKILL.md",
+      "category": "system",
+      "risk": "read-only",
+      "background_capable": false,
+      "permissions": [
+        "system.info.read"
+      ],
+      "tools": [
+        "system.info",
+        "system.storage",
+        "system.processSummary"
+      ],
+      "confirmation": "none_for_read_only",
+      "triggers": [
+        "How much RAM do I have?",
+        "What version of Windows is this?",
+        "How much disk space is free?",
+        "Give me a quick system status"
+      ]
+    },
+    {
+      "id": "email-assistant",
+      "name": "Email Assistant",
+      "path": "skills/email-assistant/SKILL.md",
+      "category": "office",
+      "risk": "external-write",
+      "background_capable": true,
+      "permissions": [
+        "mail.read",
+        "mail.draft",
+        "mail.send"
+      ],
+      "tools": [
+        "mail.search",
+        "mail.read",
+        "mail.createDraft",
+        "mail.send"
+      ],
+      "confirmation": "always_confirm_send",
+      "triggers": [
+        "Find the latest email from...",
+        "Draft a reply",
+        "Summarize my unread messages",
+        "Send this email"
+      ]
+    },
+    {
+      "id": "calendar-assistant",
+      "name": "Calendar Assistant",
+      "path": "skills/calendar-assistant/SKILL.md",
+      "category": "office",
+      "risk": "external-write",
+      "background_capable": true,
+      "permissions": [
+        "calendar.read",
+        "calendar.write"
+      ],
+      "tools": [
+        "calendar.list",
+        "calendar.findAvailability",
+        "calendar.create",
+        "calendar.update",
+        "calendar.delete"
+      ],
+      "confirmation": "confirm_external_invites_and_deletes",
+      "triggers": [
+        "What is on my calendar today?",
+        "Find me a free hour tomorrow",
+        "Schedule a meeting",
+        "Move my meeting"
+      ]
+    },
+    {
+      "id": "task-planner",
+      "name": "Task Planner",
+      "path": "skills/task-planner/SKILL.md",
+      "category": "productivity",
+      "risk": "none",
+      "background_capable": false,
+      "permissions": [
+        "ai.reason"
+      ],
+      "tools": [
+        "calendar.list",
+        "file.search"
+      ],
+      "confirmation": "none_for_planning",
+      "triggers": [
+        "Plan my day",
+        "Break this project into tasks",
+        "What should I do first?",
+        "Help me prioritize"
+      ]
+    },
+    {
+      "id": "file-organizer",
+      "name": "File Organizer",
+      "path": "skills/file-organizer/SKILL.md",
+      "category": "desktop",
+      "risk": "file-write",
+      "background_capable": true,
+      "permissions": [
+        "file.search",
+        "file.move",
+        "file.rename",
+        "folder.create"
+      ],
+      "tools": [
+        "file.search",
+        "folder.create",
+        "file.move",
+        "file.rename"
+      ],
+      "confirmation": "preview_then_confirm_batch_changes",
+      "triggers": [
+        "Organize my Downloads folder",
+        "Move these reports into folders by year",
+        "Rename these files consistently",
+        "Clean up this project folder"
+      ]
+    }
+  ]
+}

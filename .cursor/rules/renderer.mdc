@@ -1,0 +1,21 @@
+---
+description: React renderer conventions for Rata
+globs: src/**/*.{ts,tsx,css}
+alwaysApply: false
+---
+
+# Renderer rules
+
+- `src/` is UI only. Never import Node, Electron, `fs`, `child_process`, or agent-core from React.
+- Call privileged work through `window.rata`.
+- Character components consume `CharacterState` only. They must not decide tools or policy.
+- Reuse Control Center visual language in `src/styles/global.css` for new pages.
+- Keep hooks in `src/hooks/` and page sections under `src/views/control/`.
+
+```tsx
+// ❌ BAD
+import { spawn } from 'node:child_process'
+
+// ✅ GOOD
+await window.rata.agentMessage('open notepad')
+```

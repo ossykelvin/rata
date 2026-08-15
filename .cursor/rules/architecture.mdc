@@ -1,0 +1,13 @@
+---
+description: Rata architecture and privilege boundaries
+alwaysApply: true
+---
+
+- Never place privileged operations in React components.
+- Renderer -> Preload IPC -> Agent -> Policy -> Tool -> Adapter/Native bridge.
+- Never bypass PolicyEngine for a state-changing action.
+- Every new tool needs an ID, typed/schema-validated input, risk classification, confirmation policy, audit events and tests.
+- Never expose generic `exec`, `eval`, shell or unrestricted filesystem APIs to the renderer or model.
+- Provider implementations must stay behind an interface and must not leak into UI components.
+- Character animations are presentation state only.
+- Major architecture changes require an ADR.

@@ -1,0 +1,20 @@
+---
+description: Skills are prompt packs, not authority
+globs: packages/skills/**/*.cjs,skills/**/*.md,skills.manifest.json
+alwaysApply: false
+---
+
+# Skill rules
+
+- `skills/` and `skills.manifest.json` are declarative. Never `eval`, `require`, or execute skill files.
+- Load only the selected `SKILL.md` prompt. Do not inject every skill prompt into every turn.
+- Manifest permissions are requirements, not grants. Tools still come from the Tool Registry.
+- Validate paths so they remain under `skills/<id>/SKILL.md`.
+- Fail closed on a malformed pack: load nothing rather than a partial unsafe set.
+- Record the skill id in audit events. Do not log skill prompts or user secrets.
+
+```text
+User → Orchestrator → Skill Router → selected prompt
+                         ↓
+                   Tool Registry → Policy Engine → approval → tool
+```

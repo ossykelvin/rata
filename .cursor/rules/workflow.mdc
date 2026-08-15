@@ -1,0 +1,12 @@
+---
+description: Rata development workflow and source ownership
+alwaysApply: true
+---
+
+- Read `AGENTS.md`, `AGENT_WORKBOOK.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, and `docs/TASKS.md` before editing.
+- Record active work in `AGENT_WORKBOOK.md` before material changes and update it with completed changes, validation, and blockers at handoff. Preserve other entries and never record secrets or sensitive user content.
+- Run `npm run verify` before handing off a code change. Use `npm run dev` for Electron UI smoke testing.
+- Keep React UI in `src/`, Electron composition in `electron/main.cjs`, native MVP adapters in `electron/mvp-tools.cjs`, runtime validators in `packages/contracts/`, and provider-independent runtime code in `packages/agent-core/`.
+- Add behavioral tests under `tests/` and update documentation when a public contract or user-visible capability changes.
+- Do not edit generated output under `dist/`, `release/`, or dependencies under `node_modules/`.
+- Keep each change aligned to one ticket in `docs/TASKS.md`; avoid combining future provider, voice, bridge, and connector milestones.

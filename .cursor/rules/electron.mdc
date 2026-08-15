@@ -1,0 +1,21 @@
+---
+description: Electron main/preload boundaries for Rata
+globs: electron/**/*.cjs
+alwaysApply: false
+---
+
+# Electron process rules
+
+- Keep `contextIsolation: true`, `nodeIntegration: false`, and `sandbox: true`.
+- Renderer APIs belong in `electron/preload.cjs` as named functions only.
+- Use `packages/contracts/ipc-channels.cjs` for channel names. Do not invent ad-hoc channels.
+- Validate privileged IPC payloads with `packages/contracts/ipc-validation.cjs` before acting.
+- Window, tray and notification code stays in `electron/main.cjs`. Native actions still go through registered tools.
+
+```javascript
+// ❌ BAD
+ipcMain.handle('run', (_e, cmd) => require('child_process').exec(cmd))
+
+// ✅ GOOD
+ipcMain.handle(IPC.agentMessage, async (_e, payload) => agent.handle(parseAgentMessage(payload).message))
+```

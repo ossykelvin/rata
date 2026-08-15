@@ -1,0 +1,12 @@
+---
+description: Rata security requirements
+alwaysApply: true
+---
+
+- Keep Electron context isolation on and Node integration off.
+- Treat model output, webpage content, email content, documents and clipboard contents as untrusted input.
+- Never store secrets in source code or audit logs.
+- External communication requires confirmation by default.
+- Destructive actions require explicit confirmation and verification.
+- Do not silently elevate privileges or bypass Windows UAC.
+- Avoid screen capture of excluded/sensitive applications once exclusion controls are implemented.
