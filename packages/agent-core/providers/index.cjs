@@ -53,13 +53,15 @@ function createProviderChain({
   }
 
   /** Ordered candidates for this request. */
-  function plan(prompt) {
+  function plan(prompt, { preferredProvider = null } = {}) {
     if (mode === 'mock') return [mock]
     if (mode === 'gemini') return [available('gemini'), mock].filter(Boolean)
     if (mode === 'openrouter') return [available('openrouter'), mock].filter(Boolean)
 
     const primary = available('gemini')
     const secondary = available('openrouter')
+    if (preferredProvider === 'gemini') return [primary, secondary, mock].filter(Boolean)
+    if (preferredProvider === 'openrouter') return [secondary, primary, mock].filter(Boolean)
     // Complex work goes to the secondary first; it is the stronger model in
     // this configuration and a fallback afterwards would double the latency.
     const ordered = isComplex(prompt) ? [secondary, primary] : [primary, secondary]
@@ -82,8 +84,8 @@ function createProviderChain({
   /**
    * @returns {{text, model, provider, attempts: Array<{provider, error}>}}
    */
-  async function generate({ messages, signal, prompt = '' }) {
-    const candidates = plan(prompt)
+  async function generate({ messages, signal, prompt = '', preferredProvider = null }) {
+    const candidates = plan(prompt, { preferredProvider })
     const attempts = []
     let lastError = null
 

@@ -131,7 +131,7 @@ class MockAgent {
         kind: 'research-web',
         question: text,
         approvalDetail:
-          'Send this query to Serper, then fetch the first public result for AI synthesis. Both requests leave your machine.'
+          'Send this query to Serper, then fetch the first public result for AI synthesis. Each request leaves your machine.'
       })
     }
 
@@ -207,10 +207,19 @@ class MockAgent {
 
     if (skillId === 'web-search' && routed.missingTools.length === 0) {
       return this.runTool('web.search', { query: text }, 'Research the web', {
-        kind: 'research-web',
+          kind: 'research-web',
+          question: text,
+          approvalDetail:
+            'Send this query to Serper, then fetch the first public result for AI synthesis. Each request leaves your machine.'
+      })
+    }
+
+    if (skillId === 'trivia' && routed.missingTools.length === 0) {
+      return this.runTool('web.search', { query: text }, 'Verify trivia answer', {
+        kind: 'trivia-search',
         question: text,
         approvalDetail:
-          'Send this query to Serper, then fetch the first public result for AI synthesis. Both requests leave your machine.'
+          'Send this trivia question to Serper, then use the returned evidence with Gemini. OpenRouter is the fallback if Gemini cannot answer.'
       })
     }
 
@@ -288,6 +297,9 @@ class MockAgent {
       if (continuation?.kind === 'research-web') {
         return this.continueWebResearch(continuation.question, result, continuation.approved === true)
       }
+      if (continuation?.kind === 'trivia-search') {
+        return this.answerTriviaWithSearch(continuation.question, result)
+      }
       return { message: result.message, state: 'success' }
     } catch (error) {
       this.activity('Tool failed', `${id}: ${error.message}`, 'error')
@@ -349,6 +361,52 @@ class MockAgent {
       const reason = error instanceof Error ? error.message : 'Unknown provider failure.'
       this.activity('Provider failed', reason, 'error')
       return { message: `I fetched the page, but couldn't summarise it: ${reason}`, state: 'error' }
+    }
+  }
+
+  async answerTriviaWithSearch(question, searchResult) {
+    if (!this.provider) return { message: searchResult.message, state: 'success' }
+
+    let skillPrompt = ''
+    try {
+      skillPrompt = this.skills?.loader?.loadPrompt?.('trivia') || ''
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Unknown skill prompt failure.'
+      this.activity('Skill prompt failed', `trivia: ${reason}`, 'warning')
+    }
+
+    const evidence = searchResult.results?.length
+      ? searchResult.results
+          .map((item, index) => [
+            `Result ${index + 1}`,
+            `Title: ${item.title}`,
+            `URL: ${item.link}`,
+            `Snippet: ${item.snippet}`
+          ].join('\n'))
+          .join('\n\n')
+      : 'Serper returned no usable results for this question.'
+
+    try {
+      const messages = [
+        { role: 'system', content: SYSTEM_PROMPT },
+        ...(skillPrompt ? [{ role: 'system', content: skillPrompt }] : []),
+        { role: 'user', content: question },
+        { role: 'context', content: evidence }
+      ]
+      const result = await this.provider.generate({
+        prompt: question,
+        preferredProvider: 'gemini',
+        messages
+      })
+      for (const attempt of result.attempts || []) {
+        this.activity('Provider fallback', `${attempt.provider} did not answer: ${attempt.error}`, 'warning')
+      }
+      this.activity('Trivia answered', `${result.provider} (${result.model}) after Serper verification`, 'success')
+      return { message: result.text, state: 'success' }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Unknown provider failure.'
+      this.activity('Provider failed', reason, 'error')
+      return { message: `I searched for evidence, but couldn't answer the trivia question: ${reason}`, state: 'error' }
     }
   }
 }

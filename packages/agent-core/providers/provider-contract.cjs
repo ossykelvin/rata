@@ -12,7 +12,8 @@
  *   id            stable slug, also the value of the `provider` setting
  *   label         human-readable, safe to show in the UI
  *   isConfigured  whether the credential needed to call it is present
- *   generate      ({ messages, signal }) => { text, model, provider }
+ *   generate      ({ messages, signal, preferredProvider? }) =>
+ *                   { text, model, provider }
  *
  * `messages` is `[{ role: 'system'|'user'|'assistant'|'context', content }]`.
  * The `context` role carries retrieved material (web results, file text). It

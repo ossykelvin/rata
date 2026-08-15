@@ -171,6 +171,8 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 **Runtime diagnosis:** The user's live chat still reported mock mode because Electron and Vite were running from the separate `rata-overlay-drag` worktree, where ignored `.env.local` credentials were absent. Stopped only that verified stale process tree and relaunched this primary checkout. The new runtime recorded `mode=auto (RATA_AI_PROVIDER) gemini=true openrouter=true search=true` and a successful Gemini response using `gemini-2.5-flash`; a separate redacted live adapter check also passed. No credential values or source configuration changed.
 
+**Trivia routing:** Added a Trivia-specific orchestration continuation: every routed Trivia & General Knowledge request executes approved Serper search first, sends the bounded result snippets as fenced `context`, and asks the provider chain to prefer Gemini then OpenRouter in `auto` mode. Explicitly pinned provider modes remain authoritative. An injected check confirmed `Serper → Gemini failure → OpenRouter success` without exposing either credential. The Lane H request must cover ordering, approval rejection, prompt loading, fenced evidence and pinned-mode precedence.
+
 ### 2026-08-15 — Codex — WEB-001 safe web fetch and research synthesis
 
 **Status:** BLOCKED ON PHASE 0 (branch `codex/WEB-001-web-fetch-pipeline`, issue #30)

@@ -26,6 +26,11 @@ latency. Each provider carries its own timeout (Gemini 20s, OpenRouter 45s) so a
 hung primary hands over rather than blocking. Mock is the terminal fallback so
 the user always receives an answer.
 
+An orchestrated skill may supply a preferred provider when its product flow
+declares a specific order. The hint applies only in `auto` mode: Trivia uses
+Serper evidence, then prefers Gemini, then OpenRouter, with mock still terminal.
+An explicitly pinned `gemini`, `openrouter` or `mock` mode remains authoritative.
+
 **Mock stays the default.** The stored `provider` setting ships as `mock`, so a
 fresh install performs no network egress until the user opts in. The `provider`
 setting is constrained to known ids; an arbitrary slug was previously accepted.
@@ -59,5 +64,7 @@ request headers, never in a URL, so they cannot leak through a logged endpoint.
   is a real privacy consequence, not an oversight.
 - The complexity heuristic is a routing hint, never a security decision. Both
   providers are equally untrusted to the runtime.
+- A skill-level provider preference is also a routing hint, not access to a
+  provider credential. Skills and tool results never receive provider secrets.
 - A plain env file is still a development convenience. Production credentials
   belong in OS-backed secret storage — unchanged from `docs/SECURITY.md`.
