@@ -244,6 +244,8 @@ if (!hasSingleInstanceLock) {
       // Audit the refusal without recording payloads.
       onBlocked: ({ url }) => logActivity('Blocked navigation', `Refused a foreign destination: ${String(url)}`, 'warning')
     })
+    // REVIEW-001 M4 / Codex b1d9c52: renderer `microphoneEnabled` is not a
+    // boundary. Deny media unless the setting is on; deny every other permission.
     applySessionPermissionHandler(session.defaultSession, () => store.getSettings())
     const registry = createToolRegistry({
       dependencies: {

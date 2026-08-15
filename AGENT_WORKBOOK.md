@@ -282,6 +282,8 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 **Still open:** configurable cloud STT/TTS adapters (`packages/agent-core/voice/`, Lane G voice channels).
 
+**2026-08-16 — Codex b1d9c52:** The WEB-001 workbook restated REVIEW-001 M4 after probing a checkout that did not include this branch. This PR already registers `setPermissionRequestHandler` and `setPermissionCheckHandler` on `session.defaultSession` before windows are created. `media`/`microphone` are allowed only when `microphoneEnabled === true` and requested types are audio-only. Every other renderer permission is denied. The renderer checkbox remains a UI affordance only.
+
 ---
 
 ### 2026-08-15 — FIX — Overlay drag after P0-4 overflow clip
