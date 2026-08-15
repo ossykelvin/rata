@@ -23,11 +23,23 @@ function validateHandlerModule(module, IPC) {
   }
 }
 
-function registerIpcHandlers({ ipcMain, IPC, services, modules = discoverHandlerModules() }) {
+function registerIpcHandlers({
+  ipcMain,
+  IPC,
+  services,
+  isTrustedSender,
+  onUntrustedSender = () => {},
+  modules = discoverHandlerModules()
+}) {
   if (!ipcMain || typeof ipcMain.handle !== 'function' || typeof ipcMain.removeHandler !== 'function') {
     throw new TypeError('A scoped ipcMain implementation is required.')
   }
   if (!IPC || typeof IPC !== 'object') throw new TypeError('The IPC contract aggregate is required.')
+  // REVIEW-001 H4. Required rather than optional so a future caller cannot
+  // register privileged channels without a sender check by simply omitting it.
+  if (typeof isTrustedSender !== 'function') {
+    throw new TypeError('registerIpcHandlers requires isTrustedSender() to validate the calling frame.')
+  }
 
   const ids = new Set()
   const ownersByChannel = new Map()
@@ -54,7 +66,16 @@ function registerIpcHandlers({ ipcMain, IPC, services, modules = discoverHandler
         if (typeof handler !== 'function') throw new TypeError(`IPC handler for ${key} must be a function.`)
         registeredByModule.add(key)
         const channel = IPC[key]
-        ipcMain.handle(channel, handler)
+        // Every handler is wrapped here so the sender check cannot be
+        // forgotten by an individual module. Modules never see an untrusted
+        // call.
+        ipcMain.handle(channel, (event, ...args) => {
+          if (!isTrustedSender(event)) {
+            onUntrustedSender({ channel, url: event?.senderFrame?.url })
+            throw new Error(`Blocked a privileged IPC call to ${channel} from an untrusted frame.`)
+          }
+          return handler(event, ...args)
+        })
         registeredChannels.push(channel)
       }
       module.register({ handle, IPC, services })
