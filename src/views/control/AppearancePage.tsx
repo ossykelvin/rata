@@ -12,7 +12,7 @@ export function AppearancePage({ ctx }: { ctx: ControlCenterContextValue }) {
         <label className="slider-row"><div><strong>Overlay opacity</strong><span>{Math.round(settings.opacity * 100)}%</span></div><input type="range" min="0.55" max="1" step="0.05" value={settings.opacity} onChange={e => setSetting('opacity', Number(e.target.value))} /></label>
         <div className="button-row"><button className="button-secondary" onClick={() => window.rata.showOverlay()}>Show overlay</button><button className="button-secondary" onClick={() => window.rata.hideOverlay()}>Hide overlay</button></div>
       </section>
-      <section className="preview-card"><RataAvatar state="idle" /><p>The original concept crop is the temporary character art. Agent states still drive classes and labels. Drop production per-state files into public/character/ and remove temporaryArt from the catalog; missing files fall back to a silhouette.</p></section>
+      <section className="preview-card"><RataAvatar state="idle" /><p>Idle uses the original rata-concept.png hero. Other agent states swap to matching art in public/character/. Missing files fall back to a silhouette.</p></section>
     </div>
   )
 }

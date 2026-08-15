@@ -162,6 +162,17 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ## Cursor
 
+### 2026-08-15 — ISSUE-17 follow-up — Per-state character art
+
+**Status:** DONE (branch `cursor/ISSUE-17-restore-character-image`, PR #18)
+**Branch:** `cursor/ISSUE-17-restore-character-image`
+
+**Done:** Idle/default uses `public/rata-concept.png`. Other states swap sliced PNGs under `public/character/` (peeking, thinking, question, laptop, happy, surprised, sleeping). Catalog, classes, labels, and silhouette fallback stay event-driven.
+
+**Validation:** `npm run verify` passed.
+
+---
+
 ### 2026-08-15 — ISSUE-17 — Restore original Rata character image
 
 **Status:** DONE (branch `cursor/ISSUE-17-restore-character-image`, PR #18)

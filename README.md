@@ -107,4 +107,4 @@ Claude should also read `CLAUDE.md`. Cursor loads rules from `.cursor/rules/`.
 
 ## Character asset note
 
-The overlay character is event-driven. The original `public/rata-concept.png` crop is the temporary art for every state; a missing file falls back to a letter-mark silhouette. See `docs/CHARACTER-ASSETS.md`.
+The overlay character is event-driven. Idle uses `public/rata-concept.png`; other states swap images from `public/character/`. A missing file falls back to a letter-mark silhouette. See `docs/CHARACTER-ASSETS.md`.

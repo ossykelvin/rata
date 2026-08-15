@@ -1,12 +1,11 @@
 {
-  "temporaryArt": { "src": "./rata-concept.png", "crop": true },
-  "idle": { "file": "idle.svg", "label": "idle" },
-  "listening": { "file": "listening.svg", "label": "listening" },
-  "thinking": { "file": "thinking.svg", "label": "thinking" },
-  "awaiting_approval": { "file": "awaiting_approval.svg", "label": "awaiting approval" },
-  "working": { "file": "working.svg", "label": "working" },
-  "typing": { "file": "working.svg", "label": "working" },
-  "success": { "file": "success.svg", "label": "success" },
-  "error": { "file": "error.svg", "label": "error" },
-  "sleeping": { "file": "sleeping.svg", "label": "sleeping" }
+  "idle": { "src": "./rata-concept.png", "label": "idle" },
+  "listening": { "file": "14_widget_peeking.png", "label": "listening" },
+  "thinking": { "file": "09_expression_thinking.png", "label": "thinking" },
+  "awaiting_approval": { "file": "08_expression_question.png", "label": "awaiting approval" },
+  "working": { "file": "17_widget_laptop.png", "label": "working" },
+  "typing": { "file": "17_widget_laptop.png", "label": "working" },
+  "success": { "file": "06_expression_happy.png", "label": "success" },
+  "error": { "file": "11_expression_surprised.png", "label": "error" },
+  "sleeping": { "file": "15_widget_sleeping.png", "label": "sleeping" }
 }
