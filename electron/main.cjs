@@ -7,7 +7,8 @@ const { JsonStore } = require('./store.cjs')
 const { PolicyEngine } = require('../packages/agent-core/policy-engine.cjs')
 const { MockAgent } = require('../packages/agent-core/mock-agent.cjs')
 const { createMvpRegistry } = require('./mvp-tools.cjs')
-const { parseAgentMessage, parseApprovalRequest, parseSettingChange } = require('../packages/contracts/ipc-validation.cjs')
+const { registerIpcHandlers } = require('./ipc/index.cjs')
+const { createSecurityPolicy } = require('./security.cjs')
 const { IPC } = require('../packages/contracts/ipc-channels.cjs')
 const { createSkillRegistry, createSkillRouter, createSkillLoader } = require('../packages/skills/index.cjs')
 
@@ -17,14 +18,24 @@ let tray
 let store
 let agent
 let skillRuntime
+let security
 
 const isDev = !app.isPackaged
 const DEV_URL = 'http://127.0.0.1:5173/'
 const PROJECT_ROOT = path.join(__dirname, '..')
+const PACKAGED_ENTRY = pathToFileURL(path.join(__dirname, '..', 'dist', 'index.html')).href
 
 function rendererTarget(route) {
   if (isDev) return `${DEV_URL}#/${route}`
-  return `${pathToFileURL(path.join(__dirname, '..', 'dist', 'index.html')).href}#/${route}`
+  return `${PACKAGED_ENTRY}#/${route}`
+}
+
+/**
+ * The only URLs that count as Rata's own renderer. Everything else is refused
+ * navigation and refused IPC. See electron/security.cjs (REVIEW-001 H3/H4).
+ */
+function rendererOrigins() {
+  return isDev ? [DEV_URL] : [PACKAGED_ENTRY]
 }
 
 function logActivity(action, detail, status = 'info') {
@@ -61,6 +72,7 @@ function createOverlay() {
     backgroundColor: '#00000000',
     webPreferences: windowPreferences()
   })
+  security.applyWindowGuards(overlayWindow)
   overlayWindow.setAlwaysOnTop(settings.alwaysOnTop, 'floating')
   overlayWindow.loadURL(rendererTarget('overlay'))
   overlayWindow.once('ready-to-show', () => overlayWindow.showInactive())
@@ -78,6 +90,7 @@ function createControlCenter() {
     autoHideMenuBar: true,
     webPreferences: windowPreferences()
   })
+  security.applyWindowGuards(controlWindow)
   controlWindow.loadURL(rendererTarget('control'))
   controlWindow.once('ready-to-show', () => controlWindow.show())
   controlWindow.on('close', event => {
@@ -119,54 +132,6 @@ function broadcastSettings(settings) {
   for (const win of BrowserWindow.getAllWindows()) win.webContents.send(IPC.settingsChanged, settings)
 }
 
-function listPublicSkills() {
-  return skillRuntime?.registry.list() || []
-}
-
-function registerIpc() {
-  ipcMain.handle(IPC.getSettings, () => store.getSettings())
-  ipcMain.handle(IPC.setSetting, (_event, payload) => {
-    const { key, value } = parseSettingChange(payload)
-    const settings = store.setSetting(key, value)
-    if (key === 'alwaysOnTop' && overlayWindow) overlayWindow.setAlwaysOnTop(Boolean(value), 'floating')
-    broadcastSettings(settings)
-    logActivity('Setting changed', `${key} = ${String(value)}`, 'info')
-    return settings
-  })
-  ipcMain.handle(IPC.getActivity, () => store.getActivity())
-  ipcMain.handle(IPC.getSkills, () => ({
-    loaded: Boolean(skillRuntime?.registry.loaded),
-    error: skillRuntime?.registry.loadError || null,
-    pack: skillRuntime?.registry.pack,
-    skills: listPublicSkills()
-  }))
-  ipcMain.handle(IPC.agentMessage, async (_event, payload) => {
-    const { message } = parseAgentMessage(payload)
-    const result = await agent.handle(message)
-    overlayWindow?.webContents.send(IPC.overlayMessage, { message: result.message, state: result.state })
-    return result
-  })
-  ipcMain.handle(IPC.approveAction, async (_event, payload) => {
-    const { id } = parseApprovalRequest(payload)
-    const result = await agent.approve(id)
-    overlayWindow?.webContents.send(IPC.overlayMessage, { message: result.message, state: result.state })
-    return result
-  })
-  ipcMain.handle(IPC.rejectAction, async (_event, payload) => {
-    const { id } = parseApprovalRequest(payload)
-    return agent.reject(id)
-  })
-  ipcMain.handle(IPC.showControl, () => showControl())
-  ipcMain.handle(IPC.showOverlay, () => overlayWindow?.show())
-  ipcMain.handle(IPC.hideOverlay, () => overlayWindow?.hide())
-  ipcMain.handle(IPC.testNotification, () => {
-    const settings = store.getSettings()
-    if (settings.doNotDisturb) return
-    if (Notification.isSupported()) new Notification({ title: 'Rata', body: 'I\'m here and ready to help.' }).show()
-    logActivity('Notification tested', 'Desktop notification requested.', 'success')
-  })
-}
-
 function createSkillRuntime(toolRegistry) {
   const registry = createSkillRegistry({ rootDir: PROJECT_ROOT, toolRegistry })
   const loader = createSkillLoader({ registry })
@@ -179,6 +144,11 @@ function createSkillRuntime(toolRegistry) {
 
 app.whenReady().then(() => {
   store = new JsonStore(app)
+  security = createSecurityPolicy({
+    allowedPrefixes: rendererOrigins(),
+    // Audit the refusal without recording payloads.
+    onBlocked: ({ url }) => logActivity('Blocked navigation', `Refused a foreign destination: ${String(url)}`, 'warning')
+  })
   const registry = createMvpRegistry({ spawnProcess: spawn, clipboardApi: clipboard })
   const policy = new PolicyEngine()
   skillRuntime = createSkillRuntime(registry)
@@ -189,7 +159,23 @@ app.whenReady().then(() => {
     activity: logActivity,
     skills: skillRuntime
   })
-  registerIpc()
+  registerIpcHandlers({
+    ipcMain,
+    IPC,
+    isTrustedSender: event => security.isTrustedSender(event),
+    onUntrustedSender: ({ channel, url }) =>
+      logActivity('Blocked IPC call', `${channel} was called from an untrusted frame: ${String(url)}`, 'error'),
+    services: {
+      getStore: () => store,
+      getAgent: () => agent,
+      getSkillRuntime: () => skillRuntime,
+      getOverlayWindow: () => overlayWindow,
+      showControl,
+      broadcastSettings,
+      logActivity,
+      Notification
+    }
+  })
   createOverlay()
   createControlCenter()
   createTray()
