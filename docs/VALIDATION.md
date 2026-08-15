@@ -43,5 +43,6 @@ Then verify:
 10. `what is 36 * 14?` returns `504` without approval.
 11. Control Center Skills page lists installed skills and marks unregistered tools.
 12. Overlay and Control Center character follow agent states (`idle`, `listening`, `thinking`, `awaiting_approval`, `working`, `success`, `error`, `sleeping`). Idle shows `public/rata-concept.png`; other states swap images. A missing file falls back to the letter-mark silhouette.
+13. A long overlay reply stays inside the 360×470 window: the Rata/state header stays visible, the message body scrolls vertically, long URLs wrap, and the avatar plus quick input remain usable. Short replies still look compact.
 
 The unpacked build currently uses Electron's default application icon. Add a production `.ico` asset before installer release.

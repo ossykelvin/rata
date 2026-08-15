@@ -12,7 +12,9 @@ export function SpeechBubble({ message, state }: Props) {
         <strong>Rata</strong>
         <span className={`state-chip state-${state}`}>{state.replaceAll('_', ' ')}</span>
       </div>
-      <p>{message}</p>
+      <div className="bubble-body">
+        <p>{message}</p>
+      </div>
     </div>
   )
 }
