@@ -1,4 +1,4 @@
-import { skillStatusLabel, type ControlCenterContextValue } from './model'
+import { skillStatusLabel, type ControlCenterContextValue, type ControlPageRegistration } from './model'
 
 export function SkillsPage({ ctx }: { ctx: ControlCenterContextValue }) {
   const { skills } = ctx
@@ -33,4 +33,12 @@ export function SkillsPage({ ctx }: { ctx: ControlCenterContextValue }) {
       )}
     </section>
   )
+}
+
+export const controlPage: ControlPageRegistration = {
+  id: 'skills',
+  icon: '▣',
+  label: 'Skills',
+  order: 40,
+  render: ctx => <SkillsPage ctx={ctx} />
 }

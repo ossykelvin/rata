@@ -3,7 +3,7 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 
-const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'styles', 'global.css'), 'utf8')
+const css = fs.readFileSync(path.join(__dirname, '..', 'src', 'styles', 'overlay.css'), 'utf8')
 const bubble = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', 'SpeechBubble.tsx'), 'utf8')
 
 test('speech bubble keeps a fixed header and a scrollable body', () => {

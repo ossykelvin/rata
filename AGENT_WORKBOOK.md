@@ -78,6 +78,8 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | READY FOR REVIEW, PR #16 |
 | Codex | P0-2 modular tool registration | `codex/P0-2-modular-tool-registration` | DRAFT PR #20 — awaiting Lane H tests + Claude review |
 | Codex | P0-3 skill manifest fragments | `codex/P0-3-skill-manifest-fragments` | DRAFT PR #25 — awaiting Lane H tests + Claude review |
+| Cursor | P0-4 decouple renderer | `cursor/P0-4-decouple-renderer` | DONE, PR pending |
+| Cursor | ISSUE-34 overlay widget drag | `cursor/ISSUE-34-overlay-drag` | DONE, PR #36 — rebase after P0-4 CSS split |
 | Cursor | ISSUE-34 overlay widget drag | `cursor/ISSUE-34-overlay-drag` | DONE, PR #36 |
 | Cursor | — | — | idle |
 | Cursor | ISSUE-34 overlay widget drag | `cursor/ISSUE-34-overlay-drag` | IN PROGRESS |
@@ -263,6 +265,19 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 ---
 
 ## Cursor
+
+### 2026-08-15 — P0-4 — Decouple the renderer
+
+**Status:** DONE (branch `cursor/P0-4-decouple-renderer`)
+**Branch:** `cursor/P0-4-decouple-renderer`
+
+**Done:** Split renderer types into `src/types/` and styles into `base`/`overlay`/`control`. Control Center pages export `controlPage` and load through `import.meta.glob`. Overlay uses `useAgentConversation`. Sequenced after #32 (merged). #36 should rebase onto `src/styles/overlay.css`.
+
+**Files touched:** `src/types/`, `src/styles/{base,overlay,control}.css`, `src/main.tsx`, `src/views/Overlay.tsx`, `src/views/ControlCenter.tsx`, `src/views/control/`, `src/hooks/useAgentConversation.ts`, `tests/renderer-decouple.test.cjs`, `tests/overlay-speech-bubble.test.cjs`, `docs/CODEMAP.md`, `docs/ARCHITECTURE.md`. Removed `src/types.ts` and `src/styles/global.css`.
+
+**Validation:** `npm run verify` passed (141 tests, lint, typecheck, build).
+
+---
 
 ### 2026-08-15 — ISSUE-34 — Overlay widget drag
 

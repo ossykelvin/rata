@@ -21,6 +21,9 @@ src/views (React UI)
 | Path | Owns | Must not |
 |---|---|---|
 | `src/` | Overlay, Control Center, character presentation | Node, Electron, OS, tools |
+| `src/types/` | Renderer domain types and barrel | Privileged contracts or Electron APIs |
+| `src/styles/` | `base.css`, `overlay.css`, `control.css`, plus per-component sheets | Privileged styling or Node imports |
+| `src/views/control/` | Self-registered Control Center pages (`controlPage` + `import.meta.glob`) | Editing `ControlCenter.tsx` or `model.ts` to add a page |
 | `src/components/character/` | Event-driven character states and asset catalog | Tools, policy, IPC |
 | `electron/preload.cjs` | Defines installation of the composed `window.rata` bridge; bundled before launch | Generic `ipcRenderer` / `fs` |
 | `electron/bridge/` | Per-domain preload bridge fragments | Raw or undeclared IPC channels |
@@ -53,4 +56,4 @@ src/views (React UI)
 1. `RATA-002` provider interface in `packages/agent-core/`, not in React.
 2. Load `packages/skills/loader.cjs` prompts only after a provider exists.
 3. Add each tool domain as a declared module in `electron/tools/` with tests.
-4. Keep new Control Center pages under `src/views/control/`.
+4. Add a Control Center page as `src/views/control/*Page.tsx` that exports `controlPage`. Do not edit `ControlCenter.tsx` or `model.ts` to register it.

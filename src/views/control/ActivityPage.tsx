@@ -1,5 +1,5 @@
 import { ActivityList } from '../../components/ActivityList'
-import type { ControlCenterContextValue } from './model'
+import type { ControlCenterContextValue, ControlPageRegistration } from './model'
 
 export function ActivityPage({ ctx }: { ctx: ControlCenterContextValue }) {
   return (
@@ -8,4 +8,12 @@ export function ActivityPage({ ctx }: { ctx: ControlCenterContextValue }) {
       <ActivityList activity={ctx.activity} />
     </section>
   )
+}
+
+export const controlPage: ControlPageRegistration = {
+  id: 'activity',
+  icon: '↻',
+  label: 'Activity',
+  order: 50,
+  render: ctx => <ActivityPage ctx={ctx} />
 }

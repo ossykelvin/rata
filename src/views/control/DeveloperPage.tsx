@@ -1,3 +1,5 @@
+import type { ControlPageRegistration } from './model'
+
 export function DeveloperPage() {
   return (
     <section className="panel page-panel developer-page">
@@ -16,4 +18,12 @@ export function DeveloperPage() {
       </ol>
     </section>
   )
+}
+
+export const controlPage: ControlPageRegistration = {
+  id: 'developer',
+  icon: '⌘',
+  label: 'Developer',
+  order: 80,
+  render: () => <DeveloperPage />
 }

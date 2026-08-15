@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { ControlCenterContextValue } from './model'
+import type { ControlCenterContextValue, ControlPageRegistration } from './model'
 
 export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
   const { settings, setSetting } = ctx
@@ -29,4 +29,12 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
       </label>
     </section>
   )
+}
+
+export const controlPage: ControlPageRegistration = {
+  id: 'permissions',
+  icon: '◈',
+  label: 'Permissions',
+  order: 30,
+  render: ctx => <PermissionsPage ctx={ctx} />
 }

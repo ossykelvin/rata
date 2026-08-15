@@ -1,3 +1,5 @@
+import type { ControlPageRegistration } from './model'
+
 function Integration({ title, icon, status, description }: { title: string; icon: string; status: string; description: string }) {
   return (
     <section className="integration-card">
@@ -19,4 +21,12 @@ export function IntegrationsPage() {
       <Integration title="AI Providers" icon="AI" status="Mock" description="OpenAI, Anthropic, Gemini and local adapters fit behind the provider interface." />
     </div>
   )
+}
+
+export const controlPage: ControlPageRegistration = {
+  id: 'integrations',
+  icon: '⛓',
+  label: 'Integrations',
+  order: 70,
+  render: () => <IntegrationsPage />
 }
