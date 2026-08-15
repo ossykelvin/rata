@@ -32,8 +32,14 @@ let runtimeConfig
 let providers
 
 const isDev = !app.isPackaged
+const APP_ID = 'uk.koptechnology.rata'
+const APP_ICON_FILE = '24_dialog_avatar_reply.png'
 const DEV_URL = 'http://127.0.0.1:5173/'
 const PROJECT_ROOT = path.join(__dirname, '..')
+
+if (process.platform === 'win32') {
+  app.setAppUserModelId(APP_ID)
+}
 const PACKAGED_ENTRY = pathToFileURL(path.join(__dirname, '..', 'dist', 'index.html')).href
 const hasSingleInstanceLock = app.requestSingleInstanceLock()
 const PRELOAD_BUNDLE = path.join(PROJECT_ROOT, 'dist-electron', 'preload.cjs')
@@ -86,6 +92,7 @@ function createOverlay() {
     skipTaskbar: true,
     hasShadow: false,
     backgroundColor: '#00000000',
+    icon: loadAppIcon(),
     webPreferences: windowPreferences()
   })
   security.applyWindowGuards(overlayWindow)
@@ -104,6 +111,7 @@ function createControlCenter() {
     show: false,
     backgroundColor: '#07142f',
     autoHideMenuBar: true,
+    icon: loadAppIcon(),
     webPreferences: windowPreferences()
   })
   security.applyWindowGuards(controlWindow)
@@ -117,10 +125,20 @@ function createControlCenter() {
   })
 }
 
+function appIconPath() {
+  return isDev
+    ? path.join(PROJECT_ROOT, 'public', APP_ICON_FILE)
+    : path.join(process.resourcesPath, APP_ICON_FILE)
+}
+
+function loadAppIcon() {
+  const image = nativeImage.createFromPath(appIconPath())
+  return image.isEmpty() ? undefined : image
+}
+
 function trayIcon() {
-  const imagePath = isDev ? path.join(__dirname, '..', 'public', 'rata-concept.png') : path.join(process.resourcesPath, 'rata-concept.png')
-  const image = nativeImage.createFromPath(imagePath)
-  if (!image.isEmpty()) return image.resize({ width: 18, height: 18 })
+  const image = loadAppIcon()
+  if (image) return image.resize({ width: 24, height: 24 })
   return nativeImage.createFromDataURL('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAAAMElEQVR4nGNgGAWjYBSMglEwCkbBKBicwPj//38GKgATA8XAqAajYBSMglEwCkbBKBgFwxUAAG0qB/H2mS0qAAAAAElFTkSuQmCC')
 }
 

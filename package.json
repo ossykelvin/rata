@@ -57,9 +57,14 @@
       {
         "from": "public/rata-concept.png",
         "to": "rata-concept.png"
+      },
+      {
+        "from": "public/24_dialog_avatar_reply.png",
+        "to": "24_dialog_avatar_reply.png"
       }
     ],
     "win": {
+      "icon": "public/24_dialog_avatar_reply.png",
       "target": [
         "nsis"
       ]
