@@ -6,6 +6,9 @@ const IPC = Object.freeze({
   setSetting: 'rata:set-setting',
   getActivity: 'rata:get-activity',
   getSkills: 'rata:get-skills',
+  // Provider configuration status. Returns booleans and labels only — never a
+  // credential. See ADR-006.
+  getProviders: 'rata:get-providers',
   agentMessage: 'rata:agent-message',
   approveAction: 'rata:approve-action',
   rejectAction: 'rata:reject-action',

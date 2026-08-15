@@ -29,6 +29,7 @@ let agent
 let skillRuntime
 let security
 let runtimeConfig
+let providers
 
 const isDev = !app.isPackaged
 const DEV_URL = 'http://127.0.0.1:5173/'
@@ -210,6 +211,7 @@ if (!hasSingleInstanceLock) {
     })
     const registry = createMvpRegistry({ spawnProcess: spawn, clipboardApi: clipboard })
     registerSearchTools(registry, { apiKey: runtimeConfig.serper.apiKey })
+    providers = createProviders()
     const policy = new PolicyEngine()
     skillRuntime = createSkillRuntime(registry)
     agent = new MockAgent({
@@ -218,7 +220,7 @@ if (!hasSingleInstanceLock) {
       settings: () => store.getSettings(),
       activity: logActivity,
       skills: skillRuntime,
-      provider: createProviders()
+      provider: providers
     })
     registerIpcHandlers({
       ipcMain,
@@ -230,6 +232,9 @@ if (!hasSingleInstanceLock) {
         getStore: () => store,
         getAgent: () => agent,
         getSkillRuntime: () => skillRuntime,
+        getProvider: () => providers,
+        // Boolean only. The key itself never leaves this process.
+        isSearchConfigured: () => Boolean(runtimeConfig.serper.apiKey),
         getOverlayWindow: () => overlayWindow,
         showControl,
         broadcastSettings,
