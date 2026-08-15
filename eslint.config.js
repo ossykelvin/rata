@@ -23,6 +23,10 @@ export default [
       'dist/**',
       'dist-electron/**',
       'release/**',
+      // An unrelated project sitting untracked in the working tree. ESLint 10
+      // walks into it, finds its own config, and dies on a plugin this repo
+      // does not install. Not ours to lint.
+      'Handy-main/**',
       // TypeScript is covered by `tsc --noEmit`, not ESLint — see scope note.
       'src/**',
       '**/*.ts',
