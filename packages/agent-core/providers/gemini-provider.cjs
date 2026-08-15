@@ -2,7 +2,10 @@
 
 const { ProviderError, buildPrompt, safeErrorMessage } = require('./provider-contract.cjs')
 
-const DEFAULT_MODEL = 'gemini-2.0-flash'
+// Verified against GET /v1beta/models on 2026-08-15. Model ids are retired
+// without notice: a wrong name fails as HTTP 404, which looks like an auth
+// problem but is not. Override with GEMINI_MODEL.
+const DEFAULT_MODEL = 'gemini-2.5-flash'
 const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta'
 
 /**
