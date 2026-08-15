@@ -68,9 +68,9 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
-| Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, awaiting merge |
-| Codex | — | — | idle |
-| Cursor | — | — | idle |
+| Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, merged as #2 |
+| Codex | P0-1 modular IPC | `codex/P0-1-modular-ipc-boundary` | DRAFT PR #4 |
+| Cursor | RATA-003 character animation | `cursor/rata-003-character-animation-9241` | IN PROGRESS |
 
 ---
 
@@ -109,7 +109,14 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ## Cursor
 
-*No entries under the lane protocol yet. Earlier work is in the archive below.*
+### 2026-08-15 — RATA-003 — Character animation engine
+
+**Status:** IN PROGRESS
+**Branch:** `cursor/rata-003-character-animation-9241`
+
+**Scope:** Lane B only — `src/components/character/`, `src/styles/character.css`, `public/character/`. Event-driven state machine and graceful missing-asset fallback against SVG placeholders. Real character art remains BLOCKED-ON-HUMAN. No edits to `electron/`, `packages/contracts/`, or `packages/agent-core/`.
+
+**Not in this PR:** fixing `window.rata` being undefined (preload / P0-1). Overlay still duplicates `useAgentConversation` (P0-4).
 
 ---
 
