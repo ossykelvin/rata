@@ -78,6 +78,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | READY FOR REVIEW, PR #16 |
 | Codex | P0-2 modular tool registration | `codex/P0-2-modular-tool-registration` | DRAFT PR #20 — awaiting Lane H tests + Claude review |
 | Codex | P0-3 skill manifest fragments | `codex/P0-3-skill-manifest-fragments` | DRAFT PR #25 — awaiting Lane H tests + Claude review |
+| Cursor | ISSUE-34 overlay widget drag | `cursor/ISSUE-34-overlay-drag` | IN PROGRESS |
 | Cursor | — | — | idle |
 | Cursor | ISSUE-17 restore character image | `cursor/ISSUE-17-restore-character-image` | DONE, PR #18 |
 
@@ -250,6 +251,17 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 ---
 
 ## Cursor
+
+### 2026-08-15 — ISSUE-34 — Overlay widget drag
+
+**Status:** IN PROGRESS
+**Branch:** `cursor/ISSUE-34-overlay-drag`
+
+**Scope:** Lane B / renderer. Make grabbing Rata move the overlay. Keep the speech bubble message, approvals, and Ask input interactive. No Electron privilege-boundary edits.
+
+**Files currently touching:** `AGENT_WORKBOOK.md` (claim only; implementation follows).
+
+---
 
 ### 2026-08-15 — ISSUE-17 follow-up — Per-state character art
 
