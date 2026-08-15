@@ -20,12 +20,14 @@ const compatibility = require('../electron/mvp-tools.cjs')
 
 const TOOLS_DIR = path.join(__dirname, '..', 'electron', 'tools')
 
-/** The four tools the MVP ships. Changing this list is a security decision. */
-const EXPECTED_TOOL_IDS = ['calculator.evaluate', 'clipboard.write', 'file.delete', 'system.openApp']
+/** The tools the MVP ships. Changing this list is a security decision. */
+const EXPECTED_TOOL_IDS = ['calculator.evaluate', 'clipboard.write', 'file.delete', 'system.openApp', 'web.search']
 
 const DEPENDENCIES = Object.freeze({
   spawnProcess: () => ({ unref() {} }),
-  clipboardApi: { writeText() {} }
+  clipboardApi: { writeText() {} },
+  // A bound capability, never the API key. See electron/serper-client.cjs.
+  webSearch: async () => []
 })
 
 /** Minimal well-formed module, so each test varies exactly one thing. */
@@ -321,4 +323,49 @@ test('composition still executes tools only through the registry', async () => {
     /not in the MVP allow-list/
   )
   assert.deepEqual(spawned, ['notepad.exe'], 'a non-allow-listed name reached the spawner')
+})
+
+// --- web.search is a first-class discovered module -----------------------
+//
+// It used to be registered by a separate call in main.cjs after discovery,
+// because it needs a credential and the dependency bag carries none. It is now
+// discovered like every other domain, and receives a bound capability rather
+// than the API key.
+
+test('web.search is discovered, not bolted on after composition', () => {
+  assert.ok(discoverToolModules().some(module => module.id === 'web'), 'the web module was not discovered')
+  const registry = createMvpRegistry(DEPENDENCIES)
+  assert.equal(registry.has('web.search'), true)
+})
+
+test('the web module receives a capability, never the credential', () => {
+  const seen = []
+  const definitions = require('../electron/tools/web.cjs').create({
+    webSearch: async query => { seen.push(query); return [] }
+  })
+  // The dependency it consumes is a function, so there is no key on the
+  // module to read, log or forward.
+  assert.equal(definitions.length, 1)
+  const bag = { webSearch: async () => [] }
+  assert.deepEqual(Object.keys(bag), ['webSearch'])
+  assert.equal(typeof bag.webSearch, 'function')
+  assert.equal(JSON.stringify(bag).includes('apiKey'), false)
+})
+
+test('a missing search capability does not take down the whole registry', async () => {
+  // Unlike spawnProcess, absence here is legitimate — the user may have no
+  // Serper key. Composition must still succeed and every other tool survive.
+  const { webSearch, ...withoutSearch } = DEPENDENCIES
+  const registry = createMvpRegistry(withoutSearch)
+  assert.deepEqual(registry.list().map(tool => tool.id).sort(), EXPECTED_TOOL_IDS)
+  await assert.rejects(() => registry.execute('web.search', { query: 'test' }), /not configured/)
+})
+
+test('an unconfigured search key still registers the tool and fails at execute', async () => {
+  const { createSerperSearch } = require('../electron/serper-client.cjs')
+  const registry = createMvpRegistry({ ...DEPENDENCIES, webSearch: createSerperSearch({ apiKey: null }) })
+  // Registration must survive a missing credential, so the UI can explain why
+  // search is unavailable instead of the whole registry failing to build.
+  assert.equal(registry.has('web.search'), true)
+  await assert.rejects(() => registry.execute('web.search', { query: 'test' }), /not configured/)
 })

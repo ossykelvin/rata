@@ -4,7 +4,9 @@ const assert = require('node:assert/strict')
 const { ToolRegistry } = require('../packages/agent-core/tool-registry.cjs')
 const { PolicyEngine } = require('../packages/agent-core/policy-engine.cjs')
 const { MockAgent } = require('../packages/agent-core/mock-agent.cjs')
-const { registerSearchTools, MAX_QUERY_LENGTH } = require('../electron/search-tools.cjs')
+const webModule = require('../electron/tools/web.cjs')
+const { MAX_QUERY_LENGTH } = webModule
+const { createSerperSearch } = require('../electron/serper-client.cjs')
 const { parseEnv, loadRuntimeConfig, describeConfig } = require('../electron/config.cjs')
 
 function serperResponse(organic) {
@@ -13,7 +15,9 @@ function serperResponse(organic) {
 
 function harness({ apiKey = 'test-key', fetchImpl } = {}) {
   const registry = new ToolRegistry()
-  registerSearchTools(registry, { apiKey, fetchImpl: fetchImpl || serperResponse([]) })
+  for (const definition of webModule.create({ webSearch: createSerperSearch({ apiKey, fetchImpl: fetchImpl || serperResponse([]) }) })) {
+    registry.register(definition)
+  }
   return registry
 }
 
