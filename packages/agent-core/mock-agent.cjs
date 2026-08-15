@@ -127,7 +127,12 @@ class MockAgent {
     // the policy engine before it leaves the machine.
     const searchMatch = text.match(/^(?:search(?:\s+the\s+web)?(?:\s+for)?|google|look\s+up|find\s+online)\s+(.+)$/i)
     if (searchMatch && this.registry.has?.('web.search')) {
-      return this.runTool('web.search', { query: searchMatch[1].trim() }, 'Search the web')
+      return this.runTool('web.search', { query: searchMatch[1].trim() }, 'Research the web', {
+        kind: 'research-web',
+        question: text,
+        approvalDetail:
+          'Send this query to Serper, then fetch the first public result for AI synthesis. Both requests leave your machine.'
+      })
     }
 
     const routed = this.skills?.router?.route(text)
