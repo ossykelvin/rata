@@ -154,6 +154,16 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Codex
 
+### 2026-08-15 — Codex — CONFIG-001 activate local AI providers
+
+**Status:** DONE (branch `codex/CONFIG-001-activate-ai-providers`)
+
+**Scope:** Confirm the ignored local configuration supplies Gemini, OpenRouter, and Serper credentials; validate each service without exposing credentials; relaunch the current Electron build with that configuration. No secret or source-code change is planned.
+
+**Result:** `.env.local` remains ignored and resolves `RATA_AI_PROVIDER=auto` with Gemini, OpenRouter, and Serper configured. Redacted live calls succeeded against Gemini (`gemini-2.5-flash`), OpenRouter (`anthropic/claude-sonnet-5`), and Serper (HTTP 200). Rebuilt the six-module sandboxed preload and relaunched Electron; the renderer remained healthy at HTTP 200. No credential values were printed, committed, or sent to the renderer. GUI smoke testing remains human-owned.
+
+**Files touched:** `AGENT_WORKBOOK.md` only. Runtime secrets stayed exclusively in the existing ignored `.env.local`.
+
 ### 2026-08-15 — P0-3 — Skills manifest to per-skill fragments
 
 **Status:** DRAFT PR #25 — REVIEW REQUESTED
