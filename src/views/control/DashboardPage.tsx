@@ -1,6 +1,6 @@
 import { ActivityList } from '../../components/ActivityList'
 import { RataAvatar } from '../../components/RataAvatar'
-import type { ControlCenterContextValue } from './model'
+import type { ControlCenterContextValue, ControlPageRegistration } from './model'
 
 function Metric({ title, value, detail }: { title: string; value: string; detail: string }) {
   return <div className="metric-card"><span>{title}</span><strong>{value}</strong><small>{detail}</small></div>
@@ -56,4 +56,12 @@ export function DashboardPage({ ctx }: { ctx: ControlCenterContextValue }) {
       </section>
     </div>
   )
+}
+
+export const controlPage: ControlPageRegistration = {
+  id: 'dashboard',
+  icon: '⌂',
+  label: 'Dashboard',
+  order: 10,
+  render: ctx => <DashboardPage ctx={ctx} />
 }

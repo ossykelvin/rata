@@ -1,6 +1,6 @@
 import { RataAvatar } from '../../components/RataAvatar'
 import { ApprovalActions } from '../../components/ApprovalActions'
-import type { ControlCenterContextValue } from './model'
+import type { ControlCenterContextValue, ControlPageRegistration } from './model'
 
 export function ChatPage({ ctx }: { ctx: ControlCenterContextValue }) {
   const { conversation } = ctx
@@ -36,4 +36,12 @@ export function ChatPage({ ctx }: { ctx: ControlCenterContextValue }) {
       </aside>
     </section>
   )
+}
+
+export const controlPage: ControlPageRegistration = {
+  id: 'chat',
+  icon: '✦',
+  label: 'Chat',
+  order: 20,
+  render: ctx => <ChatPage ctx={ctx} />
 }

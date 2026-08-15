@@ -1,5 +1,5 @@
 import { RataAvatar } from '../../components/RataAvatar'
-import type { ControlCenterContextValue } from './model'
+import type { ControlCenterContextValue, ControlPageRegistration } from './model'
 
 export function AppearancePage({ ctx }: { ctx: ControlCenterContextValue }) {
   const { settings, setSetting } = ctx
@@ -15,4 +15,12 @@ export function AppearancePage({ ctx }: { ctx: ControlCenterContextValue }) {
       <section className="preview-card"><RataAvatar state="idle" /><p>Idle uses the original rata-concept.png hero. Other agent states swap to matching art in public/character/. Missing files fall back to a silhouette.</p></section>
     </div>
   )
+}
+
+export const controlPage: ControlPageRegistration = {
+  id: 'appearance',
+  icon: '◐',
+  label: 'Appearance',
+  order: 60,
+  render: ctx => <AppearancePage ctx={ctx} />
 }

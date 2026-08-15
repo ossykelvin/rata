@@ -1,5 +1,6 @@
-import type { ActivityEvent, ControlPage, InstalledSkill, RataSettings, SkillsSnapshot } from '../../types'
+import type { ReactNode } from 'react'
 import type { AgentConversation } from '../../hooks/useAgentConversation'
+import type { ActivityEvent, ControlPage, InstalledSkill, RataSettings, SkillsSnapshot } from '../../types'
 
 export type ControlCenterContextValue = {
   page: ControlPage
@@ -12,16 +13,13 @@ export type ControlCenterContextValue = {
   readyCount: number
 }
 
-export const pages: { id: ControlPage; icon: string; label: string }[] = [
-  { id: 'dashboard', icon: '⌂', label: 'Dashboard' },
-  { id: 'chat', icon: '✦', label: 'Chat' },
-  { id: 'permissions', icon: '◈', label: 'Permissions' },
-  { id: 'skills', icon: '▣', label: 'Skills' },
-  { id: 'activity', icon: '↻', label: 'Activity' },
-  { id: 'appearance', icon: '◐', label: 'Appearance' },
-  { id: 'integrations', icon: '⛓', label: 'Integrations' },
-  { id: 'developer', icon: '⌘', label: 'Developer' }
-]
+export type ControlPageRegistration = {
+  id: ControlPage
+  icon: string
+  label: string
+  order: number
+  render: (ctx: ControlCenterContextValue) => ReactNode
+}
 
 export function skillStatusLabel(skill: InstalledSkill) {
   if (skill.status === 'ready') return 'Ready'

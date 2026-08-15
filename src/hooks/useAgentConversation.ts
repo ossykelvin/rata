@@ -1,16 +1,16 @@
 import { FormEvent, useState } from 'react'
 import type { AgentReply, CharacterState } from '../types'
 
-const initialChat: { role: 'user' | 'rata'; text: string }[] = [
-  { role: 'rata', text: 'I\'m running in MVP mode. Try “open notepad”, “what is 36 * 14?”, or “copy Hello Rata to clipboard”.' }
-]
+const defaultGreeting =
+  'I\'m running in MVP mode. Try “open notepad”, “what is 36 * 14?”, or “copy Hello Rata to clipboard”.'
 
-export function useAgentConversation() {
+export function useAgentConversation(options?: { initialMessage?: string }) {
+  const greeting = options?.initialMessage ?? defaultGreeting
   const [input, setInput] = useState('')
-  const [chat, setChat] = useState(initialChat)
+  const [chat, setChat] = useState<{ role: 'user' | 'rata'; text: string }[]>([{ role: 'rata', text: greeting }])
   const [approval, setApproval] = useState<AgentReply['approval']>()
   const [agentState, setAgentState] = useState<CharacterState>('idle')
-  const [lastMessage, setLastMessage] = useState(initialChat[0].text)
+  const [lastMessage, setLastMessage] = useState(greeting)
 
   function applyReply(reply: AgentReply) {
     setLastMessage(reply.message)

@@ -35,7 +35,7 @@ Skills may be selected and described. Only registered tools may act.
 
 ## Current source boundaries
 
-- `src/`: unprivileged React renderers and shared renderer types.
+- `src/`: unprivileged React renderers. Shared renderer types live in `src/types/` behind a barrel. Overlay and Control Center styles are `src/styles/{base,overlay,control}.css`; Control Center pages self-register from `src/views/control/*Page.tsx`. Overlay conversation state uses `useAgentConversation`.
 - `electron/main.cjs`: Electron lifecycle and dependency composition only.
 - `electron/ipc/`: auto-discovered per-domain main-process handler modules. Each module declares the contract keys it owns and cannot register undeclared channels.
 - `electron/bridge/`: auto-discovered per-domain preload fragments. Duplicate bridge properties or channel ownership fail closed before exposure. The build generates one `dist-electron/preload.cjs` artifact containing every fragment because sandboxed Electron preloads cannot import local CommonJS modules at runtime.
