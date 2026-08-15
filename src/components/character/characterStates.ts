@@ -25,8 +25,8 @@ type CatalogEntry = { file: string; label: string }
 
 const FALLBACK_ENTRY: CatalogEntry = catalog.idle
 
-function isCharacterState(value: string): value is CharacterState {
-  return (CHARACTER_STATES as readonly string[]).includes(value)
+function isCharacterState(value: string | undefined): value is CharacterState {
+  return typeof value === 'string' && (CHARACTER_STATES as readonly string[]).includes(value)
 }
 
 export function normalizeCharacterState(state: string | undefined): CharacterState {

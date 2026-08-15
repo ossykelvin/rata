@@ -70,7 +70,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 |---|---|---|---|
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, merged as #2 |
 | Codex | P0-1 modular IPC | `codex/P0-1-modular-ipc-boundary` | DRAFT PR #4 |
-| Cursor | RATA-003 character animation | `cursor/rata-003-character-animation-9241` | IN PROGRESS, PR #5 |
+| Cursor | RATA-003 character animation | `cursor/rata-003-character-animation-9241` | DONE, PR #5 |
 
 ---
 
@@ -111,14 +111,16 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ### 2026-08-15 — RATA-003 — Character animation engine
 
-**Status:** IN PROGRESS (implementation on `cursor/rata-003-character-animation-9241`, draft PR #5)
+**Status:** DONE (branch `cursor/rata-003-character-animation-9241`, draft PR #5)
 **Branch:** `cursor/rata-003-character-animation-9241`
 
-**Scope:** Lane B — event-driven character presentation with SVG placeholders and missing-asset silhouette. Real art remains BLOCKED-ON-HUMAN. No edits to `electron/`, `packages/contracts/`, `packages/agent-core/`, `src/types.ts`, or `src/styles/global.css`.
+**Done:** Event-driven character presentation. Overlay/Control Center/chat/dashboard keep importing `RataAvatar`; that file re-exports `RataCharacter`. States including `awaiting_approval` and `sleeping` map to `public/character/*.svg` placeholders. Unknown states use the idle asset. Missing files fall back to a letter-mark silhouette. No renderer business logic. No edits to `src/types.ts`, `src/styles/global.css`, Electron, contracts, or agent-core.
 
-**Files currently touching:** `src/components/character/`, `src/styles/character.css`, `public/character/`, `src/components/RataAvatar.tsx` (re-export), `tests/character-states.test.cjs`, `docs/CHARACTER-ASSETS.md`, `docs/ARCHITECTURE.md`, `docs/CODEMAP.md`, `docs/VALIDATION.md`, `README.md`, `src/views/control/AppearancePage.tsx`, `src/views/control/DeveloperPage.tsx`.
+**Files touched:** `src/components/character/`, `src/styles/character.css`, `public/character/`, `src/components/RataAvatar.tsx`, `tests/character-states.test.cjs`, `docs/CHARACTER-ASSETS.md`, `docs/ARCHITECTURE.md`, `docs/CODEMAP.md`, `docs/VALIDATION.md`, `README.md`, `src/views/control/AppearancePage.tsx`, `src/views/control/DeveloperPage.tsx`.
 
-**Not in this PR:** fixing `window.rata` being undefined (preload / P0-1). Overlay still duplicates `useAgentConversation` (P0-4).
+**Validation:** `npm run verify` passed (`check:node`, 23 tests, `typecheck`, `vite build`). GUI smoke still blocked: `window.rata` is undefined until Codex P0-1.
+
+**Blocked on:** preload/`window.rata` for Electron smoke. Real character art remains BLOCKED-ON-HUMAN. Lane C (RATA-004) waits on Lane A streaming.
 
 ---
 
