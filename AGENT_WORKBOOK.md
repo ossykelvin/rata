@@ -69,7 +69,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, awaiting merge |
-| Codex | P0-1 modular IPC boundary | `codex/P0-1-modular-ipc-boundary` | IN PROGRESS |
+| Codex | P0-1 modular IPC boundary | `codex/P0-1-modular-ipc-boundary` | IN PROGRESS — awaiting Lane G contracts/tests + Claude review |
 | Cursor | — | — | idle |
 
 ---
@@ -111,6 +111,12 @@ One line per agent. Keep it current — this is the first thing another agent re
 **Scope:** Replace the Electron IPC and preload hub registration with auto-composed modules under `electron/ipc/` and `electron/bridge/`, preserving the current renderer API and security settings. Contract-owned work under `packages/contracts/` remains delegated to Claude through issue #1; Codex will consume the agreed aggregate and will not edit that path.
 
 **Planned validation:** focused IPC/bridge composition tests plus full `npm run verify`. The PR touches `electron/` and requires Claude review before merge.
+
+**Progress:** The Electron-owned handler and bridge composition is implemented. Current APIs and channel values are preserved; module discovery, declared-channel enforcement, duplicate detection, incomplete-registration detection, and rollback fail closed. ADR-005 and the architecture/source map document the boundary. No `packages/contracts/`, `tests/`, or `src/` paths were edited.
+
+**Validation:** Injected IPC/bridge smoke checks passed. `npm run verify` is green: 33 CommonJS files checked, 19/19 existing tests passed, TypeScript passed, and the Vite production build succeeded. `npm ci` reported 0 known vulnerabilities.
+
+**Coordination:** Lane G contract request is issue #1. Claude-owned regression-test request is issue #3. This work must not merge until the channel-fragment contract, committed regression tests, and Claude security review are complete.
 
 ---
 
