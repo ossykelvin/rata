@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, Notification, clipboard } = require('electron')
+const { existsSync } = require('node:fs')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const { spawn } = require('node:child_process')
@@ -25,6 +26,7 @@ const DEV_URL = 'http://127.0.0.1:5173/'
 const PROJECT_ROOT = path.join(__dirname, '..')
 const PACKAGED_ENTRY = pathToFileURL(path.join(__dirname, '..', 'dist', 'index.html')).href
 const hasSingleInstanceLock = app.requestSingleInstanceLock()
+const PRELOAD_BUNDLE = path.join(PROJECT_ROOT, 'dist-electron', 'preload.cjs')
 
 function rendererTarget(route) {
   if (isDev) return `${DEV_URL}#/${route}`
@@ -46,8 +48,11 @@ function logActivity(action, detail, status = 'info') {
 }
 
 function windowPreferences() {
+  if (!existsSync(PRELOAD_BUNDLE)) {
+    throw new Error('Sandboxed preload bundle is missing. Run npm run build:preload before starting Rata.')
+  }
   return {
-    preload: path.join(__dirname, 'preload.cjs'),
+    preload: PRELOAD_BUNDLE,
     contextIsolation: true,
     nodeIntegration: false,
     sandbox: true
