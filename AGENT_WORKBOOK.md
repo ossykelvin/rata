@@ -69,7 +69,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, awaiting merge |
-| Codex | — | — | idle |
+| Codex | FIX-001 idempotent startup | `codex/FIX-001-idempotent-startup` | IN PROGRESS |
 | Cursor | — | — | idle |
 
 ---
@@ -103,7 +103,14 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ## Codex
 
-*No entries under the lane protocol yet. Earlier work is in the archive below.*
+### 2026-08-15 — FIX-001 — Idempotent Windows development startup
+
+**Status:** IN PROGRESS
+**Branch:** `codex/FIX-001-idempotent-startup`
+
+**Root cause:** Re-running `START_RATA_DEV.bat` while Rata is already active starts a second strict-port Vite process. Vite exits because port 5173 is occupied, `concurrently -k` terminates the new Electron process, and the batch window closes while reporting exit code 0.
+
+**Scope:** Make the batch launcher recognize an existing Rata dev server, launch Electron only in that case, enforce Electron single-instance behavior that reveals the existing Control Center, and preserve visible nonzero failures. No renderer or contract paths will be edited. Electron changes require Claude review; committed regression tests are requested from the test owner.
 
 ---
 
