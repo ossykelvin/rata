@@ -7,7 +7,7 @@ const crypto = require('node:crypto')
 const { JsonStore } = require('./store.cjs')
 const { PolicyEngine } = require('../packages/agent-core/policy-engine.cjs')
 const { MockAgent } = require('../packages/agent-core/mock-agent.cjs')
-const { createMvpRegistry } = require('./mvp-tools.cjs')
+const { createToolRegistry } = require('./tools/index.cjs')
 const { registerSearchTools } = require('./search-tools.cjs')
 const { loadRuntimeConfig, describeConfig } = require('./config.cjs')
 const {
@@ -209,7 +209,13 @@ if (!hasSingleInstanceLock) {
       // Audit the refusal without recording payloads.
       onBlocked: ({ url }) => logActivity('Blocked navigation', `Refused a foreign destination: ${String(url)}`, 'warning')
     })
-    const registry = createMvpRegistry({ spawnProcess: spawn, clipboardApi: clipboard })
+    const registry = createToolRegistry({
+      dependencies: { spawnProcess: spawn, clipboardApi: clipboard }
+    })
+    // Registered separately from the discovered domain modules: web.search
+    // needs a credential from runtimeConfig, which the P0-2 dependency bag
+    // deliberately does not carry. Kept out of electron/tools/ so no secret
+    // reaches a module that is auto-discovered.
     registerSearchTools(registry, { apiKey: runtimeConfig.serper.apiKey })
     providers = createProviders()
     const policy = new PolicyEngine()

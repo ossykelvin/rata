@@ -76,12 +76,34 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Codex | FIX-001 idempotent startup | `codex/FIX-001-idempotent-startup` | REVIEW REQUESTED |
 | Codex | P0-1 modular IPC boundary | `codex/P0-1-modular-ipc-boundary` | IN PROGRESS — awaiting Lane G contracts/tests + Claude review |
 | Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | READY FOR REVIEW, PR #16 |
+| Codex | P0-2 modular tool registration | `codex/P0-2-modular-tool-registration` | DRAFT PR #20 — awaiting Lane H tests + Claude review |
 | Cursor | — | — | idle |
 | Cursor | ISSUE-17 restore character image | `cursor/ISSUE-17-restore-character-image` | DONE, PR #18 |
 
 ---
 
 ## Claude
+
+### 2026-08-15 — P0-2 — Privilege-boundary review and Lane H tests
+
+**Status:** DONE. PR #22 (tests) merged into the Codex branch; PR #20 merged to `main` as `9dde9f9`.
+
+**Review of PR #20 — APPROVED, no blocking findings.** Full review posted on #20. All twelve checklist items pass: discovery is confined to the trusted `electron/tools/` directory, malformed modules / duplicate module IDs / duplicate tool ownership / declared-vs-created mismatches all fail closed, every definition still passes through `ToolRegistry.register()`, missing native dependencies name the dependency, REVIEW-001 H2 survives the move intact, `mvp-tools.cjs` is compatibility-only, the four tool IDs and their metadata are unchanged, and no `AGENTS.md` rule was weakened.
+
+The detail worth recording: **ownership conflicts are resolved before any `create()` runs**, so a colliding module cannot execute its factory.
+
+**Seven non-blocking findings**, listed in full on #20. The two worth carrying:
+
+- `createToolDefinitions` is exported and returns raw definitions including executors — the REVIEW-001 M2 pattern one layer up. Main-process-only, so not blocking, but it should not be public.
+- **My own P0-0 defect:** `.github/workflows/verify.yml` triggers only on PRs targeting `main`, so **stacked PRs get no CI at all** — #22 reported "no checks". I own the fix.
+
+**Lane H (issue #19):** added `tests/tool-composition.test.cjs`, ~21 tests covering every requested case, all asserting fail-closed behaviour, plus regression pins for REVIEW-001 H2 and M2 across the refactor. Two initial failures were my own test assumptions, not implementation bugs, and are corrected with comments explaining why.
+
+**Validation:** local `npm ci` and full `npm run verify` **could not complete** — the Rata app was running from this worktree's `node_modules` (6 Electron processes since 19:09), so npm hit `EBUSY`/`EPERM` on `electron/dist/resources/default_app.asar`. I did not kill those processes; one appears to be the outstanding GUI smoke test. The partial `npm ci` left this worktree's `node_modules` incomplete (`vite` and `tsc` missing) — **it needs `npm install` once the app is closed.**
+
+Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a Windows runner, **80 tests, 80 pass, 0 fail**, 47 CommonJS files. Count rose from 59 to 80, confirming the Lane H suite ran rather than being skipped.
+
+**Not started:** P0-3, as instructed. Issue #19 is still open and can be closed by whoever owns it.
 
 ### 2026-08-15 — REVIEW-001 — MVP architecture and security review
 
@@ -130,6 +152,24 @@ One line per agent. Keep it current — this is the first thing another agent re
 ---
 
 ## Codex
+
+### 2026-08-15 — P0-2 — Modularize tool registration
+
+**Status:** DRAFT PR #20 — REVIEW REQUESTED
+**Branch:** `codex/P0-2-modular-tool-registration`
+**Base:** `main` after P0-1 and FIX-002 merged
+
+**Scope:** Replace the shared `electron/mvp-tools.cjs` registration hub with auto-composed domain modules under `electron/tools/`, preserving current tool IDs, metadata, policy behaviour, and dependency injection. Fold security finding H2 into the system tool by using a prototype-safe allow-list. Do not edit Claude-owned `packages/contracts/` or `tests/`; request Lane H regression coverage and Claude review before merge.
+
+**Planned validation:** exercise discovery/composition failure cases with injected smoke checks, run `npm run verify`, and document the extension boundary in the source map and architecture docs.
+
+**Implemented:** Moved the four MVP definitions into `electron/tools/{system,clipboard,calculator,file}.cjs`. `electron/tools/index.cjs` discovers modules deterministically, validates module declarations and ownership before construction, then registers complete definitions through `ToolRegistry`. Composition fails closed on malformed modules, duplicate module IDs, duplicate tool ownership, missing/undeclared created IDs, invalid tool metadata, and missing native dependencies. Electron runtime imports the new composition index; `electron/mvp-tools.cjs` is compatibility-only. The system allow-list remains null-prototype and checks own properties, closing REVIEW-001 H2.
+
+**Documentation:** Added ADR-006 and updated architecture, source map, and handover guidance. Tool modules are explicitly trusted packaged application code, never user- or model-supplied plugins.
+
+**Validation:** Injected composition checks passed for deterministic discovery, the four existing tool IDs, duplicate module IDs, duplicate ownership, declared/created ID mismatch, and invalid registry metadata. `npm ci` completed with 0 known vulnerabilities. `npm run verify` is green: 46 CommonJS files checked, 59/59 tests passed, TypeScript passed, renderer built, and the sandboxed preload bundle built.
+
+**Review/test handoff:** Draft [PR #20](https://github.com/ossykelvin/rata/pull/20) is open. Lane H regression coverage and mandatory Claude privilege-boundary review are requested in [issue #19](https://github.com/ossykelvin/rata/issues/19). Do not merge before that review and committed composition tests land.
 
 ### 2026-08-15 — FIX-001 — Idempotent Windows development startup
 

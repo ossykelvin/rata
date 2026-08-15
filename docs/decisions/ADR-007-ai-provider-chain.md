@@ -1,4 +1,4 @@
-# ADR-006: AI provider chain and web search egress
+# ADR-007: AI provider chain and web search egress
 
 Status: Accepted
 
