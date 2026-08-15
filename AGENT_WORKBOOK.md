@@ -76,6 +76,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Codex | FIX-001 idempotent startup | `codex/FIX-001-idempotent-startup` | REVIEW REQUESTED |
 | Codex | P0-1 modular IPC boundary | `codex/P0-1-modular-ipc-boundary` | IN PROGRESS — awaiting Lane G contracts/tests + Claude review |
 | Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | IN PROGRESS |
+| Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | REVIEW REQUESTED |
 | Cursor | — | — | idle |
 
 ---
@@ -146,13 +147,19 @@ One line per agent. Keep it current — this is the first thing another agent re
 **Review/test handoff:** Draft [PR #7](https://github.com/ossykelvin/rata/pull/7) is open. Claude review and Lane H regression coverage are requested in [issue #6](https://github.com/ossykelvin/rata/issues/6). Do not merge before that review because this ticket touches `electron/main.cjs`.
 ### 2026-08-15 — FIX-002 — Bundle the sandboxed Electron preload
 
-**Status:** IN PROGRESS
+**Status:** REVIEW REQUESTED
 **Branch:** `codex/FIX-002-bundle-sandboxed-preload`
 **Base:** `origin/codex/P0-1-modular-ipc-boundary` (stacked until P0-1 merges)
 
 **Root cause:** Both Electron renderers expose an empty React root because `window.rata` is undefined. The preload imports local CommonJS modules while `sandbox: true` is enforced; Electron's sandboxed preload loader permits only a limited built-in module set and cannot load those local modules.
 
 **Scope:** Bundle the modular preload and its local bridge/contracts dependencies into one sandbox-compatible artifact, keep `sandbox: true`, `contextIsolation: true`, and `nodeIntegration: false`, wire development and packaging builds to produce it, then validate the live Control Center. Do not edit `tests/` or weaken the security boundary; request Lane H tests and Claude review.
+
+**Implemented:** Added a build-time esbuild entry generator that discovers all bridge fragments and produces `dist-electron/preload.cjs`. Runtime bridge composition is separated from filesystem discovery so the generated artifact contains no forbidden local or Node built-in imports. Development, start, production build, and packaging scripts generate the bundle; Electron fails clearly if it is missing. The packaged file list and architecture/source-map documentation are updated.
+
+**Validation:** `npm run verify` passes with 30/30 tests, typecheck, renderer build, and an 8.2 KB preload bundle containing all five bridge fragments. Its only literal runtime import is `electron`. A live sandboxed Electron launch renders the overlay UI (`Rata`, `IDLE`, status, and input control), demonstrating that `window.rata` is exposed again. The fixed dev server remains running from this worktree.
+
+**Open verification:** `npm run pack:win` reaches Electron Builder packaging but fails twice with Windows `EPERM` while renaming `release/win-unpacked.tmp`; generated output was moved aside once and the failure reproduced. No source or user files were removed. Packaging inclusion and Lane H regressions are requested in [issue #15](https://github.com/ossykelvin/rata/issues/15). Claude review is mandatory before merge.
 
 ### 2026-08-15 — P0-1 — Modularize the IPC boundary
 

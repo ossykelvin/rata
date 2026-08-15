@@ -1,5 +1,7 @@
-const { contextBridge, ipcRenderer } = require('electron')
-const { IPC } = require('../packages/contracts/ipc-channels.cjs')
-const { exposeRataBridge } = require('./bridge/index.cjs')
+const { exposeRataBridge } = require('./bridge/compose.cjs')
 
-exposeRataBridge({ contextBridge, ipcRenderer, IPC })
+function installRataPreload({ contextBridge, ipcRenderer, IPC, modules }) {
+  return exposeRataBridge({ contextBridge, ipcRenderer, IPC, modules })
+}
+
+module.exports = { installRataPreload }

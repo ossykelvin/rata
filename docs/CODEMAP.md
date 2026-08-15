@@ -6,7 +6,7 @@ Read this after `AGENTS.md` when you need to know where to edit.
 
 ```text
 src/views (React UI)
-  → electron/preload.cjs + electron/bridge/*.cjs (composed named IPC only)
+  → generated dist-electron/preload.cjs from electron/preload.cjs + electron/bridge/*.cjs
   → electron/main.cjs + electron/ipc/*.cjs (auto-registered handlers)
   → packages/agent-core/mock-agent.cjs
   → packages/skills/router.cjs (selects a skill id)
@@ -22,8 +22,9 @@ src/views (React UI)
 |---|---|---|
 | `src/` | Overlay, Control Center, character presentation | Node, Electron, OS, tools |
 | `src/components/character/` | Event-driven character states and asset catalog | Tools, policy, IPC |
-| `electron/preload.cjs` | Exposes the composed `window.rata` bridge | Generic `ipcRenderer` / `fs` |
+| `electron/preload.cjs` | Defines installation of the composed `window.rata` bridge; bundled before launch | Generic `ipcRenderer` / `fs` |
 | `electron/bridge/` | Per-domain preload bridge fragments | Raw or undeclared IPC channels |
+| `esbuild.preload.cjs` | Discovers bridge fragments and generates the single sandbox-compatible preload artifact | Runtime authority or renderer code |
 | `electron/main.cjs` | Windows, tray, runtime dependency composition | Per-domain IPC handler implementations |
 | `electron/ipc/` | Per-domain validated IPC handlers | Undeclared channels or renderer APIs |
 | `electron/security.cjs` | Navigation, popup and IPC sender guards | Business logic or tool execution |
