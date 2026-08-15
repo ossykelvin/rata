@@ -1,14 +1,76 @@
 const crypto = require('node:crypto')
 const { extractCalculation } = require('./calculator.cjs')
 
+/**
+ * How long a requested approval stays valid. An approval is a snapshot of user
+ * intent; once the context around it is gone, clicking "Allow" no longer means
+ * what it meant when the card appeared. See REVIEW-001 finding M1.
+ */
+const APPROVAL_TTL_MS = 5 * 60 * 1000
+
+/**
+ * Hard ceiling on approvals held at once. Without it the map grows for as long
+ * as a caller keeps asking for confirmable actions and never answering.
+ */
+const MAX_PENDING_APPROVALS = 20
+
 class MockAgent {
-  constructor({ registry, policy, settings, activity, skills = null }) {
+  constructor({
+    registry,
+    policy,
+    settings,
+    activity,
+    skills = null,
+    approvalTtlMs = APPROVAL_TTL_MS,
+    maxPendingApprovals = MAX_PENDING_APPROVALS,
+    now = () => Date.now()
+  }) {
     this.registry = registry
     this.policy = policy
     this.settings = settings
     this.activity = activity
     this.skills = skills
+    this.approvalTtlMs = approvalTtlMs
+    this.maxPendingApprovals = maxPendingApprovals
+    // Injectable so expiry is testable without sleeping.
+    this.now = now
     this.pending = new Map()
+  }
+
+  /** Drops approvals past their TTL. Called before any read or write. */
+  prunePending() {
+    const cutoff = this.now() - this.approvalTtlMs
+    for (const [id, entry] of this.pending) {
+      if (entry.requestedAt <= cutoff) this.pending.delete(id)
+    }
+  }
+
+  /**
+   * Records a pending approval, enforcing the ceiling.
+   *
+   * At capacity the oldest entry is evicted rather than refusing the new one:
+   * refusing would let a flood of requests disable the approval path
+   * altogether, which is the more damaging failure. An evicted approval simply
+   * reports as expired if the user gets to it later.
+   */
+  rememberPending(pendingId, entry) {
+    this.prunePending()
+    while (this.pending.size >= this.maxPendingApprovals) {
+      const oldest = this.pending.keys().next()
+      if (oldest.done) break
+      this.pending.delete(oldest.value)
+      this.activity('Approval expired', 'An older approval was dropped to stay within the pending limit.', 'warning')
+    }
+    this.pending.set(pendingId, { ...entry, requestedAt: this.now() })
+  }
+
+  /** Returns a live approval, or undefined if it is missing or expired. */
+  takePending(id) {
+    this.prunePending()
+    const entry = this.pending.get(id)
+    if (!entry) return undefined
+    this.pending.delete(id)
+    return entry
   }
 
   async handle(message) {
@@ -100,7 +162,7 @@ class MockAgent {
     }
     if (decision.decision === 'confirm') {
       const pendingId = crypto.randomUUID()
-      this.pending.set(pendingId, { id, input: validatedInput, title })
+      this.rememberPending(pendingId, { id, input: validatedInput, title })
       this.activity('Approval requested', `${title} requires approval.`, 'warning')
       return {
         message: 'I can do that, but this action needs your approval.',
@@ -117,16 +179,14 @@ class MockAgent {
   }
 
   async approve(id) {
-    const pending = this.pending.get(id)
+    const pending = this.takePending(id)
     if (!pending) return { message: 'That approval has expired or was already handled.', state: 'error' }
-    this.pending.delete(id)
     this.activity('Approval granted', pending.title, 'success')
     return this.execute(pending.id, pending.input)
   }
 
   async reject(id) {
-    const pending = this.pending.get(id)
-    if (pending) this.pending.delete(id)
+    const pending = this.takePending(id)
     this.activity('Approval rejected', pending?.title || id, 'warning')
     return { message: 'Cancelled. I did not make the change.', state: 'idle' }
   }
@@ -145,4 +205,4 @@ class MockAgent {
   }
 }
 
-module.exports = { MockAgent }
+module.exports = { MockAgent, APPROVAL_TTL_MS, MAX_PENDING_APPROVALS }
