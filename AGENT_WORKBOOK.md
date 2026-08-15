@@ -76,7 +76,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Codex | FIX-001 idempotent startup | `codex/FIX-001-idempotent-startup` | REVIEW REQUESTED |
 | Codex | P0-1 modular IPC boundary | `codex/P0-1-modular-ipc-boundary` | IN PROGRESS — awaiting Lane G contracts/tests + Claude review |
 | Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | READY FOR REVIEW, PR #16 |
-| Codex | P0-2 modular tool registration | `codex/P0-2-modular-tool-registration` | REVIEW REQUESTED |
+| Codex | P0-2 modular tool registration | `codex/P0-2-modular-tool-registration` | DRAFT PR #20 — awaiting Lane H tests + Claude review |
 | Cursor | — | — | idle |
 | Cursor | ISSUE-17 restore character image | `cursor/ISSUE-17-restore-character-image` | DONE, PR #18 |
 
@@ -134,7 +134,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ### 2026-08-15 — P0-2 — Modularize tool registration
 
-**Status:** REVIEW REQUESTED
+**Status:** DRAFT PR #20 — REVIEW REQUESTED
 **Branch:** `codex/P0-2-modular-tool-registration`
 **Base:** `main` after P0-1 and FIX-002 merged
 
@@ -148,7 +148,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 **Validation:** Injected composition checks passed for deterministic discovery, the four existing tool IDs, duplicate module IDs, duplicate ownership, declared/created ID mismatch, and invalid registry metadata. `npm ci` completed with 0 known vulnerabilities. `npm run verify` is green: 46 CommonJS files checked, 59/59 tests passed, TypeScript passed, renderer built, and the sandboxed preload bundle built.
 
-**Review/test handoff:** Lane H regression coverage and mandatory Claude privilege-boundary review are requested in [issue #19](https://github.com/ossykelvin/rata/issues/19). Do not merge before that review and committed composition tests land.
+**Review/test handoff:** Draft [PR #20](https://github.com/ossykelvin/rata/pull/20) is open. Lane H regression coverage and mandatory Claude privilege-boundary review are requested in [issue #19](https://github.com/ossykelvin/rata/issues/19). Do not merge before that review and committed composition tests land.
 
 ### 2026-08-15 — FIX-001 — Idempotent Windows development startup
 
