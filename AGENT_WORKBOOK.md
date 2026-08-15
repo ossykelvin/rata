@@ -159,6 +159,14 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Codex
 
+### 2026-08-16 — Codex — Speech recognition validation
+
+**Status:** AUTOMATED CHECKS PASS; BLOCKED-ON-HUMAN for the real microphone/audio smoke test.
+
+**Result:** The web preview at `http://127.0.0.1:5173/` does not expose Web Speech or `getUserMedia`, but a temporary hidden probe against the actual Electron 43 renderer confirmed `SpeechRecognition`, `webkitSpeechRecognition`, `navigator.mediaDevices.getUserMedia`, and a secure context are all available. The overlay implementation sets `en-GB`, disables interim results, transitions through listening/success/error/end states, and copies the first transcript into the input. `npm run typecheck` and `npm run lint` pass; the temporary probe was removed and no implementation file changed.
+
+**Security finding:** Electron main has no `session.setPermissionRequestHandler` or `setPermissionCheckHandler`. The renderer-side `microphoneEnabled` check is only a UI affordance and does not enforce the setting at the permission boundary; this is already documented in `docs/reviews/REVIEW-001-mvp-security.md` and must be fixed before RATA-004 is complete. Do not perform or simulate the final microphone permission/audio test; it is explicitly human-owned.
+
 ### 2026-08-15 — Codex — WEB-001 implementation resumed after Phase 0
 
 **Status:** IN PROGRESS — draft PR #40, awaiting Lane H issue #39 (branch `codex/WEB-001-implement-safe-fetch`, issue #30)
