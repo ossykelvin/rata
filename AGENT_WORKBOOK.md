@@ -154,6 +154,12 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Codex
 
+### 2026-08-15 — Codex — CONFIG-001 activate local AI providers
+
+**Status:** IN PROGRESS (branch `codex/CONFIG-001-activate-ai-providers`)
+
+**Scope:** Confirm the ignored local configuration supplies Gemini, OpenRouter, and Serper credentials; validate each service without exposing credentials; relaunch the current Electron build with that configuration. No secret or source-code change is planned.
+
 ### 2026-08-15 — P0-3 — Skills manifest to per-skill fragments
 
 **Status:** DRAFT PR #25 — REVIEW REQUESTED
