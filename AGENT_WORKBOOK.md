@@ -78,7 +78,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | READY FOR REVIEW, PR #16 |
 | Codex | P0-2 modular tool registration | `codex/P0-2-modular-tool-registration` | DRAFT PR #20 — awaiting Lane H tests + Claude review |
 | Codex | P0-3 skill manifest fragments | `codex/P0-3-skill-manifest-fragments` | DRAFT PR #25 — awaiting Lane H tests + Claude review |
-| Cursor | RATA-004 speech recognition | `cursor/RATA-004-speech-recognition` | DONE, PR pending |
+| Cursor | RATA-004 speech recognition | `cursor/RATA-004-speech-recognition` | DONE, PR #44 |
 | Cursor | FIX overlay drag overflow | `cursor/FIX-overlay-drag-overflow` | IN PROGRESS |
 | Cursor | FIX app icon and taskbar | `cursor/FIX-app-icon` | DONE, PR #41 |
 | Cursor | P0-4 decouple renderer | `cursor/P0-4-decouple-renderer` | DONE, PR pending |
@@ -271,7 +271,7 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-15 — RATA-004 — Speech recognition
 
-**Status:** DONE, PR pending
+**Status:** DONE, PR #44
 **Branch:** `cursor/RATA-004-speech-recognition`
 
 **Done:** First STT slice of RATA-004. Overlay and Chat use `useVoice` for hold-to-talk, cancel, and permission state. Main denies Chromium `media` when `microphoneEnabled` is false (REVIEW-001 M4). No TTS and no new IPC channels.
