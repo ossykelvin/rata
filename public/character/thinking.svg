@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" role="img" aria-hidden="true">
+  <title>Rata thinking placeholder</title>
+  <ellipse cx="100" cy="222" rx="46" ry="8" fill="#04101f" opacity=".45"/>
+  <path d="M62 214c8-78 68-78 76 0-18-14-58-14-76 0z" fill="#2a1f66"/>
+  <circle cx="100" cy="92" r="46" fill="#f4d4b5"/>
+  <ellipse cx="100" cy="78" rx="46" ry="18" fill="#5b4db3"/>
+  <rect x="66" y="86" width="68" height="10" rx="5" fill="#c9b7ff"/>
+  <circle cx="84" cy="104" r="5" fill="#1b2a44"/>
+  <circle cx="116" cy="104" r="5" fill="#1b2a44"/>
+  <circle cx="156" cy="54" r="5" fill="#c9b7ff"/>
+  <circle cx="168" cy="40" r="7" fill="#a78bfa"/>
+  <circle cx="182" cy="24" r="9" fill="#ddd6fe"/>
+  <path d="M92 124c5 2 11 2 16 0" fill="none" stroke="#b57b62" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" role="img" aria-hidden="true">
+  <title>Rata working placeholder</title>
+  <ellipse cx="100" cy="222" rx="46" ry="8" fill="#04101f" opacity=".45"/>
+  <path d="M62 214c8-78 68-78 76 0-18-14-58-14-76 0z" fill="#0f3d4a"/>
+  <circle cx="100" cy="86" r="42" fill="#f4d4b5"/>
+  <ellipse cx="100" cy="72" rx="42" ry="16" fill="#155e75"/>
+  <rect x="68" y="80" width="64" height="8" rx="4" fill="#67e8f9"/>
+  <circle cx="86" cy="96" r="4" fill="#1b2a44"/>
+  <circle cx="114" cy="96" r="4" fill="#1b2a44"/>
+  <rect x="54" y="148" width="92" height="52" rx="8" fill="#164e63"/>
+  <rect x="62" y="156" width="76" height="28" rx="4" fill="#22d3ee"/>
+  <rect x="88" y="186" width="24" height="6" rx="2" fill="#083344"/>
+</svg>

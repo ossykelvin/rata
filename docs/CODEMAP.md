@@ -21,6 +21,7 @@ src/views (React UI)
 | Path | Owns | Must not |
 |---|---|---|
 | `src/` | Overlay, Control Center, character presentation | Node, Electron, OS, tools |
+| `src/components/character/` | Event-driven character states and asset catalog | Tools, policy, IPC |
 | `electron/preload.cjs` | Named `window.rata` API | Generic `ipcRenderer` / `fs` |
 | `electron/main.cjs` | Windows, tray, IPC handlers | Business logic that belongs in tools |
 | `electron/mvp-tools.cjs` | Allow-listed native tool adapters | Unrestricted shell |

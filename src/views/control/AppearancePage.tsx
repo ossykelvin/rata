@@ -12,7 +12,7 @@ export function AppearancePage({ ctx }: { ctx: ControlCenterContextValue }) {
         <label className="slider-row"><div><strong>Overlay opacity</strong><span>{Math.round(settings.opacity * 100)}%</span></div><input type="range" min="0.55" max="1" step="0.05" value={settings.opacity} onChange={e => setSetting('opacity', Number(e.target.value))} /></label>
         <div className="button-row"><button className="button-secondary" onClick={() => window.rata.showOverlay()}>Show overlay</button><button className="button-secondary" onClick={() => window.rata.hideOverlay()}>Hide overlay</button></div>
       </section>
-      <section className="preview-card"><RataAvatar state="idle" /><p>Replace the MVP crop with transparent WebM/Rive character states during the character-assets milestone. Missing assets fall back to a letter mark.</p></section>
+      <section className="preview-card"><RataAvatar state="idle" /><p>Placeholder character states are event-driven. Drop production art into public/character/; missing files fall back to a silhouette.</p></section>
     </div>
   )
 }

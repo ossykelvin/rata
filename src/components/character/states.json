@@ -1,0 +1,11 @@
+{
+  "idle": { "file": "idle.svg", "label": "idle" },
+  "listening": { "file": "listening.svg", "label": "listening" },
+  "thinking": { "file": "thinking.svg", "label": "thinking" },
+  "awaiting_approval": { "file": "awaiting_approval.svg", "label": "awaiting approval" },
+  "working": { "file": "working.svg", "label": "working" },
+  "typing": { "file": "working.svg", "label": "working" },
+  "success": { "file": "success.svg", "label": "success" },
+  "error": { "file": "error.svg", "label": "error" },
+  "sleeping": { "file": "sleeping.svg", "label": "sleeping" }
+}

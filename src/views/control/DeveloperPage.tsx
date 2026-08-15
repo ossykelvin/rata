@@ -12,7 +12,7 @@ export function DeveloperPage() {
         <li>Add production speech-to-text and text-to-speech adapters.</li>
         <li>Build the authenticated C# Windows UI Automation bridge.</li>
         <li>Add Microsoft Graph delegated OAuth for mail/calendar.</li>
-        <li>Replace the static character crop with transparent animation states.</li>
+        <li>Replace placeholder character SVGs with production transparent art (human-gated).</li>
       </ol>
     </section>
   )

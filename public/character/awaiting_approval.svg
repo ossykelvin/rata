@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" role="img" aria-hidden="true">
+  <title>Rata awaiting approval placeholder</title>
+  <ellipse cx="100" cy="222" rx="46" ry="8" fill="#04101f" opacity=".45"/>
+  <path d="M62 214c8-78 68-78 76 0-18-14-58-14-76 0z" fill="#4a3416"/>
+  <circle cx="100" cy="92" r="46" fill="#f4d4b5"/>
+  <ellipse cx="100" cy="78" rx="46" ry="18" fill="#b45309"/>
+  <rect x="62" y="88" width="76" height="14" rx="7" fill="#f6bd60"/>
+  <circle cx="84" cy="95" r="6" fill="#173669"/>
+  <circle cx="116" cy="95" r="6" fill="#173669"/>
+  <path d="M92 124c6 0 16 0 16 0" fill="none" stroke="#b57b62" stroke-width="3" stroke-linecap="round"/>
+  <path d="M148 48l8 14 16 2-12 11 3 16-15-8-15 8 3-16-12-11 16-2z" fill="#f6bd60"/>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" role="img" aria-hidden="true">
+  <title>Rata listening placeholder</title>
+  <ellipse cx="100" cy="222" rx="46" ry="8" fill="#04101f" opacity=".45"/>
+  <path d="M62 214c8-78 68-78 76 0-18-14-58-14-76 0z" fill="#1a4d8c"/>
+  <circle cx="100" cy="92" r="46" fill="#f4d4b5"/>
+  <ellipse cx="100" cy="78" rx="46" ry="18" fill="#2563eb"/>
+  <circle cx="168" cy="92" r="16" fill="none" stroke="#4f83ff" stroke-width="3"/>
+  <circle cx="168" cy="92" r="8" fill="none" stroke="#87edbd" stroke-width="2"/>
+  <circle cx="84" cy="102" r="5" fill="#1b2a44"/>
+  <circle cx="116" cy="102" r="5" fill="#1b2a44"/>
+  <circle cx="84" cy="102" r="9" fill="none" stroke="#4f83ff" stroke-width="2"/>
+  <circle cx="116" cy="102" r="9" fill="none" stroke="#4f83ff" stroke-width="2"/>
+  <path d="M90 122c6 8 14 8 20 0" fill="none" stroke="#b57b62" stroke-width="3" stroke-linecap="round"/>
+</svg>

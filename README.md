@@ -105,4 +105,4 @@ Claude should also read `CLAUDE.md`. Cursor loads rules from `.cursor/rules/`.
 
 ## Character asset note
 
-The current widget uses `public/rata-concept.png` when present, otherwise a letter-mark fallback. Replace this with transparent animation states (`idle`, `thinking`, `typing`, `working`, etc.) without changing the agent runtime. See `docs/CHARACTER-ASSETS.md`.
+The overlay character is event-driven. Placeholder SVGs under `public/character/` stand in until production art arrives; a missing file falls back to a letter-mark silhouette. See `docs/CHARACTER-ASSETS.md`.
