@@ -18,9 +18,10 @@ function requireObject(input, toolId) {
  * Risk classification, deliberately: `web.search` only reads, so it is `read`
  * risk — but running it sends the user's query to a third party, and a query
  * can contain sensitive text. docs/SECURITY.md requires external
- * communication to be confirmed by default, so confirmation is `configurable`
- * via `webSearchConfirm`, which ships enabled. A user who searches constantly
- * can turn it off; the default does not assume that for them.
+ * communication to be confirmed by default, so confirmation is `configurable`.
+ * Search uses `webSearchConfirm`; fetching a page is a separate outbound action
+ * governed by `webFetchConfirm`. Both ship enabled and can be changed
+ * independently.
  *
  * The module receives a bound `webSearch(query)` capability, never the Serper
  * key. `web.fetch` is deliberately keyless: it pins a validated public DNS
@@ -88,7 +89,7 @@ function create({ webSearch, webFetch } = {}) {
       description: 'Fetch bounded readable text from a public HTTP(S) page.',
       risk: 'read',
       confirmation: 'configurable',
-      confirmationSetting: 'webSearchConfirm',
+      confirmationSetting: 'webFetchConfirm',
       validateInput: input => {
         const value = requireObject(input, 'web.fetch')
         return { url: validatePublicUrlSyntax(value.url).toString() }

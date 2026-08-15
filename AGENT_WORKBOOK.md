@@ -161,9 +161,15 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-16 — Codex — WEB-001 Claude review findings 1–3
 
-**Status:** IN PROGRESS (branch `codex/WEB-001-implement-safe-fetch`, PR #40)
+**Status:** DONE — pushed for Claude re-review (branch `codex/WEB-001-implement-safe-fetch`, PR #40)
 
 **Scope:** Address only Claude review findings 1–3: include the resolved `web.fetch` URL in capability audit events without page content or credentials; split fetch confirmation into a default-on `webFetchConfirm` setting across tool metadata, runtime validation, persistence and renderer typing; export `pinnedRequest` for Lane H unit coverage. Mechanically rename the three specified Lane H assertions, preserve the reviewed SSRF implementation, leave findings 4–7 untouched, update ADR-008's confirmation description, and make observable changes explicit in the PR description. Claude review remains required.
+
+**Implemented:** `web.fetch` start/failure audit details now contain only the validated request URL, while completion contains only the final returned URL; fetched content is never copied into activity. Fetch confirmation is independently controlled by default-on `webFetchConfirm` across the tool, contract validator, store default and renderer type, while `web.search` remains governed by `webSearchConfirm`. The two chained-workflow fixtures now explicitly disable both actions; the unchanged line-30 search metadata assertion correctly continues to pin `webSearchConfirm`. Exported `pinnedRequest` without changing its connection behavior. Updated ADR-008. Findings 4–7 remain untouched.
+
+**Validation:** Injected audit smoke check recorded only the URL and rejected page-content leakage. Focused web/security/settings checks passed 48/48. Full `npm run verify` passed: 65 CommonJS files, lint, 172/172 tests, TypeScript, Vite build, and the six-module sandboxed preload build. `git diff --check` passed.
+
+**Files touched:** `packages/agent-core/mock-agent.cjs`, `electron/tools/web.cjs`, `electron/public-web-client.cjs`, `packages/contracts/ipc-validation.cjs`, `electron/store.cjs`, `src/types/settings.ts`, `tests/web-search-tool.test.cjs`, `docs/decisions/ADR-008-safe-public-web-fetch.md`, and this Codex workbook entry.
 
 ### 2026-08-16 — Codex — Speech recognition validation
 
