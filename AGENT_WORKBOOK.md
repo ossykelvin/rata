@@ -78,6 +78,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | READY FOR REVIEW, PR #16 |
 | Codex | P0-2 modular tool registration | `codex/P0-2-modular-tool-registration` | DRAFT PR #20 — awaiting Lane H tests + Claude review |
 | Codex | P0-3 skill manifest fragments | `codex/P0-3-skill-manifest-fragments` | DRAFT PR #25 — awaiting Lane H tests + Claude review |
+| Cursor | FIX app icon and taskbar | `cursor/FIX-app-icon` | DONE, PR pending |
 | Cursor | P0-4 decouple renderer | `cursor/P0-4-decouple-renderer` | DONE, PR pending |
 | Cursor | ISSUE-34 overlay widget drag | `cursor/ISSUE-34-overlay-drag` | DONE, PR #36 — rebase after P0-4 CSS split |
 | Cursor | ISSUE-34 overlay widget drag | `cursor/ISSUE-34-overlay-drag` | DONE, PR #36 |
@@ -265,6 +266,19 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 ---
 
 ## Cursor
+
+### 2026-08-15 — FIX — Application icon and taskbar
+
+**Status:** DONE (branch `cursor/FIX-app-icon`)
+**Branch:** `cursor/FIX-app-icon`
+
+**Done:** Control Center, Windows taskbar, and system tray use `public/24_dialog_avatar_reply.png`. Packaged builds take the same file as `win.icon`.
+
+**Files touched:** `electron/main.cjs`, `package.json`, `index.html`, `tests/app-icon.test.cjs`, `docs/VALIDATION.md`.
+
+**Validation:** `npm run verify` passed (144 tests).
+
+---
 
 ### 2026-08-15 — P0-4 — Decouple the renderer
 
