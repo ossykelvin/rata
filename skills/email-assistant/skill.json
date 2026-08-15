@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "order": 16,
+  "id": "email-assistant",
+  "name": "Email Assistant",
+  "path": "skills/email-assistant/SKILL.md",
+  "category": "office",
+  "risk": "external-write",
+  "background_capable": true,
+  "permissions": [
+    "mail.read",
+    "mail.draft",
+    "mail.send"
+  ],
+  "tools": [
+    "mail.search",
+    "mail.read",
+    "mail.createDraft",
+    "mail.send"
+  ],
+  "confirmation": "always_confirm_send",
+  "triggers": [
+    "Find the latest email from...",
+    "Draft a reply",
+    "Summarize my unread messages",
+    "Send this email"
+  ]
+}

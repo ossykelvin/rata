@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "order": 13,
+  "id": "clipboard-assistant",
+  "name": "Clipboard Assistant",
+  "path": "skills/clipboard-assistant/SKILL.md",
+  "category": "desktop",
+  "risk": "local-state",
+  "background_capable": false,
+  "permissions": [
+    "clipboard.read",
+    "clipboard.write"
+  ],
+  "tools": [
+    "clipboard.read",
+    "clipboard.write"
+  ],
+  "confirmation": "confirm_for_write_unless_user_explicitly_said_copy",
+  "triggers": [
+    "What's on my clipboard?",
+    "Copy this for me",
+    "Clean up the text I copied",
+    "Put this result on the clipboard"
+  ]
+}

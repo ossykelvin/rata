@@ -2,50 +2,113 @@
 
 const fs = require('node:fs')
 const path = require('node:path')
-const { toPublicSkill, validateManifest } = require('./contracts.cjs')
+const { toPublicSkill, validateManifest, validatePackMetadata, validateSkillFragment } = require('./contracts.cjs')
 
 function resolveUnder(rootDir, relativePath) {
   const root = path.resolve(rootDir)
   const resolved = path.resolve(root, relativePath)
   const prefix = root.endsWith(path.sep) ? root : `${root}${path.sep}`
-  if (resolved !== root && !resolved.startsWith(prefix)) {
-    throw new TypeError('Skill path escaped the project root.')
-  }
+  if (resolved !== root && !resolved.startsWith(prefix)) throw new TypeError('Skill path escaped the project root.')
   return resolved
 }
 
+function readJsonFile(file, label) {
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'))
+  } catch (error) {
+    throw new TypeError(`${label} could not be read: ${error.message}`)
+  }
+}
+
+function assertPromptExists(rootDir, skill) {
+  const skillFile = resolveUnder(rootDir, skill.path)
+  if (!fs.existsSync(skillFile)) throw new TypeError(`Skill file missing for ${skill.id}: ${skill.path}`)
+}
+
+// Legacy aggregate loader retained for compatibility only. The production
+// registry uses loadSkillFragments().
 function loadManifestFile(rootDir, manifestPath) {
   const file = resolveUnder(rootDir, manifestPath)
-  let parsed
-  try {
-    parsed = JSON.parse(fs.readFileSync(file, 'utf8'))
-  } catch (error) {
-    throw new TypeError(`Skill manifest could not be read: ${error.message}`)
-  }
-  const manifest = validateManifest(parsed)
-  for (const skill of manifest.skills) {
-    const skillFile = resolveUnder(rootDir, skill.path)
-    if (!fs.existsSync(skillFile)) {
-      throw new TypeError(`Skill file missing for ${skill.id}: ${skill.path}`)
-    }
-  }
+  const manifest = validateManifest(readJsonFile(file, 'Skill manifest'))
+  for (const skill of manifest.skills) assertPromptExists(rootDir, skill)
   return manifest
 }
 
-function createSkillRegistry({ rootDir, manifestPath = 'skills.manifest.json', toolRegistry = null } = {}) {
-  if (typeof rootDir !== 'string' || !rootDir) {
-    throw new TypeError('Skill registry requires rootDir.')
-  }
-
-  let manifest = null
-  let loadError = null
+function loadSkillFragments(rootDir, skillsPath = 'skills') {
+  const skillsDirectory = resolveUnder(rootDir, skillsPath)
+  let entries
   try {
-    manifest = loadManifestFile(rootDir, manifestPath)
+    entries = fs.readdirSync(skillsDirectory, { withFileTypes: true })
   } catch (error) {
-    loadError = error instanceof Error ? error.message : 'Skill manifest is invalid.'
+    throw new TypeError(`Skills directory could not be read: ${error.message}`)
   }
 
-  const skills = manifest ? new Map(manifest.skills.map(skill => [skill.id, skill])) : new Map()
+  const errors = []
+  let pack = null
+  const packFile = path.join(skillsDirectory, 'pack.json')
+  try {
+    pack = validatePackMetadata(readJsonFile(packFile, 'Skill pack metadata'))
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : 'Skill pack metadata is invalid.')
+  }
+
+  const skills = []
+  const ids = new Set()
+  const directories = entries.filter(entry => entry.isDirectory()).sort((left, right) => left.name.localeCompare(right.name))
+  for (const directory of directories) {
+    const relativeFragment = path.posix.join(skillsPath.replaceAll('\\', '/'), directory.name, 'skill.json')
+    const fragmentFile = resolveUnder(rootDir, relativeFragment)
+    try {
+      if (!fs.existsSync(fragmentFile)) throw new TypeError('Skill fragment is missing.')
+      const skill = validateSkillFragment(readJsonFile(fragmentFile, `Skill fragment ${directory.name}`), directory.name)
+      assertPromptExists(rootDir, skill)
+      if (ids.has(skill.id)) throw new TypeError(`Duplicate skill id: ${skill.id}`)
+      ids.add(skill.id)
+      skills.push(skill)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Skill fragment is invalid.'
+      errors.push(`${relativeFragment}: ${message}`)
+    }
+  }
+
+  skills.sort((left, right) => left.order - right.order || left.id.localeCompare(right.id))
+  if (skills.length === 0) errors.push('No valid skill fragments were found.')
+  return Object.freeze({ pack, skills: Object.freeze(skills), errors: Object.freeze(errors) })
+}
+
+function createSkillRegistry(options = {}) {
+  const { rootDir, skillsPath = 'skills', manifestPath, toolRegistry = null } = options
+  if (typeof rootDir !== 'string' || !rootDir) throw new TypeError('Skill registry requires rootDir.')
+
+  let pack = null
+  let loadedSkills = []
+  let errors = []
+  const explicitLegacyManifest = Object.hasOwn(options, 'manifestPath')
+  const skillsDirectory = resolveUnder(rootDir, skillsPath)
+  const legacyManifest = resolveUnder(rootDir, manifestPath || 'skills.manifest.json')
+  const useLegacyManifest = explicitLegacyManifest || (!fs.existsSync(skillsDirectory) && fs.existsSync(legacyManifest))
+
+  if (useLegacyManifest) {
+    try {
+      const manifest = loadManifestFile(rootDir, manifestPath || 'skills.manifest.json')
+      pack = { pack: manifest.pack, version: manifest.version, description: manifest.description }
+      loadedSkills = [...manifest.skills]
+    } catch (error) {
+      errors = [error instanceof Error ? error.message : 'Skill manifest is invalid.']
+    }
+  } else {
+    try {
+      const fragments = loadSkillFragments(rootDir, skillsPath)
+      pack = fragments.pack
+      loadedSkills = [...fragments.skills]
+      errors = [...fragments.errors]
+    } catch (error) {
+      errors = [error instanceof Error ? error.message : 'Skill fragments could not be loaded.']
+    }
+  }
+
+  const skills = new Map(loadedSkills.map(skill => [skill.id, skill]))
+  const loadErrors = Object.freeze(errors)
 
   function list() {
     return [...skills.values()].map(skill => summarize(skill))
@@ -65,9 +128,10 @@ function createSkillRegistry({ rootDir, manifestPath = 'skills.manifest.json', t
   }
 
   return {
-    pack: manifest ? { name: manifest.pack, version: manifest.version, description: manifest.description } : null,
-    loadError,
-    loaded: Boolean(manifest),
+    pack: pack ? { name: pack.pack, version: pack.version, description: pack.description } : null,
+    loadError: loadErrors.length ? loadErrors.join('\n') : null,
+    loadErrors,
+    loaded: skills.size > 0,
     rootDir: path.resolve(rootDir),
     get,
     list,
@@ -76,4 +140,4 @@ function createSkillRegistry({ rootDir, manifestPath = 'skills.manifest.json', t
   }
 }
 
-module.exports = { createSkillRegistry, loadManifestFile }
+module.exports = { createSkillRegistry, loadManifestFile, loadSkillFragments, resolveUnder }

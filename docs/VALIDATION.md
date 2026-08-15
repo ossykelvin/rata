@@ -6,7 +6,7 @@
 - `npm test` covers policy, tool contracts, IPC validation, calculator behavior, skill registry/loader/router behavior, and the mock-agent integration.
 - `npm run typecheck` passes with strict TypeScript settings.
 - `npm run build` produces the Vite renderer bundle.
-- `npm run pack:win` produces `release/win-unpacked`; its ASAR contains the renderer, Electron runtime, contract modules, skill runtime, manifest, and skill prompts.
+- `npm run pack:win` produces `release/win-unpacked`; its ASAR contains the renderer, Electron runtime, contract modules, skill runtime, per-skill metadata fragments, and skill prompts.
 - `npm install` reports no known dependency vulnerabilities.
 
 Run all non-interactive checks with:

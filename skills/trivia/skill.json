@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "order": 8,
+  "id": "trivia",
+  "name": "Trivia & General Knowledge",
+  "path": "skills/trivia/SKILL.md",
+  "category": "knowledge",
+  "risk": "none",
+  "background_capable": false,
+  "permissions": [
+    "ai.reason"
+  ],
+  "tools": [
+    "web.search"
+  ],
+  "confirmation": "none",
+  "triggers": [
+    "Who invented...",
+    "Tell me a trivia fact",
+    "Quiz me",
+    "What is the capital of..."
+  ]
+}

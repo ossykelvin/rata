@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "order": 18,
+  "id": "task-planner",
+  "name": "Task Planner",
+  "path": "skills/task-planner/SKILL.md",
+  "category": "productivity",
+  "risk": "none",
+  "background_capable": false,
+  "permissions": [
+    "ai.reason"
+  ],
+  "tools": [
+    "calendar.list",
+    "file.search"
+  ],
+  "confirmation": "none_for_planning",
+  "triggers": [
+    "Plan my day",
+    "Break this project into tasks",
+    "What should I do first?",
+    "Help me prioritize"
+  ]
+}

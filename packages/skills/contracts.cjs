@@ -35,10 +35,15 @@ function requireStringArray(value, label, pattern) {
   return [...value]
 }
 
-function validateSkillDefinition(raw, index) {
-  const value = requireRecord(raw, `Skill at index ${index}`)
+function definitionLabel(source) {
+  return Number.isInteger(source) ? `Skill at index ${source}` : `Skill fragment ${String(source)}`
+}
+
+function validateSkillDefinition(raw, source = 0) {
+  const label = definitionLabel(source)
+  const value = requireRecord(raw, label)
   if (typeof value.id !== 'string' || !SKILL_ID.test(value.id)) {
-    throw new TypeError(`Skill at index ${index} has an invalid id.`)
+    throw new TypeError(`${label} has an invalid id.`)
   }
   if (typeof value.name !== 'string' || !value.name.trim()) {
     throw new TypeError(`Skill ${value.id} must declare a name.`)
@@ -66,6 +71,7 @@ function validateSkillDefinition(raw, index) {
     id: value.id,
     name: value.name.trim(),
     path: value.path,
+    order: Number.isInteger(value.order) ? value.order : Number.isInteger(source) ? source : 0,
     category: value.category,
     risk: value.risk,
     backgroundCapable: value.background_capable,
@@ -76,11 +82,31 @@ function validateSkillDefinition(raw, index) {
   })
 }
 
+function validateSkillFragment(raw, expectedId) {
+  const value = requireRecord(raw, `Skill fragment ${expectedId}`)
+  if (value.schema_version !== 1) throw new TypeError(`Skill fragment ${expectedId} has an unsupported schema_version.`)
+  if (!Number.isInteger(value.order) || value.order < 0) {
+    throw new TypeError(`Skill fragment ${expectedId} must declare a non-negative order.`)
+  }
+  const skill = validateSkillDefinition(value, expectedId)
+  if (skill.id !== expectedId) throw new TypeError(`Skill fragment ${expectedId} id must match its directory.`)
+  return skill
+}
+
+function validatePackMetadata(raw) {
+  const value = requireRecord(raw, 'Skill pack metadata')
+  if (value.schema_version !== 1) throw new TypeError('Unsupported skill pack schema_version.')
+  if (typeof value.pack !== 'string' || !value.pack.trim()) throw new TypeError('Skill pack must declare a name.')
+  if (typeof value.version !== 'string' || !value.version.trim()) throw new TypeError('Skill pack must declare a version.')
+  if (typeof value.description !== 'string') throw new TypeError('Skill pack description must be a string.')
+  return Object.freeze({ pack: value.pack.trim(), version: value.version.trim(), description: value.description.trim() })
+}
+
+// Retained for compatibility with integrations that still validate a legacy
+// aggregate. The production registry loads per-skill fragments.
 function validateManifest(raw) {
   const value = requireRecord(raw, 'Skill manifest')
-  if (value.schema_version !== 1) {
-    throw new TypeError('Unsupported skills manifest schema_version.')
-  }
+  if (value.schema_version !== 1) throw new TypeError('Unsupported skills manifest schema_version.')
   if (!Array.isArray(value.skills) || value.skills.length === 0) {
     throw new TypeError('Skill manifest must declare at least one skill.')
   }
@@ -124,5 +150,7 @@ module.exports = {
   SKILL_RISKS,
   toPublicSkill,
   validateManifest,
-  validateSkillDefinition
+  validatePackMetadata,
+  validateSkillDefinition,
+  validateSkillFragment
 }

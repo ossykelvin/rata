@@ -184,7 +184,7 @@ function createSkillRuntime(toolRegistry) {
   const loader = createSkillLoader({ registry })
   const router = createSkillRouter({ registry, toolRegistry })
   if (registry.loadError) {
-    console.error('Rata skill pack failed closed:', registry.loadError)
+    console.error('Rata rejected one or more skill fragments:', registry.loadError)
   }
   return { registry, loader, router }
 }

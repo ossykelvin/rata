@@ -44,7 +44,6 @@
       "electron/**/*",
       "packages/**/*",
       "skills/**/*",
-      "skills.manifest.json",
       "package.json"
     ],
     "extraResources": [
