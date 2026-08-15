@@ -1,9 +1,22 @@
-import { RataAvatar } from '../../components/RataAvatar'
 import { ApprovalActions } from '../../components/ApprovalActions'
+import { RataAvatar } from '../../components/RataAvatar'
+import { VoiceMicButton } from '../../components/VoiceMicButton'
+import { useVoice } from '../../hooks/useVoice'
 import type { ControlCenterContextValue, ControlPageRegistration } from './model'
 
 export function ChatPage({ ctx }: { ctx: ControlCenterContextValue }) {
-  const { conversation } = ctx
+  const { conversation, settings } = ctx
+  const voice = useVoice({
+    microphoneEnabled: Boolean(settings.microphoneEnabled),
+    onTranscript: transcript => conversation.setInput(transcript),
+    onListeningChange: next => {
+      conversation.setAgentState(current => {
+        if (next) return 'listening'
+        return current === 'listening' ? 'idle' : current
+      })
+    },
+    onError: () => conversation.setAgentState('error')
+  })
   return (
     <section className="chat-layout">
       <div className="chat-card">
@@ -25,6 +38,7 @@ export function ChatPage({ ctx }: { ctx: ControlCenterContextValue }) {
         </div>
         <form className="chat-composer" onSubmit={conversation.sendForm}>
           <input value={conversation.input} onChange={e => conversation.setInput(e.target.value)} placeholder="Ask Rata to do something…" />
+          <VoiceMicButton voice={voice} className="icon-button chat-mic" />
           <button className="button-primary" type="submit">Send</button>
         </form>
       </div>

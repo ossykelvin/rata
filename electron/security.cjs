@@ -93,4 +93,40 @@ function createSecurityPolicy({ allowedPrefixes, onBlocked = () => {} } = {}) {
   return { allowedPrefixes: prefixes, isAllowedUrl, isTrustedSender, applyWindowGuards }
 }
 
-module.exports = { createSecurityPolicy }
+/**
+ * REVIEW-001 M4. Renderer checks of `microphoneEnabled` are not a boundary.
+ * Chromium permission names for the mic are `media` and `microphone`.
+ * Camera (`video`) and every other renderer permission stay denied.
+ */
+function decideRendererPermission(permission, details, settings) {
+  if (permission === 'media' || permission === 'microphone') {
+    if (!settings || settings.microphoneEnabled !== true) return false
+    const types = details?.mediaTypes
+    if (Array.isArray(types) && types.length > 0) {
+      return types.every(type => type === 'audio')
+    }
+    return true
+  }
+  return false
+}
+
+function applySessionPermissionHandler(electronSession, getSettings) {
+  if (!electronSession || typeof electronSession.setPermissionRequestHandler !== 'function') {
+    throw new TypeError('applySessionPermissionHandler requires an Electron session.')
+  }
+  if (typeof getSettings !== 'function') {
+    throw new TypeError('applySessionPermissionHandler requires getSettings().')
+  }
+
+  electronSession.setPermissionRequestHandler((_webContents, permission, callback, details) => {
+    callback(decideRendererPermission(permission, details, getSettings()))
+  })
+
+  if (typeof electronSession.setPermissionCheckHandler === 'function') {
+    electronSession.setPermissionCheckHandler((_webContents, permission, _origin, details) => {
+      return decideRendererPermission(permission, details, getSettings())
+    })
+  }
+}
+
+module.exports = { createSecurityPolicy, decideRendererPermission, applySessionPermissionHandler }

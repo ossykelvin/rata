@@ -18,7 +18,7 @@ The application proves:
 
 - AI provider: deterministic `MockAgent` only.
 - Character: concept-sheet crop with CSS animation, plus a letter-mark fallback if the PNG is missing.
-- Voice: browser speech recognition only when the Chromium environment exposes it.
+- Voice: browser speech recognition (push-to-talk) when Chromium exposes `SpeechRecognition`. Main denies `media` when the microphone setting is off. TTS is not wired.
 - Windows control: safe allow-listed app launch only.
 - Skills: registry/router loaded; only calculator and existing MVP tools can act.
 - Microsoft 365: UI placeholder; no OAuth yet.

@@ -78,7 +78,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | READY FOR REVIEW, PR #16 |
 | Codex | P0-2 modular tool registration | `codex/P0-2-modular-tool-registration` | DRAFT PR #20 — awaiting Lane H tests + Claude review |
 | Codex | P0-3 skill manifest fragments | `codex/P0-3-skill-manifest-fragments` | DRAFT PR #25 — awaiting Lane H tests + Claude review |
-| Cursor | RATA-004 speech recognition | `cursor/RATA-004-speech-recognition` | IN PROGRESS |
+| Cursor | RATA-004 speech recognition | `cursor/RATA-004-speech-recognition` | DONE, PR pending |
 | Cursor | FIX overlay drag overflow | `cursor/FIX-overlay-drag-overflow` | IN PROGRESS |
 | Cursor | FIX app icon and taskbar | `cursor/FIX-app-icon` | DONE, PR #41 |
 | Cursor | P0-4 decouple renderer | `cursor/P0-4-decouple-renderer` | DONE, PR pending |
@@ -271,10 +271,16 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-15 — RATA-004 — Speech recognition
 
-**Status:** IN PROGRESS
+**Status:** DONE, PR pending
 **Branch:** `cursor/RATA-004-speech-recognition`
 
-**Scope:** First STT slice of RATA-004. Browser speech recognition with push-to-talk, cancel, surfaced microphone permission state, and main-process media gating (REVIEW-001 M4). No TTS and no new IPC channels.
+**Done:** First STT slice of RATA-004. Overlay and Chat use `useVoice` for hold-to-talk, cancel, and permission state. Main denies Chromium `media` when `microphoneEnabled` is false (REVIEW-001 M4). No TTS and no new IPC channels.
+
+**Files touched:** `src/hooks/useVoice.ts`, `src/components/VoiceMicButton.tsx`, `src/views/Overlay.tsx`, `src/views/control/ChatPage.tsx`, `src/views/control/PermissionsPage.tsx`, `src/views/control/DeveloperPage.tsx`, `src/styles/overlay.css`, `src/styles/control.css`, `electron/security.cjs`, `electron/main.cjs`, `tests/voice-recognition.test.cjs`, `tests/electron-security.test.cjs`, `docs/VALIDATION.md`, `docs/TASKS.md`, `docs/ARCHITECTURE.md`, `docs/CODEMAP.md`, `docs/HANDOVER.md`.
+
+**Validation:** `npm run verify` passed (152 tests).
+
+**Still open:** configurable cloud STT/TTS adapters (`packages/agent-core/voice/`, Lane G voice channels).
 
 ---
 

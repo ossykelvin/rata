@@ -27,6 +27,8 @@ Acceptance:
 
 ## RATA-004 - Production voice
 
+**Status:** First STT slice landed. Browser speech recognition, push-to-talk, permission state, and main-process media gating are in. Configurable cloud STT/TTS adapters remain.
+
 Add STT and TTS adapters.
 
 Acceptance:

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, Notification, clipboard } = require('electron')
+const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, Notification, clipboard, session } = require('electron')
 const { existsSync } = require('node:fs')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
@@ -17,7 +17,7 @@ const {
   createMockProvider
 } = require('../packages/agent-core/providers/index.cjs')
 const { registerIpcHandlers } = require('./ipc/index.cjs')
-const { createSecurityPolicy } = require('./security.cjs')
+const { createSecurityPolicy, applySessionPermissionHandler } = require('./security.cjs')
 const { IPC } = require('../packages/contracts/ipc-channels.cjs')
 const { createSkillRegistry, createSkillRouter, createSkillLoader } = require('../packages/skills/index.cjs')
 
@@ -244,6 +244,7 @@ if (!hasSingleInstanceLock) {
       // Audit the refusal without recording payloads.
       onBlocked: ({ url }) => logActivity('Blocked navigation', `Refused a foreign destination: ${String(url)}`, 'warning')
     })
+    applySessionPermissionHandler(session.defaultSession, () => store.getSettings())
     const registry = createToolRegistry({
       dependencies: {
         spawnProcess: spawn,
