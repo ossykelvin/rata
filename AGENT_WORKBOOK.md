@@ -159,6 +159,12 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Codex
 
+### 2026-08-15 — Codex — WEB-001 implementation resumed after Phase 0
+
+**Status:** IN PROGRESS (branch `codex/WEB-001-implement-safe-fetch`, issue #30)
+
+**Scope:** Add a registered, read-only `web.fetch` tool for bounded public HTTP(S) content; enforce SSRF, redirect, content-type, timeout, and response-size controls; preserve the untrusted-content boundary before provider synthesis. Serper remains scoped to `web.search`, Gemini remains scoped to its provider adapter, and neither credential is exposed to `web.fetch`. Add injected-network regression tests, an ADR/security documentation, and request Claude review before merge.
+
 ### 2026-08-15 — Codex — WEB-001 safe web fetch and research synthesis
 
 **Status:** BLOCKED ON PHASE 0 (branch `codex/WEB-001-web-fetch-pipeline`, issue #30)
