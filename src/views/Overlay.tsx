@@ -103,9 +103,20 @@ export function Overlay() {
       <div className="drag-zone">
         <SpeechBubble message={message} state={state} />
         {approval && <ApprovalActions approval={approval} onApprove={approve} onReject={reject} />}
-        <button className="rata-button no-drag" onClick={() => setExpanded(value => !value)} aria-label="Open Rata input">
-          <RataAvatar state={state} />
-        </button>
+        <div className="rata-stack">
+          <div className="rata-button">
+            <RataAvatar state={state} />
+          </div>
+          <button
+            type="button"
+            className="rata-ask no-drag"
+            onClick={() => setExpanded(value => !value)}
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Hide Rata input' : 'Open Rata input'}
+          >
+            {expanded ? 'Hide' : 'Ask'}
+          </button>
+        </div>
       </div>
 
       {expanded && (
