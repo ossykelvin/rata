@@ -78,6 +78,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | IN PROGRESS |
 | Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | REVIEW REQUESTED |
 | Cursor | — | — | idle |
+| Cursor | ISSUE-17 restore character image | `cursor/ISSUE-17-restore-character-image` | DONE, PR #18 |
 
 ---
 
@@ -179,6 +180,32 @@ One line per agent. Keep it current — this is the first thing another agent re
 ---
 
 ## Cursor
+
+### 2026-08-15 — ISSUE-17 follow-up — Per-state character art
+
+**Status:** DONE (branch `cursor/ISSUE-17-restore-character-image`, PR #18)
+**Branch:** `cursor/ISSUE-17-restore-character-image`
+
+**Done:** Idle/default uses `public/rata-concept.png`. Other states swap sliced PNGs under `public/character/` (peeking, thinking, question, laptop, happy, surprised, sleeping). Catalog, classes, labels, and silhouette fallback stay event-driven.
+
+**Validation:** `npm run verify` passed.
+
+---
+
+### 2026-08-15 — ISSUE-17 — Restore original Rata character image
+
+**Status:** DONE (branch `cursor/ISSUE-17-restore-character-image`, PR #18)
+**Branch:** `cursor/ISSUE-17-restore-character-image`
+
+**Done:** Kept the RATA-003 event-driven state engine, classes, labels, and silhouette fallback. Temporary visible art is the original `public/rata-concept.png` crop (`temporaryArt` in `states.json`) until production per-state assets replace it.
+
+**Files touched:** `src/components/character/states.json`, `src/components/character/characterStates.ts`, `src/components/character/RataCharacter.tsx`, `src/styles/character.css`, `tests/character-states.test.cjs`, `docs/CHARACTER-ASSETS.md`, `docs/ARCHITECTURE.md`, `docs/VALIDATION.md`, `README.md`, `src/views/control/AppearancePage.tsx`.
+
+**Validation:** `npm run verify` passed (`check:node`, 60 tests, `typecheck`, `vite build`).
+
+**Blocked on:** production per-state character art remains BLOCKED-ON-HUMAN.
+
+---
 
 ### 2026-08-15 — RATA-003 — Character animation engine
 

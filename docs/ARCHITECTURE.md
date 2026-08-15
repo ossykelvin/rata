@@ -95,7 +95,7 @@ The character consumes state/events only:
 idle → listening → thinking → awaiting_approval → working → success → idle
 ```
 
-`sleeping` is also a presentation state. The renderer maps those events in `src/components/character/`; it does not choose tools. Placeholder SVGs live in `public/character/` until production art arrives. Missing assets fall back to a letter-mark silhouette.
+`sleeping` is also a presentation state. The renderer maps those events in `src/components/character/`; it does not choose tools. Idle uses `public/rata-concept.png`. Other states load matching art from `public/character/`. Missing assets fall back to a letter-mark silhouette.
 
 Production assets should be transparent WebM, Rive, Live2D or another state-driven renderer. Tool logic must not live in animation code.
 

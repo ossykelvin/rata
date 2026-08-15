@@ -1,0 +1,338 @@
+[
+  {
+    "name": "01_main_hero",
+    "file": "01_main_hero.png",
+    "source_box": [
+      25,
+      190,
+      490,
+      905
+    ],
+    "size": [
+      477,
+      727
+    ]
+  },
+  {
+    "name": "02_turnaround_front",
+    "file": "02_turnaround_front.png",
+    "source_box": [
+      530,
+      70,
+      690,
+      305
+    ],
+    "size": [
+      172,
+      247
+    ]
+  },
+  {
+    "name": "03_turnaround_three_quarter",
+    "file": "03_turnaround_three_quarter.png",
+    "source_box": [
+      690,
+      70,
+      855,
+      305
+    ],
+    "size": [
+      177,
+      247
+    ]
+  },
+  {
+    "name": "04_turnaround_side",
+    "file": "04_turnaround_side.png",
+    "source_box": [
+      845,
+      70,
+      1025,
+      305
+    ],
+    "size": [
+      192,
+      247
+    ]
+  },
+  {
+    "name": "05_turnaround_back",
+    "file": "05_turnaround_back.png",
+    "source_box": [
+      1005,
+      70,
+      1190,
+      305
+    ],
+    "size": [
+      197,
+      247
+    ]
+  },
+  {
+    "name": "06_expression_happy",
+    "file": "06_expression_happy.png",
+    "source_box": [
+      515,
+      330,
+      690,
+      490
+    ],
+    "size": [
+      187,
+      172
+    ]
+  },
+  {
+    "name": "07_expression_smiling",
+    "file": "07_expression_smiling.png",
+    "source_box": [
+      680,
+      335,
+      845,
+      490
+    ],
+    "size": [
+      177,
+      167
+    ]
+  },
+  {
+    "name": "08_expression_question",
+    "file": "08_expression_question.png",
+    "source_box": [
+      835,
+      325,
+      1015,
+      495
+    ],
+    "size": [
+      192,
+      182
+    ]
+  },
+  {
+    "name": "09_expression_thinking",
+    "file": "09_expression_thinking.png",
+    "source_box": [
+      995,
+      330,
+      1190,
+      495
+    ],
+    "size": [
+      207,
+      177
+    ]
+  },
+  {
+    "name": "10_expression_sleepy",
+    "file": "10_expression_sleepy.png",
+    "source_box": [
+      515,
+      500,
+      700,
+      655
+    ],
+    "size": [
+      197,
+      167
+    ]
+  },
+  {
+    "name": "11_expression_surprised",
+    "file": "11_expression_surprised.png",
+    "source_box": [
+      680,
+      500,
+      850,
+      660
+    ],
+    "size": [
+      182,
+      172
+    ]
+  },
+  {
+    "name": "12_expression_silly",
+    "file": "12_expression_silly.png",
+    "source_box": [
+      840,
+      495,
+      1020,
+      660
+    ],
+    "size": [
+      192,
+      177
+    ]
+  },
+  {
+    "name": "13_expression_sunglasses",
+    "file": "13_expression_sunglasses.png",
+    "source_box": [
+      995,
+      495,
+      1195,
+      660
+    ],
+    "size": [
+      212,
+      177
+    ]
+  },
+  {
+    "name": "14_widget_peeking",
+    "file": "14_widget_peeking.png",
+    "source_box": [
+      1230,
+      55,
+      1515,
+      190
+    ],
+    "size": [
+      297,
+      147
+    ]
+  },
+  {
+    "name": "15_widget_sleeping",
+    "file": "15_widget_sleeping.png",
+    "source_box": [
+      1230,
+      325,
+      1455,
+      465
+    ],
+    "size": [
+      237,
+      152
+    ]
+  },
+  {
+    "name": "16_widget_lightbulb",
+    "file": "16_widget_lightbulb.png",
+    "source_box": [
+      1225,
+      480,
+      1450,
+      625
+    ],
+    "size": [
+      237,
+      157
+    ]
+  },
+  {
+    "name": "17_widget_laptop",
+    "file": "17_widget_laptop.png",
+    "source_box": [
+      1230,
+      625,
+      1450,
+      780
+    ],
+    "size": [
+      232,
+      167
+    ]
+  },
+  {
+    "name": "18_widget_beanbag",
+    "file": "18_widget_beanbag.png",
+    "source_box": [
+      1205,
+      785,
+      1465,
+      995
+    ],
+    "size": [
+      272,
+      222
+    ]
+  },
+  {
+    "name": "19_size_tiny",
+    "file": "19_size_tiny.png",
+    "source_box": [
+      545,
+      915,
+      595,
+      985
+    ],
+    "size": [
+      62,
+      82
+    ]
+  },
+  {
+    "name": "20_size_small",
+    "file": "20_size_small.png",
+    "source_box": [
+      585,
+      855,
+      655,
+      975
+    ],
+    "size": [
+      82,
+      132
+    ]
+  },
+  {
+    "name": "21_size_medium",
+    "file": "21_size_medium.png",
+    "source_box": [
+      625,
+      830,
+      735,
+      975
+    ],
+    "size": [
+      122,
+      157
+    ]
+  },
+  {
+    "name": "22_size_large",
+    "file": "22_size_large.png",
+    "source_box": [
+      710,
+      785,
+      835,
+      975
+    ],
+    "size": [
+      137,
+      202
+    ]
+  },
+  {
+    "name": "23_dialog_avatar_focus",
+    "file": "23_dialog_avatar_focus.png",
+    "source_box": [
+      865,
+      820,
+      930,
+      885
+    ],
+    "size": [
+      77,
+      77
+    ]
+  },
+  {
+    "name": "24_dialog_avatar_reply",
+    "file": "24_dialog_avatar_reply.png",
+    "source_box": [
+      865,
+      920,
+      930,
+      990
+    ],
+    "size": [
+      77,
+      82
+    ]
+  }
+]

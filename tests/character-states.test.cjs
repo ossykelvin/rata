@@ -5,24 +5,33 @@ const path = require('node:path')
 
 const catalog = require('../src/components/character/states.json')
 const REQUIRED = ['idle', 'listening', 'thinking', 'awaiting_approval', 'working', 'success', 'error', 'sleeping']
-const ROOT = path.join(__dirname, '..', 'public', 'character')
+const ROOT = path.join(__dirname, '..')
+
+function assetPath(entry) {
+  if (entry.src) return path.join(ROOT, 'public', entry.src.replace(/^\.\//, ''))
+  return path.join(ROOT, 'public', 'character', entry.file)
+}
 
 test('character catalog covers every RATA-003 presentation state', () => {
   for (const state of REQUIRED) {
     assert.ok(catalog[state], `missing catalog entry for ${state}`)
-    assert.equal(typeof catalog[state].file, 'string')
     assert.equal(typeof catalog[state].label, 'string')
+    assert.ok(catalog[state].src || catalog[state].file, `missing asset for ${state}`)
   }
   assert.equal(catalog.typing.file, catalog.working.file)
 })
 
-test('placeholder assets exist for every catalog file', () => {
-  const files = new Set(Object.values(catalog).map(entry => entry.file))
-  for (const file of files) {
-    const target = path.join(ROOT, file)
-    assert.equal(fs.existsSync(target), true, `missing ${file}`)
-    assert.match(fs.readFileSync(target, 'utf8'), /<svg/)
+test('idle uses rata-concept.png and other states use distinct files', () => {
+  assert.equal(catalog.idle.src, './rata-concept.png')
+  assert.equal(fs.existsSync(assetPath(catalog.idle)), true, 'missing public/rata-concept.png')
+  const files = new Set()
+  for (const state of REQUIRED) {
+    if (state === 'idle') continue
+    assert.equal(typeof catalog[state].file, 'string')
+    files.add(catalog[state].file)
+    assert.equal(fs.existsSync(assetPath(catalog[state])), true, `missing ${catalog[state].file}`)
   }
+  assert.equal(files.size, REQUIRED.length - 1)
 })
 
 test('unknown states normalize to idle and typing aliases working', () => {
@@ -32,6 +41,7 @@ test('unknown states normalize to idle and typing aliases working', () => {
   }
   assert.match(source, /if \(state === 'typing'\) return 'working'/)
   assert.match(source, /return 'idle'/)
+  assert.match(source, /resolveAssetSrc/)
 })
 
 test('character CSS defines a class for every runtime state', () => {

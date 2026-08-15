@@ -15,9 +15,20 @@ These states are driven by agent events:
 - `error`
 - `sleeping`
 
-Place one transparent asset per state under `public/character/<state>.svg` (or `.webp` / `.webm` later). The catalog is `src/components/character/states.json`. Unknown states map to `idle`. If a file is missing or fails to load, the engine shows a letter-mark silhouette and keeps the resolved state class. The renderer must not start sleeping or other states on a timer; those remain agent events.
+Place one transparent asset per state under `public/character/`. The catalog is `src/components/character/states.json`. **Idle/default** uses `public/rata-concept.png`. Other agent states swap to the matching sliced PNG. Unknown states map to `idle`. If an image is missing or fails to load, the engine shows a letter-mark silhouette and keeps the resolved state class. The renderer must not start sleeping or other states on a timer; those remain agent events.
 
-The files currently in `public/character/` are **placeholders**, not production art. Replace them in place; do not put tool logic in the animation.
+Current mapping:
+
+- `idle` → `rata-concept.png`
+- `listening` → `14_widget_peeking.png`
+- `thinking` → `09_expression_thinking.png`
+- `awaiting_approval` → `08_expression_question.png`
+- `working` / `typing` → `17_widget_laptop.png`
+- `success` → `06_expression_happy.png`
+- `error` → `11_expression_surprised.png`
+- `sleeping` → `15_widget_sleeping.png`
+
+Replace a catalog `file` (or idle `src`) in place to change art; do not put tool logic in the animation.
 
 ## Later animation set
 
