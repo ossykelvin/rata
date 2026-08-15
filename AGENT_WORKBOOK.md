@@ -2,6 +2,8 @@
 
 Shared running log for every AI agent working in this repository (Claude, Codex, Cursor).
 
+**Canonical git remote:** https://github.com/ossykelvin/rata.git (`origin`, branch `main`)
+
 `AGENTS.md` is the **engineering contract** — what you must and must not do.
 This workbook is the **activity log** — what has actually been done, by whom, and what is still open.
 
@@ -56,6 +58,34 @@ State of the health items that matter for multi-agent work:
 
 ## Session log
 
+### 2026-08-15 — Cursor (Grok) — Point workbook at GitHub and remove orphan contracts
+
+**Status:** DONE
+**Task given:** The project lives at `https://github.com/ossykelvin/rata.git`.
+
+**Done:**
+
+- Recorded the canonical remote at the top of this workbook and in `README.md`.
+- Deleted unreferenced `packages/contracts/index.cjs` and `packages/contracts/contracts.d.ts` (Open Item 1). Runtime contracts remain `ipc-channels.cjs` + `ipc-validation.cjs`.
+
+**Files touched:** `AGENT_WORKBOOK.md`, `README.md`, deleted the two orphan contract files.
+
+### 2026-08-15 — Claude (Opus 5) — Created this workbook; verified Git state
+
+**Status:** DONE
+**Task given:** "Write into a file `AGENT_WORKBOOK.md` where a summary of all work you are doing or you've done should be written into so that Claude and Cursor can stay updated."
+
+**Done:**
+
+- Authored `AGENT_WORKBOOK.md` (this file): usage rules, repo snapshot, session log, open items, and the coordination protocol at the bottom.
+- Verified the Git state directly rather than trusting the earlier snapshot. At 15:02 there was no `.git` anywhere in the folder or its ancestors; by 15:05 it existed, with `origin` → `ossykelvin/rata` on `main`. The Codex session initialized and pushed it in between — see its entry below.
+- Confirmed `package-lock.json` is tracked (not ignored), and that `node_modules/`, `dist/`, and `release/` stay ignored.
+- Corrected stale cross-references in Open Items (runtime-boundary validation is `ADR-004`, not `ADR-003`).
+
+**Confirmed at 15:05:** commits `a4ad325` → `d8f3cb2` → `de7c714`, working tree clean, `main` in sync with `origin/main`.
+
+**Carried forward:** my two orphan contract files were included in baseline commit `a4ad325` and are now on GitHub. They are still unreferenced and still need removing — Open Item 1. I did not delete them in this session because the Codex session was actively committing at the time and an unannounced working-tree change could have collided with its next commit.
+
 ### 2026-08-15 — Codex — Initialize and publish Git repository
 
 **Status:** DONE
@@ -92,7 +122,7 @@ State of the health items that matter for multi-agent work:
 
 **Files and areas touched:** `electron/`, `packages/agent-core/`, `packages/contracts/`, `tests/`, `package.json`, `package-lock.json`, `vite.config.mts`, `scripts/check-node.cjs`, `docs/`, `CLAUDE.md`, `.cursor/`, `.cursorignore`, `README.md`, `AGENTS.md`, and `AGENT_WORKBOOK.md`.
 
-**Remaining items:** Git initialization, orphan contract-file cleanup, lint/format setup, production icon, manual GUI smoke testing, RATA-002, and completion of RATA-009. See Open Items below and `docs/TASKS.md`.
+**Remaining items:** lint/format setup, production icon, manual GUI smoke testing, RATA-002, and completion of RATA-009. See Open Items below and `docs/TASKS.md`.
 
 ### 2026-08-15 — Claude (Opus 5) — Refactor review, aborted mid-flight
 
@@ -117,7 +147,7 @@ Nothing references either file except each other; `tsconfig.json` does not inclu
 - `package.json` had a duplicate `verify` key, silently dropping the first definition. — *Fixed.*
 - Every dependency was pinned to `"latest"`, so each agent's `npm install` could resolve different Electron/React/Vite versions. — *Fixed; lockfile now present.*
 
-**Findings still open:** no git repository; no lint/format config. Both in Open Items.
+**Findings still open:** lint/format config. See Open Items.
 
 **Note for whoever reads this next:** the collision was only recoverable because the Write tool refuses to overwrite an unread file. With no git history there was no other safety net. That is the strongest argument for the first Open Item below.
 
@@ -127,21 +157,13 @@ Nothing references either file except each other; `tsconfig.json` does not inclu
 
 Ordered by how much they block multi-agent work.
 
-### 1. Delete two orphan files — trivial, do it now
-
-```bash
-rm packages/contracts/index.cjs packages/contracts/contracts.d.ts
-```
-
-Created by the Claude session above, superseded by `ipc-channels.cjs` + `ipc-validation.cjs`. Leaving them risks a future agent importing the wrong contracts module.
-
-### 2. Add lint + format config
+### 1. Add lint + format config
 
 None exists. Codex and Cursor will churn style on every file they touch, producing noisy diffs that hide real changes. Needs ESLint (flat config) + Prettier + `.editorconfig`, wired into `npm run verify`.
 
-### 3. RATA-009 — unify renderer types with runtime schemas
+### 2. RATA-009 — unify renderer types with runtime schemas
 
-Tracked in `docs/TASKS.md` and noted in ADR-003. Renderer compile-time types and the CommonJS runtime validators are currently maintained separately. Until they are generated from one source, a change to one can silently drift from the other.
+Tracked in `docs/TASKS.md` and noted in `ADR-004`. Renderer compile-time types and the CommonJS runtime validators are currently maintained separately. Until they are generated from one source, a change to one can silently drift from the other.
 
 ---
 

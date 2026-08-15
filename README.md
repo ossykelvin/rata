@@ -2,7 +2,7 @@
 
 Rata is a Windows-first draggable desktop assistant inspired by the spirit of Clippy, but designed as a modern permission-aware AI agent.
 
-This repository is the **first working vertical-slice MVP**. It intentionally proves the desktop shell and safety architecture before adding unrestricted desktop automation or live AI credentials.
+This repository is the **first working vertical-slice MVP**. Source of truth: [github.com/ossykelvin/rata](https://github.com/ossykelvin/rata.git).
 
 ## What works now
 
