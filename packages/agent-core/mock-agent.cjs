@@ -144,7 +144,8 @@ class MockAgent {
   }
 
   async runTool(id, input, title) {
-    const tool = this.registry.get(id)
+    // Metadata only. The executor is reachable solely via registry.execute().
+    const tool = this.registry.describe(id)
     let validatedInput = input
     if (tool) {
       try {
@@ -192,7 +193,6 @@ class MockAgent {
   }
 
   async execute(id, input) {
-    const tool = this.registry.get(id)
     try {
       this.activity('Tool started', `${id}`, 'info')
       const result = await this.registry.execute(id, input)

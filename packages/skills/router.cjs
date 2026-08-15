@@ -75,8 +75,9 @@ function createSkillRouter({ registry, toolRegistry = null } = {}) {
     }
 
     const selected = scored[0].skill
-    const availableTools = toolRegistry && typeof toolRegistry.get === 'function'
-      ? selected.tools.filter(id => Boolean(toolRegistry.get(id)))
+    // Existence check only — the router selects skills, it never runs tools.
+    const availableTools = toolRegistry && typeof toolRegistry.has === 'function'
+      ? selected.tools.filter(id => toolRegistry.has(id))
       : [...selected.availableTools]
     const missingTools = selected.tools.filter(id => !availableTools.includes(id))
     const writeLike = selected.risk === 'external-write' || selected.risk === 'file-write' || selected.risk === 'local-write'
