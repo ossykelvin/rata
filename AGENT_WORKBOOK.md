@@ -7,13 +7,17 @@ Shared running log for every AI agent working in this repository (Claude, Codex,
 `AGENTS.md` is the **engineering contract** — what you must and must not do.
 This workbook is the **activity log** — what has actually been done, by whom, and what is still open.
 
+Work assignment, lanes and sequencing live in **`docs/PRODUCT_BACKLOG.md`**. Read that before picking up a ticket.
+
 ## How to use this file
 
-- **Before starting work:** read the Repo Snapshot and Open Items below, then check the Session Log for anything in flight.
-- **While working:** if you begin a substantial change, add a Session Log entry with status `IN PROGRESS` *before* you start editing, so a parallel agent can see it.
+- **Before starting work:** read the Repo Snapshot and Open Items below, then check every agent's section for anything `IN PROGRESS`.
+- **While working:** add an entry with status `IN PROGRESS` to **your own agent section** *before* your first substantive edit, and push your branch. An unpushed branch is not a claim.
 - **When finishing:** update your entry to `DONE`, list files touched, and move anything unresolved into Open Items.
-- **Attribution matters.** Always say which agent did a thing. A shared log with anonymous entries is worse than no log.
-- Newest Session Log entry goes at the top.
+- **Write only under your own heading.** `.gitattributes` merges this file with `merge=union`, which keeps both sides' lines instead of conflicting — but it can interleave concurrent edits to the *same* section. Per-agent sections are what make that safe.
+- **Never rewrite another agent's entry.** Correct the record by adding a dated note, not by editing their text.
+- **Attribution matters.** A shared log with anonymous entries is worse than no log.
+- Newest entry goes at the top of your section.
 
 ---
 
@@ -52,11 +56,66 @@ State of the health items that matter for multi-agent work:
 | Tool contract enforced at registration | Done |
 | Skills manifest wired to runtime | Done |
 | Version control (git) | Initialized on `main`; linked to `ossykelvin/rata` |
-| **Lint / format config** | **None — see Open Items** |
+| Backlog, lanes, CODEOWNERS, CI | Done — `docs/PRODUCT_BACKLOG.md` |
+| **Lint / format config** | **None — Phase 0 ticket P0-5** |
+| **Typecheck coverage** | **`src` only; `electron/`, `packages/`, `tests/` unchecked — P0-5** |
 
 ---
 
-## Session log
+## Active work
+
+One line per agent. Keep it current — this is the first thing another agent reads.
+
+| Agent | Lane / ticket | Branch | Status |
+|---|---|---|---|
+| Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, awaiting merge |
+| Codex | — | — | idle |
+| Cursor | — | — | idle |
+
+---
+
+## Claude
+
+### 2026-08-15 — P0-0 — Product backlog and parallel-work guardrails
+
+**Status:** DONE (branch `claude/P0-0-backlog-and-guardrails`, not yet merged)
+
+**Why:** three agents collided in this repo within one hour. Mapping the dependency graph showed the cause is structural — seven hub files (`electron/main.cjs`, `preload.cjs`, `ipc-channels.cjs`, `mvp-tools.cjs`, `src/types.ts`, `global.css`, `skills.manifest.json`) are touched by nearly every remaining ticket, so any feature-level parallelism collides in the privilege boundary.
+
+**Added:**
+
+- `docs/PRODUCT_BACKLOG.md` — Phase 0 (convert hubs into extension points), then nine lanes with disjoint paths, dependency order, human-gated items, working protocol.
+- `.github/CODEOWNERS` — lane-to-path map so cross-lane edits surface in the PR. Handles are placeholders pending real accounts.
+- `.github/workflows/verify.yml` — `npm run verify` on every PR, Windows runner, `npm ci`.
+- `.gitattributes` — `merge=union` for this workbook, line-ending normalization, binary assets marked.
+- Restructured this workbook into per-agent sections.
+
+**Found while mapping, worth knowing:**
+
+- `tsconfig.json` covers only `src` and `vite.config.mts`. `electron/`, `packages/`, `tests/` and `scripts/` are **never typechecked** — the only gate is `scripts/check-node.cjs`, a syntax-only `node --check`. Ticketed as P0-5.
+- `packages/agent-core/index.cjs` is a barrel with zero importers. Ticketed as P0-6.
+- `skills.manifest.json` validates fail-closed on the *whole* document, so one malformed entry disables every skill. Ticketed as P0-3.
+- `src/views/Overlay.tsx` re-implements the agent conversation flow inline instead of using `useAgentConversation`. Ticketed as P0-4.
+
+**Next:** Codex takes P0-1. No feature lane opens until Phase 0 merges.
+
+---
+
+## Codex
+
+*No entries under the lane protocol yet. Earlier work is in the archive below.*
+
+---
+
+## Cursor
+
+*No entries under the lane protocol yet. Earlier work is in the archive below.*
+
+---
+
+## Session log — archive
+
+Chronological entries from before the lane protocol. Preserved verbatim.
 
 ### 2026-08-15 — Cursor (Grok) — Point workbook at GitHub and remove orphan contracts
 
@@ -157,15 +216,18 @@ Nothing references either file except each other; `tsconfig.json` does not inclu
 
 ## Open items
 
-Ordered by how much they block multi-agent work.
+Everything below is now ticketed in `docs/PRODUCT_BACKLOG.md`. This section tracks only what is not yet assigned to a lane.
 
-### 1. Add lint + format config
+### Blocked on the user
 
-None exists. Codex and Cursor will churn style on every file they touch, producing noisy diffs that hide real changes. Needs ESLint (flat config) + Prettier + `.editorconfig`, wired into `npm run verify`.
+- **Enable branch protection** on `main` once `verify` has run at least once (GitHub needs to see the check before it can be required). Require the `verify` check and at least one review.
+- **Replace the placeholder handles in `.github/CODEOWNERS`** with the real GitHub accounts driving Codex, Cursor and Claude. Everything currently falls back to the repository owner, so the lane map documents intent but does not yet enforce it.
 
-### 2. RATA-009 — unify renderer types with runtime schemas
+### Carried into Phase 0
 
-Tracked in `docs/TASKS.md` and noted in `ADR-004`. Renderer compile-time types and the CommonJS runtime validators are currently maintained separately. Until they are generated from one source, a change to one can silently drift from the other.
+- Lint + format config → **P0-5**
+- Typecheck coverage for `electron/`, `packages/`, `tests/` → **P0-5**
+- RATA-009, renderer types vs runtime validators drifting → **Lane G**
 
 ---
 

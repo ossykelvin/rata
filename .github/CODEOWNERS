@@ -1,0 +1,75 @@
+# Rata code ownership — lane map from docs/PRODUCT_BACKLOG.md
+#
+# Purpose: make a cross-lane edit VISIBLE in the pull request rather than
+# silent. Last matching pattern wins, so order matters here.
+#
+# GitHub resolves these to real accounts, not agent names. Replace the
+# placeholders below with the GitHub handles that drive each agent. Until
+# then, every path falls back to the repository owner.
+#
+#   @ossykelvin  - repository owner / human gate
+#
+# Suggested mapping once separate accounts or teams exist:
+#   Lane A, D, E, F, Phase 0  -> the account running Codex
+#   Lane B, C, S              -> the account running Cursor
+#   Lane G, H + all reviews   -> the account running Claude
+
+# Default owner for anything not matched below.
+*                                   @ossykelvin
+
+# --- Lane G: contracts and typing (Claude) -----------------------------
+# The privilege boundary. Changes here need the review mandate.
+/packages/contracts/                @ossykelvin
+/src/types/                         @ossykelvin
+/src/types.ts                       @ossykelvin
+
+# --- Lane A: provider and orchestration (Codex) ------------------------
+/packages/agent-core/providers/     @ossykelvin
+/packages/agent-core/orchestrator/  @ossykelvin
+
+# --- Lane C: voice (Cursor) --------------------------------------------
+/packages/agent-core/voice/         @ossykelvin
+/src/hooks/useVoice.ts              @ossykelvin
+
+# --- Lane D: native Windows bridge (Codex) -----------------------------
+# Security-sensitive: requires threat-model review and an ADR before merge.
+/bridge/                            @ossykelvin
+/electron/tools/windows.cjs         @ossykelvin
+
+# --- Lane E: Microsoft Graph (Codex) -----------------------------------
+/packages/connectors/graph/         @ossykelvin
+/electron/tools/graph.cjs           @ossykelvin
+/electron/ipc/graph.cjs             @ossykelvin
+
+# --- Lane F: browser agent (Codex) -------------------------------------
+# Prompt-injection boundary: page content must never alter tool policy.
+/packages/connectors/browser/       @ossykelvin
+/electron/tools/browser.cjs         @ossykelvin
+
+# --- Lane B: character and presentation (Cursor) -----------------------
+/src/components/character/          @ossykelvin
+/src/styles/character.css           @ossykelvin
+/public/character/                  @ossykelvin
+
+# --- Lane S: skills (Cursor) -------------------------------------------
+/skills/                            @ossykelvin
+/packages/skills/                   @ossykelvin
+
+# --- Lane H: tests, CI, packaging (Claude + human) ---------------------
+/tests/                             @ossykelvin
+/scripts/                           @ossykelvin
+/.github/                           @ossykelvin
+
+# --- Shared surfaces: any change here affects every lane ---------------
+# Phase 0 exists to shrink this list. If a feature PR touches one of these,
+# that is the signal to stop and ask whether Phase 0 left a gap.
+/electron/main.cjs                  @ossykelvin
+/electron/preload.cjs               @ossykelvin
+/package.json                       @ossykelvin
+
+# --- Governance: never changed to make a feature work ------------------
+/AGENTS.md                          @ossykelvin
+/CLAUDE.md                          @ossykelvin
+/docs/SECURITY.md                   @ossykelvin
+/docs/PRODUCT_BACKLOG.md            @ossykelvin
+/docs/decisions/                    @ossykelvin
