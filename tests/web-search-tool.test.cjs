@@ -116,6 +116,54 @@ test('config describes presence without exposing values', () => {
     processEnv: { GEMINI_API_KEY: 'g-secret', RATA_SERPER_API_KEY: 's-secret' }
   })
   const described = describeConfig(config)
-  assert.deepEqual(described, { defaultProviderMode: 'mock', gemini: true, openrouter: false, serper: true })
+  assert.deepEqual(described, {
+    providerModeOverride: null,
+    providerModeRejected: null,
+    gemini: true,
+    openrouter: false,
+    serper: true
+  })
+  assert.equal(JSON.stringify(described).includes('secret'), false)
+})
+
+// --- provider mode precedence -------------------------------------------
+//
+// RATA_AI_PROVIDER was previously unreachable: the mode was computed as
+// `storedSetting || envDefault`, and the stored setting always holds a value,
+// so editing the env variable appeared to do nothing.
+
+test('a valid RATA_AI_PROVIDER is accepted as an override', () => {
+  for (const mode of ['auto', 'gemini', 'openrouter', 'mock']) {
+    const config = loadRuntimeConfig({ rootDir: __dirname, files: [], processEnv: { RATA_AI_PROVIDER: mode } })
+    assert.equal(config.providerModeOverride, mode)
+    assert.equal(config.providerModeRejected, null)
+  }
+})
+
+test('no RATA_AI_PROVIDER means no override, so the stored setting decides', () => {
+  const config = loadRuntimeConfig({ rootDir: __dirname, files: [], processEnv: {} })
+  assert.equal(config.providerModeOverride, null)
+  assert.equal(config.providerModeRejected, null)
+})
+
+test('an unknown RATA_AI_PROVIDER is rejected and reported, not silently used', () => {
+  for (const bad of ['gpt4', 'AUTO ', 'openai', '']) {
+    const config = loadRuntimeConfig({ rootDir: __dirname, files: [], processEnv: { RATA_AI_PROVIDER: bad } })
+    assert.equal(config.providerModeOverride, null, `accepted an unknown mode: ${bad}`)
+  }
+  const typo = loadRuntimeConfig({ rootDir: __dirname, files: [], processEnv: { RATA_AI_PROVIDER: 'gemni' } })
+  assert.equal(typo.providerModeOverride, null)
+  assert.equal(typo.providerModeRejected, 'gemni')
+})
+
+test('describeConfig reports the override without exposing credentials', () => {
+  const config = loadRuntimeConfig({
+    rootDir: __dirname,
+    files: [],
+    processEnv: { RATA_AI_PROVIDER: 'auto', GEMINI_API_KEY: 'g-secret' }
+  })
+  const described = describeConfig(config)
+  assert.equal(described.providerModeOverride, 'auto')
+  assert.equal(described.gemini, true)
   assert.equal(JSON.stringify(described).includes('secret'), false)
 })
