@@ -49,6 +49,7 @@ function createSerperSearch({
       })
     } catch (error) {
       // Never surface the raw error: it can carry the endpoint and headers.
+      // eslint-disable-next-line preserve-caught-error -- attaching the cause would re-expose them
       throw new Error(error?.name === 'AbortError' ? 'Web search timed out.' : 'Web search request failed.')
     } finally {
       clearTimeout(timer)

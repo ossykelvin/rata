@@ -119,7 +119,7 @@ function createControlCenter() {
 
 function trayIcon() {
   const imagePath = isDev ? path.join(__dirname, '..', 'public', 'rata-concept.png') : path.join(process.resourcesPath, 'rata-concept.png')
-  let image = nativeImage.createFromPath(imagePath)
+  const image = nativeImage.createFromPath(imagePath)
   if (!image.isEmpty()) return image.resize({ width: 18, height: 18 })
   return nativeImage.createFromDataURL('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAAAMElEQVR4nGNgGAWjYBSMglEwCkbBKBicwPj//38GKgATA8XAqAajYBSMglEwCkbBKBgFwxUAAG0qB/H2mS0qAAAAAElFTkSuQmCC')
 }
