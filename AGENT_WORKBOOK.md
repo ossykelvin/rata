@@ -75,7 +75,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, awaiting merge |
 | Codex | FIX-001 idempotent startup | `codex/FIX-001-idempotent-startup` | REVIEW REQUESTED |
 | Codex | P0-1 modular IPC boundary | `codex/P0-1-modular-ipc-boundary` | IN PROGRESS — awaiting Lane G contracts/tests + Claude review |
-| Cursor | ISSUE-17 restore character image | `cursor/ISSUE-17-restore-character-image` | DONE, PR pending |
+| Cursor | ISSUE-17 restore character image | `cursor/ISSUE-17-restore-character-image` | DONE, PR #18 |
 
 ---
 
@@ -164,7 +164,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ### 2026-08-15 — ISSUE-17 — Restore original Rata character image
 
-**Status:** DONE (branch `cursor/ISSUE-17-restore-character-image`)
+**Status:** DONE (branch `cursor/ISSUE-17-restore-character-image`, PR #18)
 **Branch:** `cursor/ISSUE-17-restore-character-image`
 
 **Done:** Kept the RATA-003 event-driven state engine, classes, labels, and silhouette fallback. Temporary visible art is the original `public/rata-concept.png` crop (`temporaryArt` in `states.json`) until production per-state assets replace it.
