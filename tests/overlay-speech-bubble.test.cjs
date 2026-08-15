@@ -17,7 +17,7 @@ test('speech bubble keeps a fixed header and a scrollable body', () => {
 test('overlay long tokens wrap and the avatar/input stay in the viewport', () => {
   assert.match(css, /overflow-wrap:\s*anywhere/)
   assert.match(css, /word-break:\s*break-word/)
-  assert.match(css, /\.overlay-root\s*\{[^}]*overflow:\s*hidden/)
+  assert.match(css, /\.speech-bubble\s*\{[^}]*overflow:\s*hidden/)
   assert.match(css, /\.rata-button\s*\{[^}]*flex:\s*0\s+0\s+auto/)
   assert.match(css, /\.quick-input\s*\{[^}]*flex:\s*0\s+0\s+auto/)
 })
