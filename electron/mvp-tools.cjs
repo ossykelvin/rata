@@ -1,10 +1,23 @@
 const { ToolRegistry } = require('../packages/agent-core/tool-registry.cjs')
 const { evaluateExpression, formatNumber } = require('../packages/agent-core/calculator.cjs')
 
-const APP_ALLOW_LIST = Object.freeze({
+// Null-prototype on purpose. `Object.freeze` does not stop an object from
+// inheriting Object.prototype, so a plain literal would make
+// `APP_ALLOW_LIST['constructor']` resolve to a truthy function and pass an
+// allow-list check for an application that is not allow-listed.
+// See docs/reviews/REVIEW-001-mvp-security.md (H2).
+//
+// Any allow-list added later — process names in the Windows bridge, Graph
+// scopes, browser origins — must use this shape for the same reason.
+const APP_ALLOW_LIST = Object.freeze(Object.assign(Object.create(null), {
   notepad: { exe: 'notepad.exe', label: 'Notepad' },
   calculator: { exe: 'calc.exe', label: 'Calculator' }
-})
+}))
+
+/** True only for an application explicitly declared above. */
+function isAllowListedApp(name) {
+  return typeof name === 'string' && Object.prototype.hasOwnProperty.call(APP_ALLOW_LIST, name)
+}
 
 function requireObject(input, toolId) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
@@ -26,12 +39,18 @@ function createMvpRegistry({ spawnProcess, clipboardApi }) {
     confirmation: 'never',
     validateInput: input => {
       const value = requireObject(input, 'system.openApp')
-      if (typeof value.appName !== 'string' || !APP_ALLOW_LIST[value.appName]) {
+      if (!isAllowListedApp(value.appName)) {
         throw new TypeError('Application is not in the MVP allow-list.')
       }
       return { appName: value.appName }
     },
     execute: async ({ appName }) => {
+      // Re-check at the point of use. ToolRegistry.execute() already
+      // revalidates, but this is the last line before we hand a name to the
+      // process spawner, so it does not rely on an upstream guarantee.
+      if (!isAllowListedApp(appName)) {
+        throw new TypeError('Application is not in the MVP allow-list.')
+      }
       const target = APP_ALLOW_LIST[appName]
       const child = spawnProcess(target.exe, [], { detached: true, stdio: 'ignore' })
       child.unref()
@@ -92,4 +111,4 @@ function createMvpRegistry({ spawnProcess, clipboardApi }) {
   return registry
 }
 
-module.exports = { APP_ALLOW_LIST, createMvpRegistry }
+module.exports = { APP_ALLOW_LIST, isAllowListedApp, createMvpRegistry }
