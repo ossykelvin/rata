@@ -37,6 +37,8 @@ Skills may be selected and described. Only registered tools may act.
 
 - `src/`: unprivileged React renderers and shared renderer types.
 - `electron/main.cjs`: Electron lifecycle and dependency composition only.
+- `electron/ipc/`: auto-discovered per-domain main-process handler modules. Each module declares the contract keys it owns and cannot register undeclared channels.
+- `electron/bridge/`: auto-discovered per-domain preload fragments. Duplicate bridge properties or channel ownership fail closed before exposure.
 - `electron/mvp-tools.cjs`: allow-listed native tool adapters for the MVP.
 - `packages/contracts/`: runtime validation at privileged IPC boundaries.
 - `packages/agent-core/`: provider-independent policy, tool registration and orchestration foundations.
@@ -44,6 +46,8 @@ Skills may be selected and described. Only registered tools may act.
 - `skills/`: declarative skill prompt packs. Not executable.
 
 Tool execution is centralized in `ToolRegistry.execute()`. A registered tool must declare its risk, confirmation policy and input validator before it can execute.
+
+Adding an IPC-backed capability extends the trusted boundary with a handler module and a preload bridge fragment instead of editing the shared main/preload hubs. Contract channel fragments are owned separately under `packages/contracts/`.
 
 ## Target runtime
 
