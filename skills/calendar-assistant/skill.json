@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "order": 17,
+  "id": "calendar-assistant",
+  "name": "Calendar Assistant",
+  "path": "skills/calendar-assistant/SKILL.md",
+  "category": "office",
+  "risk": "external-write",
+  "background_capable": true,
+  "permissions": [
+    "calendar.read",
+    "calendar.write"
+  ],
+  "tools": [
+    "calendar.list",
+    "calendar.findAvailability",
+    "calendar.create",
+    "calendar.update",
+    "calendar.delete"
+  ],
+  "confirmation": "confirm_external_invites_and_deletes",
+  "triggers": [
+    "What is on my calendar today?",
+    "Find me a free hour tomorrow",
+    "Schedule a meeting",
+    "Move my meeting"
+  ]
+}

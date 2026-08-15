@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "order": 9,
+  "id": "critical-thinking",
+  "name": "Critical Thinking",
+  "path": "skills/critical-thinking/SKILL.md",
+  "category": "reasoning",
+  "risk": "none",
+  "background_capable": false,
+  "permissions": [
+    "ai.reason"
+  ],
+  "tools": [
+    "calculator.evaluate",
+    "web.search"
+  ],
+  "confirmation": "none",
+  "triggers": [
+    "Think critically about this",
+    "Challenge my assumptions",
+    "What am I missing?",
+    "Evaluate these options"
+  ]
+}

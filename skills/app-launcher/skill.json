@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "order": 3,
+  "id": "app-launcher",
+  "name": "Application Launcher",
+  "path": "skills/app-launcher/SKILL.md",
+  "category": "desktop",
+  "risk": "local-write",
+  "background_capable": false,
+  "permissions": [
+    "app.list",
+    "app.launch",
+    "app.focus"
+  ],
+  "tools": [
+    "app.find",
+    "app.launch",
+    "app.focus"
+  ],
+  "confirmation": "none_for_normal_apps_confirm_for_elevation_or_unknown_executable",
+  "triggers": [
+    "Open Excel",
+    "Launch Notepad",
+    "Bring Outlook to the front",
+    "Start Calculator"
+  ]
+}

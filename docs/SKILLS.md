@@ -4,7 +4,7 @@ This folder is a drop-in prompt and capability specification pack for the Rata O
 
 ## What is included
 
-Each skill lives under `skills/<skill-id>/SKILL.md` and contains:
+Each skill lives under `skills/<skill-id>/` and contains `skill.json` routing/permission metadata plus `SKILL.md` prompt text:
 
 - YAML-like metadata for loading/routing
 - purpose
@@ -15,7 +15,7 @@ Each skill lives under `skills/<skill-id>/SKILL.md` and contains:
 - confirmation/risk policy
 - implementation notes
 
-`skills.manifest.json` provides the same information in machine-readable form for the future Skill Registry.
+`skills/pack.json` describes the core pack. The registry scans and validates each `skills/<skill-id>/skill.json` independently, so one malformed skill is reported and excluded without disabling valid skills.
 
 ## Important architecture rule
 
@@ -40,7 +40,7 @@ Never expose unrestricted shell, PowerShell, command prompt, filesystem writes, 
 
 ## Background-capable skills
 
-The manifest marks several skills as `background_capable: true`. In Rata this means:
+Each skill fragment marks whether it is `background_capable`. In Rata this means:
 
 - the application may run the task on its own worker/task queue;
 - the task has an ID and status;
@@ -64,13 +64,14 @@ rata.skill.cancelled
 
 ## Recommended loader behavior
 
-1. Parse `skills.manifest.json`.
-2. Match user intent against `triggers`, category and tool availability.
-3. Load only the selected `SKILL.md`, not all prompts into every conversation.
-4. Merge it below Rata's global system prompt.
-5. Check every requested tool against the Tool Registry and Policy Engine.
-6. Reject any tool not explicitly registered.
-7. Record skill ID in the audit event.
+1. Scan `skills/<skill-id>/skill.json` in deterministic order and validate each fragment independently.
+2. Exclude and report malformed fragments; never let one fragment disable valid skills.
+3. Match user intent against `triggers`, category and tool availability.
+4. Load only the selected `SKILL.md`, not all prompts into every conversation.
+5. Merge it below Rata's global system prompt.
+6. Check every requested tool against the Tool Registry and Policy Engine.
+7. Reject any tool not explicitly registered.
+8. Record skill ID in the audit event.
 
 ## First implementation order
 

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "order": 10,
+  "id": "problem-solver",
+  "name": "Simple Problem Solver",
+  "path": "skills/problem-solver/SKILL.md",
+  "category": "reasoning",
+  "risk": "none",
+  "background_capable": false,
+  "permissions": [
+    "ai.reason",
+    "utility.calculate"
+  ],
+  "tools": [
+    "calculator.evaluate"
+  ],
+  "confirmation": "none",
+  "triggers": [
+    "Help me solve this",
+    "Work out the simplest way to...",
+    "Why isn't this simple workflow working?",
+    "Break this problem down"
+  ]
+}

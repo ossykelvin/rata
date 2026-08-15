@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "order": 5,
+  "id": "web-search",
+  "name": "Web Search",
+  "path": "skills/web-search/SKILL.md",
+  "category": "internet",
+  "risk": "external-read",
+  "background_capable": true,
+  "permissions": [
+    "web.search",
+    "web.open"
+  ],
+  "tools": [
+    "web.search",
+    "web.fetch"
+  ],
+  "confirmation": "none_for_read_only",
+  "triggers": [
+    "Search the internet for...",
+    "Find the latest documentation for...",
+    "Look up current information about..."
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "order": 15,
+  "id": "system-info",
+  "name": "System Information",
+  "path": "skills/system-info/SKILL.md",
+  "category": "system",
+  "risk": "read-only",
+  "background_capable": false,
+  "permissions": [
+    "system.info.read"
+  ],
+  "tools": [
+    "system.info",
+    "system.storage",
+    "system.processSummary"
+  ],
+  "confirmation": "none_for_read_only",
+  "triggers": [
+    "How much RAM do I have?",
+    "What version of Windows is this?",
+    "How much disk space is free?",
+    "Give me a quick system status"
+  ]
+}

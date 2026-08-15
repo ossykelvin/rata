@@ -8,7 +8,8 @@ Installed skills are declarative prompt and metadata packs. They may be selected
 
 ## Consequences
 
-- `skills.manifest.json` is schema-validated and fails closed.
+- Each `skills/<id>/skill.json` is schema-validated independently. Invalid fragments fail closed and are reported without disabling valid skills.
+- `skills/pack.json` contains pack identity only; it grants no authority.
 - Skill files are read as text. Dynamic `eval` / `require` of skill content is forbidden.
 - A skill whose required tools are unregistered may be described to the user, but it cannot act.
 - Future provider adapters load only the selected skill prompt beneath the global Rata system prompt.
