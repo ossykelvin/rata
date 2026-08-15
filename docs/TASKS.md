@@ -73,6 +73,8 @@ Acceptance:
 
 Add Playwright through explicit browser tools.
 
+Foundation: WEB-001 adds keyless, SSRF-resistant `web.fetch` for bounded public text and provider-independent synthesis. It does not download a browser binary or grant interactive page authority.
+
 Acceptance:
 - browse/read actions separated from submit/upload/write actions
 - submit/upload always approval-gated initially
