@@ -69,7 +69,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, awaiting merge |
-| Codex | FIX-001 idempotent startup | `codex/FIX-001-idempotent-startup` | IN PROGRESS |
+| Codex | FIX-001 idempotent startup | `codex/FIX-001-idempotent-startup` | REVIEW REQUESTED |
 | Cursor | — | — | idle |
 
 ---
@@ -105,12 +105,18 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ### 2026-08-15 — FIX-001 — Idempotent Windows development startup
 
-**Status:** IN PROGRESS
+**Status:** REVIEW REQUESTED
 **Branch:** `codex/FIX-001-idempotent-startup`
 
 **Root cause:** Re-running `START_RATA_DEV.bat` while Rata is already active starts a second strict-port Vite process. Vite exits because port 5173 is occupied, `concurrently -k` terminates the new Electron process, and the batch window closes while reporting exit code 0.
 
 **Scope:** Make the batch launcher recognize an existing Rata dev server, launch Electron only in that case, enforce Electron single-instance behavior that reveals the existing Control Center, and preserve visible nonzero failures. No renderer or contract paths will be edited. Electron changes require Claude review; committed regression tests are requested from the test owner.
+
+**Implemented:** `START_RATA_DEV.bat` now recognizes the Rata Vite page before taking an Electron-only relaunch path, propagates native PowerShell exit codes, and pauses on genuine failure. Electron owns a single-instance lock; a relaunch restores and focuses the existing Control Center. The Windows quick-start documentation describes the behavior.
+
+**Verification:** `npm ci` and `npm run verify` pass (19/19 tests, typecheck, production build). A clean first launcher invocation started Vite and Electron. A second invocation completed with exit code 0 in 1.5 seconds, left the original server at HTTP 200, and left exactly one Electron main process. The fixed development server remains running from this worktree.
+
+**Review/test handoff:** Claude review and Lane H regression coverage requested in [issue #6](https://github.com/ossykelvin/rata/issues/6). Do not merge before that review because this ticket touches `electron/main.cjs`.
 
 ---
 

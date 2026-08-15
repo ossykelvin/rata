@@ -21,6 +21,7 @@ let skillRuntime
 const isDev = !app.isPackaged
 const DEV_URL = 'http://127.0.0.1:5173/'
 const PROJECT_ROOT = path.join(__dirname, '..')
+const hasSingleInstanceLock = app.requestSingleInstanceLock()
 
 function rendererTarget(route) {
   if (isDev) return `${DEV_URL}#/${route}`
@@ -111,6 +112,7 @@ function createTray() {
 
 function showControl() {
   if (!controlWindow) createControlCenter()
+  if (controlWindow.isMinimized()) controlWindow.restore()
   controlWindow.show()
   controlWindow.focus()
 }
@@ -177,34 +179,43 @@ function createSkillRuntime(toolRegistry) {
   return { registry, loader, router }
 }
 
-app.whenReady().then(() => {
-  store = new JsonStore(app)
-  const registry = createMvpRegistry({ spawnProcess: spawn, clipboardApi: clipboard })
-  const policy = new PolicyEngine()
-  skillRuntime = createSkillRuntime(registry)
-  agent = new MockAgent({
-    registry,
-    policy,
-    settings: () => store.getSettings(),
-    activity: logActivity,
-    skills: skillRuntime
+if (!hasSingleInstanceLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    showControl()
+    overlayWindow?.showInactive()
   })
-  registerIpc()
-  createOverlay()
-  createControlCenter()
-  createTray()
-  logActivity('Rata started', skillRuntime.registry.loaded
-    ? `MVP runtime is online with ${skillRuntime.registry.count()} installed skills.`
-    : 'MVP runtime is online. Skill pack failed closed.', 'success')
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createOverlay(); createControlCenter()
-    } else showControl()
+  app.whenReady().then(() => {
+    store = new JsonStore(app)
+    const registry = createMvpRegistry({ spawnProcess: spawn, clipboardApi: clipboard })
+    const policy = new PolicyEngine()
+    skillRuntime = createSkillRuntime(registry)
+    agent = new MockAgent({
+      registry,
+      policy,
+      settings: () => store.getSettings(),
+      activity: logActivity,
+      skills: skillRuntime
+    })
+    registerIpc()
+    createOverlay()
+    createControlCenter()
+    createTray()
+    logActivity('Rata started', skillRuntime.registry.loaded
+      ? `MVP runtime is online with ${skillRuntime.registry.count()} installed skills.`
+      : 'MVP runtime is online. Skill pack failed closed.', 'success')
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createOverlay(); createControlCenter()
+      } else showControl()
+    })
   })
-})
 
-app.on('before-quit', () => { app.isQuitting = true })
-app.on('window-all-closed', event => {
-  event?.preventDefault?.()
-})
+  app.on('before-quit', () => { app.isQuitting = true })
+  app.on('window-all-closed', event => {
+    event?.preventDefault?.()
+  })
+}
