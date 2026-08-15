@@ -1,6 +1,6 @@
 const fs = require('node:fs')
 const path = require('node:path')
-const { validateSettingValue } = require('../packages/contracts/ipc-validation.cjs')
+const { validateSettingValue, isKnownSetting } = require('../packages/contracts/ipc-validation.cjs')
 
 const defaults = {
   settings: {
@@ -46,7 +46,12 @@ class JsonStore {
   getSettings() { return { ...this.data.settings } }
 
   setSetting(key, value) {
-    this.data.settings[key] = validateSettingValue(key, value)
+    // Defence in depth: the caller already validated, but this store is the
+    // thing that persists to disk and broadcasts to renderers, so it refuses
+    // unknown keys on its own authority rather than trusting the caller.
+    if (!isKnownSetting(key)) throw new TypeError(`Unknown setting: ${String(key)}`)
+    const validated = validateSettingValue(key, value)
+    this.data.settings[key] = validated
     this.save()
     return this.getSettings()
   }
