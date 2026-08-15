@@ -8,7 +8,7 @@ const { JsonStore } = require('./store.cjs')
 const { PolicyEngine } = require('../packages/agent-core/policy-engine.cjs')
 const { MockAgent } = require('../packages/agent-core/mock-agent.cjs')
 const { createToolRegistry } = require('./tools/index.cjs')
-const { registerSearchTools } = require('./search-tools.cjs')
+const { createSerperSearch } = require('./serper-client.cjs')
 const { loadRuntimeConfig, describeConfig } = require('./config.cjs')
 const {
   createProviderChain,
@@ -227,13 +227,14 @@ if (!hasSingleInstanceLock) {
       onBlocked: ({ url }) => logActivity('Blocked navigation', `Refused a foreign destination: ${String(url)}`, 'warning')
     })
     const registry = createToolRegistry({
-      dependencies: { spawnProcess: spawn, clipboardApi: clipboard }
+      dependencies: {
+        spawnProcess: spawn,
+        clipboardApi: clipboard,
+        // A bound capability, not the credential. The key stays inside the
+        // client closure, so no discovered module can read it.
+        webSearch: createSerperSearch({ apiKey: runtimeConfig.serper.apiKey })
+      }
     })
-    // Registered separately from the discovered domain modules: web.search
-    // needs a credential from runtimeConfig, which the P0-2 dependency bag
-    // deliberately does not carry. Kept out of electron/tools/ so no secret
-    // reaches a module that is auto-discovered.
-    registerSearchTools(registry, { apiKey: runtimeConfig.serper.apiKey })
     providers = createProviders()
     const policy = new PolicyEngine()
     skillRuntime = createSkillRuntime(registry)
