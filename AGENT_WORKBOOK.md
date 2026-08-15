@@ -49,7 +49,7 @@ State of the health items that matter for multi-agent work:
 | Runtime IPC validation at the privileged boundary | Done (ADR-004) |
 | Tool contract enforced at registration | Done |
 | Skills manifest wired to runtime | Done |
-| **Version control (git)** | **Not initialized — see Open Items** |
+| Version control (git) | Initialized on `main`; linked to `ossykelvin/rata` |
 | **Lint / format config** | **None — see Open Items** |
 
 ---
@@ -58,10 +58,10 @@ State of the health items that matter for multi-agent work:
 
 ### 2026-08-15 — Codex — Initialize and publish Git repository
 
-**Status:** IN PROGRESS
+**Status:** DONE
 **Task given:** Link the local project to `https://github.com/ossykelvin/rata.git` and publish it on GitHub.
 
-**Scope:** Initialize a local `main` branch, attach the empty GitHub repository as `origin`, verify the complete initial file set and ignore rules, create the baseline commit, and push it. No existing remote history was found; GitHub CLI authentication is active for `ossykelvin`.
+**Result:** Initialized local branch `main`, attached the empty GitHub repository as `origin`, reviewed the complete staged snapshot and ignore rules, scanned for common credential markers, created baseline commit `a4ad325`, and pushed it to `origin/main`. Generated output, dependencies, and local `.env` files remain ignored; `.env.example` is intentionally tracked.
 
 ### 2026-08-15 — Codex — Runtime-boundary refactor and multi-agent handoff
 
@@ -127,17 +127,7 @@ Nothing references either file except each other; `tsconfig.json` does not inclu
 
 Ordered by how much they block multi-agent work.
 
-### 1. Initialize git — blocking
-
-There is no `.git` directory. Two or more agents editing this folder concurrently with no version control means silent collisions, no diffs, no review, and no recovery. This should land before any further refactoring.
-
-```bash
-git init && git add -A && git commit -m "Initial commit: Rata MVP after runtime-boundary refactor"
-```
-
-`.gitignore` already covers `node_modules/`, `dist/`, `release/`, `.env`. Confirm `package-lock.json` is **not** ignored — it must be committed.
-
-### 2. Delete two orphan files — trivial, do it now
+### 1. Delete two orphan files — trivial, do it now
 
 ```bash
 rm packages/contracts/index.cjs packages/contracts/contracts.d.ts
@@ -145,11 +135,11 @@ rm packages/contracts/index.cjs packages/contracts/contracts.d.ts
 
 Created by the Claude session above, superseded by `ipc-channels.cjs` + `ipc-validation.cjs`. Leaving them risks a future agent importing the wrong contracts module.
 
-### 3. Add lint + format config
+### 2. Add lint + format config
 
 None exists. Codex and Cursor will churn style on every file they touch, producing noisy diffs that hide real changes. Needs ESLint (flat config) + Prettier + `.editorconfig`, wired into `npm run verify`.
 
-### 4. RATA-009 — unify renderer types with runtime schemas
+### 3. RATA-009 — unify renderer types with runtime schemas
 
 Tracked in `docs/TASKS.md` and noted in ADR-003. Renderer compile-time types and the CommonJS runtime validators are currently maintained separately. Until they are generated from one source, a change to one can silently drift from the other.
 
