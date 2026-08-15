@@ -107,6 +107,18 @@ class MockAgent {
       return this.runTool('clipboard.write', { text: value }, 'Write to clipboard')
     }
 
+    // A URL is fetched only through the registered tool. If approved, its
+    // result is passed to the provider as `context`, which the provider
+    // contract fences as untrusted external data. Neither this agent nor the
+    // fetch tool receives a provider credential.
+    const fetchMatch = text.match(/^(?:fetch|read|summari[sz]e)\s+(https?:\/\/\S+)/i)
+    if (fetchMatch && this.registry.has?.('web.fetch')) {
+      return this.runTool('web.fetch', { url: fetchMatch[1] }, 'Fetch public web page', {
+        kind: 'synthesize-web',
+        question: text
+      })
+    }
+
     if (/what can you do|help|commands|installed skills/i.test(text)) {
       return this.help()
     }
@@ -115,7 +127,12 @@ class MockAgent {
     // the policy engine before it leaves the machine.
     const searchMatch = text.match(/^(?:search(?:\s+the\s+web)?(?:\s+for)?|google|look\s+up|find\s+online)\s+(.+)$/i)
     if (searchMatch && this.registry.has?.('web.search')) {
-      return this.runTool('web.search', { query: searchMatch[1].trim() }, 'Search the web')
+      return this.runTool('web.search', { query: searchMatch[1].trim() }, 'Research the web', {
+        kind: 'research-web',
+        question: text,
+        approvalDetail:
+          'Send this query to Serper, then fetch the first public result for AI synthesis. Each request leaves your machine.'
+      })
     }
 
     const routed = this.skills?.router?.route(text)
@@ -188,6 +205,24 @@ class MockAgent {
       return this.runTool('calculator.evaluate', { expression: parsed.expression }, `Calculate ${parsed.display}`)
     }
 
+    if (skillId === 'web-search' && routed.missingTools.length === 0) {
+      return this.runTool('web.search', { query: text }, 'Research the web', {
+          kind: 'research-web',
+          question: text,
+          approvalDetail:
+            'Send this query to Serper, then fetch the first public result for AI synthesis. Each request leaves your machine.'
+      })
+    }
+
+    if (skillId === 'trivia' && routed.missingTools.length === 0) {
+      return this.runTool('web.search', { query: text }, 'Verify trivia answer', {
+        kind: 'trivia-search',
+        question: text,
+        approvalDetail:
+          'Send this trivia question to Serper, then use the returned evidence with Gemini. OpenRouter is the fallback if Gemini cannot answer.'
+      })
+    }
+
     if (routed.missingTools.length) {
       return {
         message: `${routed.skill?.name || skillId} is installed, but its tools are not registered yet (${routed.missingTools.join(', ')}). Skills cannot bypass the Tool Registry.`,
@@ -201,7 +236,7 @@ class MockAgent {
     }
   }
 
-  async runTool(id, input, title) {
+  async runTool(id, input, title, continuation = null) {
     // Metadata only. The executor is reachable solely via registry.execute().
     const tool = this.registry.describe(id)
     let validatedInput = input
@@ -221,7 +256,7 @@ class MockAgent {
     }
     if (decision.decision === 'confirm') {
       const pendingId = crypto.randomUUID()
-      this.rememberPending(pendingId, { id, input: validatedInput, title })
+      this.rememberPending(pendingId, { id, input: validatedInput, title, continuation })
       this.activity('Approval requested', `${title} requires approval.`, 'warning')
       return {
         message: 'I can do that, but this action needs your approval.',
@@ -229,19 +264,20 @@ class MockAgent {
         approval: {
           id: pendingId,
           title,
-          detail: this.registry.preview(id, validatedInput),
+          detail: continuation?.approvalDetail || this.registry.preview(id, validatedInput),
           risk: tool.risk
         }
       }
     }
-    return this.execute(id, validatedInput)
+    return this.execute(id, validatedInput, continuation)
   }
 
   async approve(id) {
     const pending = this.takePending(id)
     if (!pending) return { message: 'That approval has expired or was already handled.', state: 'error' }
     this.activity('Approval granted', pending.title, 'success')
-    return this.execute(pending.id, pending.input)
+    const continuation = pending.continuation ? { ...pending.continuation, approved: true } : null
+    return this.execute(pending.id, pending.input, continuation)
   }
 
   async reject(id) {
@@ -250,15 +286,127 @@ class MockAgent {
     return { message: 'Cancelled. I did not make the change.', state: 'idle' }
   }
 
-  async execute(id, input) {
+  async execute(id, input, continuation = null) {
     try {
       this.activity('Tool started', `${id}`, 'info')
       const result = await this.registry.execute(id, input)
       this.activity('Tool completed', `${id}: ${result.summary}`, 'success')
+      if (continuation?.kind === 'synthesize-web') {
+        return this.answerWithWebContext(continuation.question, result)
+      }
+      if (continuation?.kind === 'research-web') {
+        return this.continueWebResearch(continuation.question, result, continuation.approved === true)
+      }
+      if (continuation?.kind === 'trivia-search') {
+        return this.answerTriviaWithSearch(continuation.question, result)
+      }
       return { message: result.message, state: 'success' }
     } catch (error) {
       this.activity('Tool failed', `${id}: ${error.message}`, 'error')
       return { message: `I couldn't complete that action: ${error.message}`, state: 'error' }
+    }
+  }
+
+  async continueWebResearch(question, searchResult, compositeApproved) {
+    const candidate = searchResult.results?.find(
+      result => typeof result?.link === 'string' && /^https?:\/\//i.test(result.link)
+    )
+    if (!candidate) return { message: searchResult.message, state: 'success' }
+
+    try {
+      const input = this.registry.validate('web.fetch', { url: candidate.link })
+      const decision = this.policy.evaluate(this.registry.describe('web.fetch'), input, this.settings())
+      if (decision.decision === 'deny') throw new Error(decision.reason)
+      if (decision.decision === 'confirm' && !compositeApproved) {
+        return this.runTool('web.fetch', input, 'Fetch public web page', {
+          kind: 'synthesize-web',
+          question
+        })
+      }
+      this.activity('Tool started', 'web.fetch', 'info')
+      const page = await this.registry.execute('web.fetch', input)
+      this.activity('Tool completed', `web.fetch: ${page.summary}`, 'success')
+      return this.answerWithWebContext(question, page)
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Unknown web fetch failure.'
+      this.activity('Tool failed', `web.fetch: ${reason}`, 'error')
+      return {
+        message: `${searchResult.message}\n\nI found results, but couldn't fetch the first public page for synthesis: ${reason}`,
+        state: 'error'
+      }
+    }
+  }
+
+  async answerWithWebContext(question, page) {
+    if (!this.provider) return { message: page.message, state: 'success' }
+
+    try {
+      const source = [`Source URL: ${page.url}`, page.title ? `Source title: ${page.title}` : '', '', page.content]
+        .filter(Boolean)
+        .join('\n')
+      const result = await this.provider.generate({
+        prompt: question,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: question },
+          { role: 'context', content: source }
+        ]
+      })
+      for (const attempt of result.attempts || []) {
+        this.activity('Provider fallback', `${attempt.provider} did not answer: ${attempt.error}`, 'warning')
+      }
+      this.activity('Provider answered', `${result.provider} (${result.model}) using fenced web context`, 'success')
+      return { message: result.text, state: 'success' }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Unknown provider failure.'
+      this.activity('Provider failed', reason, 'error')
+      return { message: `I fetched the page, but couldn't summarise it: ${reason}`, state: 'error' }
+    }
+  }
+
+  async answerTriviaWithSearch(question, searchResult) {
+    if (!this.provider) return { message: searchResult.message, state: 'success' }
+
+    let skillPrompt = ''
+    try {
+      skillPrompt = this.skills?.loader?.loadPrompt?.('trivia') || ''
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Unknown skill prompt failure.'
+      this.activity('Skill prompt failed', `trivia: ${reason}`, 'warning')
+    }
+
+    const evidence = searchResult.results?.length
+      ? searchResult.results
+          .map((item, index) => [
+            `Result ${index + 1}`,
+            `Title: ${item.title}`,
+            `URL: ${item.link}`,
+            `Snippet: ${item.snippet}`
+          ].join('\n'))
+          .join('\n\n')
+      : 'Serper returned no usable results for this question.'
+
+    try {
+      const messages = [
+        { role: 'system', content: SYSTEM_PROMPT },
+        ...(skillPrompt ? [{ role: 'system', content: skillPrompt }] : []),
+        { role: 'user', content: question },
+        { role: 'context', content: evidence }
+      ]
+      const result = await this.provider.generate({
+        prompt: question,
+        preferredProvider: 'gemini',
+        messages
+      })
+      for (const attempt of result.attempts || []) {
+        this.activity('Provider fallback', `${attempt.provider} did not answer: ${attempt.error}`, 'warning')
+      }
+      this.activity('Trivia answered', `${result.provider} (${result.model}) after Serper verification`, 'success')
+      return { message: result.text, state: 'success' }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Unknown provider failure.'
+      this.activity('Provider failed', reason, 'error')
+      return { message: `I searched for evidence, but couldn't answer the trivia question: ${reason}`, state: 'error' }
     }
   }
 }

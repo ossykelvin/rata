@@ -161,6 +161,38 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Codex
 
+### 2026-08-16 — Codex — WEB-001 Claude review findings 1–3
+
+**Status:** IN PROGRESS (branch `codex/WEB-001-implement-safe-fetch`, PR #40)
+
+**Scope:** Address only Claude review findings 1–3: include the resolved `web.fetch` URL in capability audit events without page content or credentials; split fetch confirmation into a default-on `webFetchConfirm` setting across tool metadata, runtime validation, persistence and renderer typing; export `pinnedRequest` for Lane H unit coverage. Mechanically rename the three specified Lane H assertions, preserve the reviewed SSRF implementation, leave findings 4–7 untouched, update ADR-008's confirmation description, and make observable changes explicit in the PR description. Claude review remains required.
+
+### 2026-08-16 — Codex — Speech recognition validation
+
+**Status:** AUTOMATED CHECKS PASS; BLOCKED-ON-HUMAN for the real microphone/audio smoke test.
+
+**Result:** The web preview at `http://127.0.0.1:5173/` does not expose Web Speech or `getUserMedia`, but a temporary hidden probe against the actual Electron 43 renderer confirmed `SpeechRecognition`, `webkitSpeechRecognition`, `navigator.mediaDevices.getUserMedia`, and a secure context are all available. The overlay implementation sets `en-GB`, disables interim results, transitions through listening/success/error/end states, and copies the first transcript into the input. `npm run typecheck` and `npm run lint` pass; the temporary probe was removed and no implementation file changed.
+
+**Security finding:** Electron main has no `session.setPermissionRequestHandler` or `setPermissionCheckHandler`. The renderer-side `microphoneEnabled` check is only a UI affordance and does not enforce the setting at the permission boundary; this is already documented in `docs/reviews/REVIEW-001-mvp-security.md` and must be fixed before RATA-004 is complete. Do not perform or simulate the final microphone permission/audio test; it is explicitly human-owned.
+
+### 2026-08-15 — Codex — WEB-001 implementation resumed after Phase 0
+
+**Status:** IN PROGRESS — draft PR #40, awaiting Lane H issue #39 (branch `codex/WEB-001-implement-safe-fetch`, issue #30)
+
+**Scope:** Add a registered, read-only `web.fetch` tool for bounded public HTTP(S) content; enforce SSRF, redirect, content-type, timeout, and response-size controls; preserve the untrusted-content boundary before provider synthesis. Serper remains scoped to `web.search`, Gemini remains scoped to its provider adapter, and neither credential is exposed to `web.fetch`. Add injected-network regression tests, an ADR/security documentation, and request Claude review before merge.
+
+**Implemented:** Added a keyless DNS-pinned public web client and registered `web.fetch` in the discovered web tool module. It rejects URL credentials and non-HTTP(S) schemes; blocks non-public IPv4/IPv6 and mixed DNS answers; pins the connection to the vetted address; revalidates redirects; and limits time, hops, content types, bytes and extracted text. Direct URL requests, explicit “search the web” commands, and the Web Search skill now follow Serper search → safe first-result fetch → provider synthesis. Retrieved text reaches the configured provider only as `context`, which the provider contract fences as untrusted. Proposed ADR-008 records the SSRF, prompt-injection, confirmation and credential boundaries.
+
+**Validation so far:** `check:node`, lint, typecheck and build pass. A temporary injected-network smoke harness passed public/private address checks, mixed DNS rejection, redirect-to-private rejection, byte/type limits, HTML extraction, tool metadata and provider context flow. The committed suite has four expected Lane H failures because it pins the old five-tool surface and one-definition web module. Issue #39 asks Claude to update/add tests and perform the required security review; PR #40 remains draft and must not merge until `npm run verify` is green.
+
+**Runtime diagnosis:** The user's live chat still reported mock mode because Electron and Vite were running from the separate `rata-overlay-drag` worktree, where ignored `.env.local` credentials were absent. Stopped only that verified stale process tree and relaunched this primary checkout. The new runtime recorded `mode=auto (RATA_AI_PROVIDER) gemini=true openrouter=true search=true` and a successful Gemini response using `gemini-2.5-flash`; a separate redacted live adapter check also passed. No credential values or source configuration changed.
+
+**Restart persistence fix:** A later restart launched another self-relative copy, `rata-app-icon`, and reproduced mock mode because only the primary checkout had the ignored `.env.local`. Found 11 existing `START_RATA_DEV.bat` worktree copies and, after verifying `.env.local` is ignored in each, created local NTFS hard links to the single canonical ignored configuration. Re-tested the exact `rata-app-icon` restart: Vite returned HTTP 200 and a redacted live Gemini check returned `OK` from `gemini-2.5-flash`. No credential value was printed or committed. Five current worktrees resolve auto/Gemini/OpenRouter/Serper correctly; six obsolete pre-provider worktrees still lack provider implementation and should not be used to launch the current app.
+
+**Trivia runtime correction:** The reported “mock agent has no live provider” message was not an authentication failure: `rata-app-icon` was running the pre-WEB-001 `handleSkill()` implementation, which hard-codes that response for every non-calculator skill. The former primary worktree had also been switched externally to `review/drag-fix`. Created a dedicated `rata-web-001` worktree at `846de1c`, linked the ignored canonical configuration, stopped the stale app-icon Vite owner, and relaunched from WEB-001. The new runtime reports HTTP 200 and `mode=auto (RATA_AI_PROVIDER) gemini=true openrouter=true search=true`; all Electron executable paths point to `rata-web-001`. Existing verification remains 138/143 with the same five documented Lane H expectations for the expanded web tool surface.
+
+**Trivia routing:** Added a Trivia-specific orchestration continuation: every routed Trivia & General Knowledge request executes approved Serper search first, sends the bounded result snippets as fenced `context`, and asks the provider chain to prefer Gemini then OpenRouter in `auto` mode. Explicitly pinned provider modes remain authoritative. An injected check confirmed `Serper → Gemini failure → OpenRouter success` without exposing either credential. The Lane H request must cover ordering, approval rejection, prompt loading, fenced evidence and pinned-mode precedence.
+
 ### 2026-08-15 — Codex — WEB-001 safe web fetch and research synthesis
 
 **Status:** BLOCKED ON PHASE 0 (branch `codex/WEB-001-web-fetch-pipeline`, issue #30)

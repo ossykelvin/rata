@@ -50,6 +50,8 @@ src/views (React UI)
 - `clipboard.write` — confirmation configurable
 - `calculator.evaluate` — arithmetic parser, no `eval`
 - `file.delete` — registered and blocked
+- `web.search` — Serper-backed result discovery; confirmation configurable
+- `web.fetch` — keyless, bounded public-page retrieval; confirmation configurable
 
 ## First safe changes for agents
 

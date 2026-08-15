@@ -40,12 +40,15 @@ Skills may be selected and described. Only registered tools may act.
 - `electron/ipc/`: auto-discovered per-domain main-process handler modules. Each module declares the contract keys it owns and cannot register undeclared channels.
 - `electron/bridge/`: auto-discovered per-domain preload fragments. Duplicate bridge properties or channel ownership fail closed before exposure. The build generates one `dist-electron/preload.cjs` artifact containing every fragment because sandboxed Electron preloads cannot import local CommonJS modules at runtime.
 - `electron/tools/`: auto-discovered per-domain tool modules. Each module declares the tool IDs it owns and creates complete registry definitions from injected native dependencies. Composition fails closed on duplicate or undeclared IDs. `electron/mvp-tools.cjs` remains a compatibility export only.
+- `electron/public-web-client.cjs`: keyless, DNS-pinned public HTTP(S) reader used by the registered `web.fetch` tool. It rejects non-public destinations and returns bounded text marked as untrusted external content.
 - `packages/contracts/`: runtime validation at privileged IPC boundaries.
 - `packages/agent-core/`: provider-independent policy, tool registration and orchestration foundations.
 - `packages/skills/`: per-fragment skill registry, prompt loader and deterministic router. The registry scans `skills/<id>/skill.json` deterministically; an invalid fragment is excluded and reported without disabling valid skills.
 - `skills/`: declarative skill metadata and prompt packs. Each skill owns its `skill.json` and `SKILL.md`; neither is executable or grants authority.
 
 Tool execution is centralized in `ToolRegistry.execute()`. A registered tool must declare its risk, confirmation policy and input validator before it can execute.
+
+Web research keeps service authority separated: Serper supplies search results through `web.search`; `web.fetch` retrieves a validated public result without credentials; only then may provider-independent orchestration pass the text to the configured provider as fenced `context` data.
 
 Adding a tool domain means adding one trusted module under `electron/tools/`; it does not require editing the composition index or Electron lifecycle. Tool modules are application code packaged with Rata, never user- or model-supplied plugins.
 
