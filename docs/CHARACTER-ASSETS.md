@@ -15,9 +15,9 @@ These states are driven by agent events:
 - `error`
 - `sleeping`
 
-Place one transparent asset per state under `public/character/<state>.svg` (or `.webp` / `.webm` later). The catalog is `src/components/character/states.json`. Unknown states map to `idle`. If a file is missing or fails to load, the engine shows a letter-mark silhouette and keeps the resolved state class. The renderer must not start sleeping or other states on a timer; those remain agent events.
+Place one transparent asset per state under `public/character/<state>.svg` (or `.webp` / `.webm` later). The catalog is `src/components/character/states.json`. Until those production files exist, the engine shows the original concept-sheet crop from `public/rata-concept.png` for every state. Unknown states map to `idle`. If the image is missing or fails to load, the engine shows a letter-mark silhouette and keeps the resolved state class. The renderer must not start sleeping or other states on a timer; those remain agent events.
 
-The files currently in `public/character/` are **placeholders**, not production art. Replace them in place; do not put tool logic in the animation.
+The files currently in `public/character/` are **placeholders**, not production art. Remove `temporaryArt` from the catalog when replacing them in place; do not put tool logic in the animation.
 
 ## Later animation set
 

@@ -18,12 +18,15 @@ export type CharacterPresentation = {
   state: CharacterState
   label: string
   src: string
+  crop: boolean
   known: boolean
 }
 
 type CatalogEntry = { file: string; label: string }
 
 const FALLBACK_ENTRY: CatalogEntry = catalog.idle
+// Shared concept-sheet crop until production per-state assets replace it.
+const TEMPORARY_ART = catalog.temporaryArt
 
 function isCharacterState(value: string | undefined): value is CharacterState {
   return typeof value === 'string' && (CHARACTER_STATES as readonly string[]).includes(value)
@@ -40,11 +43,13 @@ export function resolveCharacterPresentation(state: string | undefined): Charact
   const known = Boolean(state) && (state === 'typing' || isCharacterState(state))
   // Unknown states resolve to idle so the idle asset still loads; missing files use the silhouette.
   const resolved = normalizeCharacterState(state)
-  const entry = (catalog as Record<string, CatalogEntry>)[resolved] || FALLBACK_ENTRY
+  const entry = (catalog as Record<string, CatalogEntry | typeof TEMPORARY_ART>)[resolved]
+  const resolvedEntry = entry && 'file' in entry ? entry : FALLBACK_ENTRY
   return {
     state: resolved,
-    label: entry.label,
-    src: `./character/${entry.file}`,
+    label: resolvedEntry.label,
+    src: TEMPORARY_ART?.src ?? `./character/${resolvedEntry.file}`,
+    crop: Boolean(TEMPORARY_ART?.crop),
     known
   }
 }

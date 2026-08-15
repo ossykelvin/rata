@@ -1,4 +1,5 @@
 {
+  "temporaryArt": { "src": "./rata-concept.png", "crop": true },
   "idle": { "file": "idle.svg", "label": "idle" },
   "listening": { "file": "listening.svg", "label": "listening" },
   "thinking": { "file": "thinking.svg", "label": "thinking" },

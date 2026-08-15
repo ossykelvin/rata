@@ -75,7 +75,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, awaiting merge |
 | Codex | FIX-001 idempotent startup | `codex/FIX-001-idempotent-startup` | REVIEW REQUESTED |
 | Codex | P0-1 modular IPC boundary | `codex/P0-1-modular-ipc-boundary` | IN PROGRESS — awaiting Lane G contracts/tests + Claude review |
-| Cursor | ISSUE-17 restore character image | `cursor/ISSUE-17-restore-character-image` | IN PROGRESS |
+| Cursor | ISSUE-17 restore character image | `cursor/ISSUE-17-restore-character-image` | DONE, PR pending |
 
 ---
 
@@ -164,12 +164,16 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ### 2026-08-15 — ISSUE-17 — Restore original Rata character image
 
-**Status:** IN PROGRESS
+**Status:** DONE (branch `cursor/ISSUE-17-restore-character-image`)
 **Branch:** `cursor/ISSUE-17-restore-character-image`
 
-**Scope:** Lane B only. Keep the RATA-003 event-driven state engine, classes, labels, and silhouette fallback. Show `public/rata-concept.png` as the temporary crop until production per-state assets replace it. No Electron, contracts, or agent-core edits.
+**Done:** Kept the RATA-003 event-driven state engine, classes, labels, and silhouette fallback. Temporary visible art is the original `public/rata-concept.png` crop (`temporaryArt` in `states.json`) until production per-state assets replace it.
 
-**Files currently touching:** `AGENT_WORKBOOK.md` (claim only; implementation follows).
+**Files touched:** `src/components/character/states.json`, `src/components/character/characterStates.ts`, `src/components/character/RataCharacter.tsx`, `src/styles/character.css`, `tests/character-states.test.cjs`, `docs/CHARACTER-ASSETS.md`, `docs/ARCHITECTURE.md`, `docs/VALIDATION.md`, `README.md`, `src/views/control/AppearancePage.tsx`.
+
+**Validation:** `npm run verify` passed (`check:node`, 60 tests, `typecheck`, `vite build`).
+
+**Blocked on:** production per-state character art remains BLOCKED-ON-HUMAN.
 
 ---
 
