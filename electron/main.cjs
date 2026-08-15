@@ -156,6 +156,23 @@ function broadcastSettings(settings) {
  * providers in Control Center takes effect on the next message without a
  * restart. Credentials come from runtimeConfig and stay in this process.
  */
+/**
+ * Decides which provider mode is active.
+ *
+ * `RATA_AI_PROVIDER` wins when it names a mode we implement. This used to be
+ * written as `storedSetting || envDefault`, which never fired: the stored
+ * setting always holds a value (it defaults to 'mock'), so the env variable
+ * was unreachable and editing it appeared to do nothing.
+ *
+ * Env-wins matches the precedence `electron/config.cjs` already documents for
+ * every other value, and it is the only way to change providers until the
+ * Control Center panel exists. Once that panel ships, unset the variable and
+ * the stored setting takes over.
+ */
+function resolveProviderMode() {
+  return runtimeConfig.providerModeOverride || store.getSettings().provider || 'mock'
+}
+
 function createProviders() {
   // Built once; credentials never leave this process.
   const gemini = createGeminiProvider(runtimeConfig.gemini)
@@ -166,7 +183,7 @@ function createProviders() {
   // so changing the provider in Control Center takes effect on the next
   // message rather than at the next restart.
   const chainFor = () => createProviderChain({
-    mode: store.getSettings().provider || runtimeConfig.defaultProviderMode,
+    mode: resolveProviderMode(),
     gemini,
     openrouter,
     mock,
@@ -259,9 +276,18 @@ if (!hasSingleInstanceLock) {
     const configured = describeConfig(runtimeConfig)
     logActivity(
       'Providers configured',
-      `mode=${store.getSettings().provider} gemini=${configured.gemini} openrouter=${configured.openrouter} search=${configured.serper}`,
+      `mode=${resolveProviderMode()} (${runtimeConfig.providerModeOverride ? 'RATA_AI_PROVIDER' : 'stored setting'})`
+      + ` gemini=${configured.gemini} openrouter=${configured.openrouter} search=${configured.serper}`,
       'info'
     )
+    // A typo in RATA_AI_PROVIDER must not look like a working configuration.
+    if (runtimeConfig.providerModeRejected) {
+      logActivity(
+        'Provider mode ignored',
+        `RATA_AI_PROVIDER="${runtimeConfig.providerModeRejected}" is not a known mode; using ${resolveProviderMode()}.`,
+        'warning'
+      )
+    }
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {

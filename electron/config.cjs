@@ -2,6 +2,7 @@
 
 const fs = require('node:fs')
 const path = require('node:path')
+const { PROVIDER_IDS } = require('../packages/contracts/ipc-validation.cjs')
 
 /**
  * Loads local configuration for the Electron main process.
@@ -63,6 +64,12 @@ function trimmed(value) {
   return typeof value === 'string' && value.trim() ? value.trim() : null
 }
 
+/** Accepts only a provider mode the runtime implements. */
+function providerMode(value) {
+  const mode = trimmed(value)
+  return mode && PROVIDER_IDS.includes(mode) ? mode : null
+}
+
 /**
  * Builds the runtime configuration. `env` defaults to the merged env files
  * plus `process.env`, with real environment variables taking precedence so a
@@ -74,7 +81,14 @@ function loadRuntimeConfig({ rootDir = path.join(__dirname, '..'), processEnv = 
 
   return {
     // Default provider mode when the stored setting has never been changed.
-    defaultProviderMode: trimmed(env.RATA_AI_PROVIDER) || 'mock',
+    // Null unless RATA_AI_PROVIDER names a mode we implement. Null means
+    // "no override" — the stored setting decides. An unrecognised value is
+    // reported rather than silently accepted, so a typo does not look like a
+    // working configuration.
+    providerModeOverride: providerMode(env.RATA_AI_PROVIDER),
+    providerModeRejected: env.RATA_AI_PROVIDER != null && providerMode(env.RATA_AI_PROVIDER) === null
+      ? String(env.RATA_AI_PROVIDER).trim()
+      : null,
     gemini: {
       apiKey: trimmed(env.GEMINI_API_KEY),
       model: trimmed(env.GEMINI_MODEL) || undefined
@@ -93,7 +107,8 @@ function loadRuntimeConfig({ rootDir = path.join(__dirname, '..'), processEnv = 
 /** Booleans only — safe to log and safe to send to the renderer. */
 function describeConfig(config) {
   return {
-    defaultProviderMode: config.defaultProviderMode,
+    providerModeOverride: config.providerModeOverride,
+    providerModeRejected: config.providerModeRejected,
     gemini: Boolean(config.gemini.apiKey),
     openrouter: Boolean(config.openrouter.apiKey),
     serper: Boolean(config.serper.apiKey)
