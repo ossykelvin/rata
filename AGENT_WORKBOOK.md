@@ -169,6 +169,8 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 **Validation so far:** `check:node`, lint, typecheck and build pass. A temporary injected-network smoke harness passed public/private address checks, mixed DNS rejection, redirect-to-private rejection, byte/type limits, HTML extraction, tool metadata and provider context flow. The committed suite has four expected Lane H failures because it pins the old five-tool surface and one-definition web module. Issue #39 asks Claude to update/add tests and perform the required security review; PR #40 remains draft and must not merge until `npm run verify` is green.
 
+**Runtime diagnosis:** The user's live chat still reported mock mode because Electron and Vite were running from the separate `rata-overlay-drag` worktree, where ignored `.env.local` credentials were absent. Stopped only that verified stale process tree and relaunched this primary checkout. The new runtime recorded `mode=auto (RATA_AI_PROVIDER) gemini=true openrouter=true search=true` and a successful Gemini response using `gemini-2.5-flash`; a separate redacted live adapter check also passed. No credential values or source configuration changed.
+
 ### 2026-08-15 — Codex — WEB-001 safe web fetch and research synthesis
 
 **Status:** BLOCKED ON PHASE 0 (branch `codex/WEB-001-web-fetch-pipeline`, issue #30)
