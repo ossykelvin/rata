@@ -12,6 +12,9 @@ const bubble = fs.readFileSync(path.join(__dirname, '..', 'src', 'components', '
 
 test('overlay character is a native drag surface with a separate Ask control', () => {
   assert.match(css, /\.drag-zone\s*\{[^}]*-webkit-app-region:\s*drag/)
+  assert.match(css, /\.drag-zone\s*\{[^}]*overflow:\s*visible/)
+  assert.match(css, /\.overlay-root\s*\{[^}]*overflow:\s*visible/)
+  assert.match(css, /html:has\(\.overlay-root\)[\s\S]*overflow:\s*visible/)
   assert.match(css, /\.rata-stack\s*\{[^}]*-webkit-app-region:\s*drag/)
   assert.match(css, /\.rata-button\s*\{[^}]*pointer-events:\s*none/)
   assert.match(overlay, /className="rata-ask no-drag"/)
