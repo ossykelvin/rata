@@ -149,7 +149,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 **Status:** REVIEW REQUESTED
 **Branch:** `codex/FIX-002-bundle-sandboxed-preload`
-**Base:** `origin/codex/P0-1-modular-ipc-boundary` (stacked until P0-1 merges)
+**Base:** `main` after P0-1 merged as PR #4
 
 **Root cause:** Both Electron renderers expose an empty React root because `window.rata` is undefined. The preload imports local CommonJS modules while `sandbox: true` is enforced; Electron's sandboxed preload loader permits only a limited built-in module set and cannot load those local modules.
 
@@ -159,7 +159,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 **Validation:** `npm run verify` passes with 30/30 tests, typecheck, renderer build, and an 8.2 KB preload bundle containing all five bridge fragments. Its only literal runtime import is `electron`. A live sandboxed Electron launch renders the overlay UI (`Rata`, `IDLE`, status, and input control), demonstrating that `window.rata` is exposed again. The fixed dev server remains running from this worktree.
 
-**Open verification:** `npm run pack:win` reaches Electron Builder packaging but fails twice with Windows `EPERM` while renaming `release/win-unpacked.tmp`; generated output was moved aside once and the failure reproduced. No source or user files were removed. Packaging inclusion and Lane H regressions are requested in [issue #15](https://github.com/ossykelvin/rata/issues/15). Claude review is mandatory before merge.
+**Open verification:** `npm run pack:win` reaches Electron Builder packaging but fails twice with Windows `EPERM` while renaming `release/win-unpacked.tmp`; generated output was moved aside once and the failure reproduced. No source or user files were removed. Draft [PR #16](https://github.com/ossykelvin/rata/pull/16) is open against `main`; packaging inclusion and Lane H regressions are requested in [issue #15](https://github.com/ossykelvin/rata/issues/15). Claude review is mandatory before merge.
 
 ### 2026-08-15 — P0-1 — Modularize the IPC boundary
 
