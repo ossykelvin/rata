@@ -8,6 +8,14 @@ const { JsonStore } = require('./store.cjs')
 const { PolicyEngine } = require('../packages/agent-core/policy-engine.cjs')
 const { MockAgent } = require('../packages/agent-core/mock-agent.cjs')
 const { createToolRegistry } = require('./tools/index.cjs')
+const { registerSearchTools } = require('./search-tools.cjs')
+const { loadRuntimeConfig, describeConfig } = require('./config.cjs')
+const {
+  createProviderChain,
+  createGeminiProvider,
+  createOpenRouterProvider,
+  createMockProvider
+} = require('../packages/agent-core/providers/index.cjs')
 const { registerIpcHandlers } = require('./ipc/index.cjs')
 const { createSecurityPolicy } = require('./security.cjs')
 const { IPC } = require('../packages/contracts/ipc-channels.cjs')
@@ -20,6 +28,8 @@ let store
 let agent
 let skillRuntime
 let security
+let runtimeConfig
+let providers
 
 const isDev = !app.isPackaged
 const DEV_URL = 'http://127.0.0.1:5173/'
@@ -139,6 +149,36 @@ function broadcastSettings(settings) {
   for (const win of BrowserWindow.getAllWindows()) win.webContents.send(IPC.settingsChanged, settings)
 }
 
+/**
+ * Builds the provider chain: Gemini primary, OpenRouter secondary, mock last.
+ *
+ * The mode is read from the stored `provider` setting each call, so switching
+ * providers in Control Center takes effect on the next message without a
+ * restart. Credentials come from runtimeConfig and stay in this process.
+ */
+function createProviders() {
+  // Built once; credentials never leave this process.
+  const gemini = createGeminiProvider(runtimeConfig.gemini)
+  const openrouter = createOpenRouterProvider(runtimeConfig.openrouter)
+  const mock = createMockProvider()
+
+  // The chain is rebuilt per call — it is a plain object, so this is cheap —
+  // so changing the provider in Control Center takes effect on the next
+  // message rather than at the next restart.
+  const chainFor = () => createProviderChain({
+    mode: store.getSettings().provider || runtimeConfig.defaultProviderMode,
+    gemini,
+    openrouter,
+    mock,
+    onFallback: ({ from, reason }) => logActivity('Provider fallback', `${from}: ${reason}`, 'warning')
+  })
+
+  return {
+    describe: () => chainFor().describe(),
+    generate: request => chainFor().generate(request)
+  }
+}
+
 function createSkillRuntime(toolRegistry) {
   const registry = createSkillRegistry({ rootDir: PROJECT_ROOT, toolRegistry })
   const loader = createSkillLoader({ registry })
@@ -163,6 +203,7 @@ if (!hasSingleInstanceLock) {
 
   app.whenReady().then(() => {
     store = new JsonStore(app)
+    runtimeConfig = loadRuntimeConfig({ rootDir: PROJECT_ROOT })
     security = createSecurityPolicy({
       allowedPrefixes: rendererOrigins(),
       // Audit the refusal without recording payloads.
@@ -171,6 +212,12 @@ if (!hasSingleInstanceLock) {
     const registry = createToolRegistry({
       dependencies: { spawnProcess: spawn, clipboardApi: clipboard }
     })
+    // Registered separately from the discovered domain modules: web.search
+    // needs a credential from runtimeConfig, which the P0-2 dependency bag
+    // deliberately does not carry. Kept out of electron/tools/ so no secret
+    // reaches a module that is auto-discovered.
+    registerSearchTools(registry, { apiKey: runtimeConfig.serper.apiKey })
+    providers = createProviders()
     const policy = new PolicyEngine()
     skillRuntime = createSkillRuntime(registry)
     agent = new MockAgent({
@@ -178,7 +225,8 @@ if (!hasSingleInstanceLock) {
       policy,
       settings: () => store.getSettings(),
       activity: logActivity,
-      skills: skillRuntime
+      skills: skillRuntime,
+      provider: providers
     })
     registerIpcHandlers({
       ipcMain,
@@ -190,6 +238,9 @@ if (!hasSingleInstanceLock) {
         getStore: () => store,
         getAgent: () => agent,
         getSkillRuntime: () => skillRuntime,
+        getProvider: () => providers,
+        // Boolean only. The key itself never leaves this process.
+        isSearchConfigured: () => Boolean(runtimeConfig.serper.apiKey),
         getOverlayWindow: () => overlayWindow,
         showControl,
         broadcastSettings,
@@ -203,6 +254,14 @@ if (!hasSingleInstanceLock) {
     logActivity('Rata started', skillRuntime.registry.loaded
       ? `MVP runtime is online with ${skillRuntime.registry.count()} installed skills.`
       : 'MVP runtime is online. Skill pack failed closed.', 'success')
+
+    // Booleans only — which credentials are present, never their values.
+    const configured = describeConfig(runtimeConfig)
+    logActivity(
+      'Providers configured',
+      `mode=${store.getSettings().provider} gemini=${configured.gemini} openrouter=${configured.openrouter} search=${configured.serper}`,
+      'info'
+    )
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {

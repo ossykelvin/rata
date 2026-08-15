@@ -9,8 +9,11 @@ const defaults = {
     doNotDisturb: false,
     voiceEnabled: false,
     microphoneEnabled: true,
+    // Stays 'mock' so a fresh install performs no network egress until the
+    // user opts in. See docs/decisions/ADR-007-ai-provider-chain.md.
     provider: 'mock',
-    clipboardConfirm: true
+    clipboardConfirm: true,
+    webSearchConfirm: true
   },
   activity: []
 }

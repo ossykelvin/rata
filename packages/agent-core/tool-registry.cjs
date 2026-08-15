@@ -58,6 +58,25 @@ class ToolRegistry {
   /** Is this tool registered? Cheaper and clearer than a truthiness check. */
   has(id) { return this.tools.has(id) }
 
+  /**
+   * Human-readable preview of what executing this tool would do, for the
+   * approval card. REVIEW-001 M5: the agent used to `JSON.stringify` raw input
+   * here, which for a future mail or auth tool would render bodies, recipients
+   * or tokens into the UI. A tool that wants a preview declares
+   * `describeInput`; otherwise the caller gets the generic description and
+   * never the raw input.
+   */
+  preview(id, input) {
+    const tool = this.tools.get(id)
+    if (!tool) return ''
+    if (typeof tool.describeInput !== 'function') return tool.description
+    try {
+      return String(tool.describeInput(input)).slice(0, 500)
+    } catch {
+      return tool.description
+    }
+  }
+
   /** Security metadata for a tool. Never returns an executor. */
   describe(id) {
     const tool = this.tools.get(id)

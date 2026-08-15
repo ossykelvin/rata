@@ -1,6 +1,13 @@
 const MAX_MESSAGE_LENGTH = 4_000
 const MAX_PROVIDER_LENGTH = 64
 
+/**
+ * Provider ids the `provider` setting may hold. Mirrors PROVIDER_IDS in
+ * packages/agent-core/providers/index.cjs; duplicated rather than imported so
+ * this contracts package stays dependency-free.
+ */
+const PROVIDER_IDS = Object.freeze(['mock', 'gemini', 'openrouter', 'auto'])
+
 // Null-prototype map on purpose. A plain object literal inherits
 // Object.prototype members, so a dynamic `settingValidators[key]` lookup
 // resolves inherited functions for keys like `constructor` and `toString` and
@@ -12,8 +19,12 @@ const settingValidators = Object.assign(Object.create(null), {
   doNotDisturb: value => typeof value === 'boolean',
   voiceEnabled: value => typeof value === 'boolean',
   microphoneEnabled: value => typeof value === 'boolean',
-  provider: value => typeof value === 'string' && /^[a-z0-9-]+$/i.test(value) && value.length <= MAX_PROVIDER_LENGTH,
-  clipboardConfirm: value => typeof value === 'boolean'
+  // Constrained to known ids. An arbitrary slug was accepted before, which
+  // meant the renderer could name a provider the runtime does not implement.
+  provider: value => typeof value === 'string' && value.length <= MAX_PROVIDER_LENGTH && PROVIDER_IDS.includes(value),
+  clipboardConfirm: value => typeof value === 'boolean',
+  // Web search sends the query to a third party. Confirmed by default.
+  webSearchConfirm: value => typeof value === 'boolean'
 })
 
 /** The complete set of writable settings. Use this rather than `key in obj`. */
@@ -62,6 +73,7 @@ function parseApprovalRequest(payload) {
 
 module.exports = {
   MAX_MESSAGE_LENGTH,
+  PROVIDER_IDS,
   SETTING_KEYS,
   isKnownSetting,
   parseAgentMessage,

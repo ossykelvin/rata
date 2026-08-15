@@ -10,14 +10,33 @@ export type CharacterState =
   | 'error'
   | 'sleeping'
 
+/** Provider ids accepted by the `provider` setting. Mirrors PROVIDER_IDS. */
+export type ProviderId = 'mock' | 'gemini' | 'openrouter' | 'auto'
+
 export type RataSettings = {
   alwaysOnTop: boolean
   opacity: number
   doNotDisturb: boolean
   voiceEnabled: boolean
   microphoneEnabled: boolean
-  provider: string
+  provider: ProviderId
   clipboardConfirm: boolean
+  /** Web search sends the query to a third party. Confirmed by default. */
+  webSearchConfirm: boolean
+}
+
+/** Provider status. Booleans and labels only — never a credential. */
+export type ProviderSummary = {
+  id: string
+  label: string
+  model: string
+  configured: boolean
+}
+
+export type ProvidersSnapshot = {
+  mode: string
+  providers: ProviderSummary[]
+  searchConfigured: boolean
 }
 
 export type ActivityEvent = {
@@ -68,6 +87,7 @@ export type RataBridge = {
   setSetting<K extends keyof RataSettings>(key: K, value: RataSettings[K]): Promise<RataSettings>
   getActivity(): Promise<ActivityEvent[]>
   getSkills(): Promise<SkillsSnapshot>
+  getProviders(): Promise<ProvidersSnapshot>
   agentMessage(message: string): Promise<AgentReply>
   approveAction(id: string): Promise<AgentReply>
   rejectAction(id: string): Promise<AgentReply>
