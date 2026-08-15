@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "pack": "rata-office-assistant-core-skills",
+  "version": "1.0.0",
+  "description": "Core skill prompts and permission contracts for the Rata Office Assistant."
+}

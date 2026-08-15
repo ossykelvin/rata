@@ -34,8 +34,9 @@ src/views (React UI)
 | `electron/store.cjs` | Non-secret JSON preferences + audit metadata | Tokens / secrets |
 | `packages/contracts/` | IPC channel names and payload validation | Native I/O |
 | `packages/agent-core/` | Mock agent, policy, tool registry, calculator parser | Provider SDKs in UI |
-| `packages/skills/` | Manifest load, prompt extract, deterministic router | Executing skill files |
-| `skills/` | Declarative `SKILL.md` prompts | Code, credentials |
+| `packages/skills/` | Per-fragment validation/load, prompt extract, deterministic router | Executing skill files |
+| `skills/<id>/skill.json` | Independently validated routing/permission metadata | Authority, code, credentials |
+| `skills/<id>/SKILL.md` | Declarative prompt text loaded only for a selected skill | Code, credentials |
 | `tests/` | Policy, IPC, skill, calculator regressions | Live network or real OS side effects |
 | `docs/` | Architecture, security, tasks, ADRs | Implementation secrets |
 | `AGENT_WORKBOOK.md` | Cross-agent work log (read and update each session) | Architecture contracts (those stay in `AGENTS.md`) |

@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "order": 7,
+  "id": "calculator",
+  "name": "Calculator",
+  "path": "skills/calculator/SKILL.md",
+  "category": "utility",
+  "risk": "none",
+  "background_capable": false,
+  "permissions": [
+    "utility.calculate"
+  ],
+  "tools": [
+    "calculator.evaluate"
+  ],
+  "confirmation": "none",
+  "triggers": [
+    "Calculate 15% of 2400",
+    "What is 36 * 14?",
+    "Work out the monthly average",
+    "Convert this formula into a result"
+  ]
+}

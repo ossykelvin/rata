@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "order": 4,
+  "id": "keep-awake",
+  "name": "Keep Awake",
+  "path": "skills/keep-awake/SKILL.md",
+  "category": "system",
+  "risk": "local-state",
+  "background_capable": true,
+  "permissions": [
+    "system.power.keepAwake"
+  ],
+  "tools": [
+    "system.keepAwake.start",
+    "system.keepAwake.stop",
+    "system.keepAwake.status"
+  ],
+  "confirmation": "none_when_user_explicitly_requests_duration",
+  "triggers": [
+    "Keep my PC awake for two hours",
+    "Don't let the computer sleep during this download",
+    "Stop keeping the computer awake"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "order": 0,
+  "id": "file-finder",
+  "name": "File Finder",
+  "path": "skills/file-finder/SKILL.md",
+  "category": "desktop",
+  "risk": "read-only",
+  "background_capable": true,
+  "permissions": [
+    "file.search",
+    "file.metadata.read"
+  ],
+  "tools": [
+    "file.search",
+    "file.stat",
+    "file.reveal"
+  ],
+  "confirmation": "none_for_read_only",
+  "triggers": [
+    "Find the spreadsheet I worked on yesterday",
+    "Search my computer for files named deployment",
+    "Where is the presentation about CompliCare?"
+  ]
+}

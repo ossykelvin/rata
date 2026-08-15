@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "order": 14,
+  "id": "screenshot-inspector",
+  "name": "Screenshot Inspector",
+  "path": "skills/screenshot-inspector/SKILL.md",
+  "category": "desktop",
+  "risk": "screen-read",
+  "background_capable": false,
+  "permissions": [
+    "screen.capture",
+    "ai.vision"
+  ],
+  "tools": [
+    "screen.capture",
+    "vision.analyze"
+  ],
+  "confirmation": "respect_screen_capture_policy_and_exclusions",
+  "triggers": [
+    "What is on my screen?",
+    "Look at this error",
+    "Help me understand this window",
+    "Find the button on this screen"
+  ]
+}

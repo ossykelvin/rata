@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "order": 11,
+  "id": "presentation-builder",
+  "name": "Presentation Builder",
+  "path": "skills/presentation-builder/SKILL.md",
+  "category": "office",
+  "risk": "file-write",
+  "background_capable": true,
+  "permissions": [
+    "presentation.create",
+    "file.write"
+  ],
+  "tools": [
+    "presentation.create",
+    "presentation.render",
+    "file.save"
+  ],
+  "confirmation": "confirm_before_overwriting_existing_file",
+  "triggers": [
+    "Create a presentation about...",
+    "Turn these notes into slides",
+    "Prepare a deck for my meeting",
+    "Build a PowerPoint from this report"
+  ]
+}

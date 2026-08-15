@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "order": 19,
+  "id": "file-organizer",
+  "name": "File Organizer",
+  "path": "skills/file-organizer/SKILL.md",
+  "category": "desktop",
+  "risk": "file-write",
+  "background_capable": true,
+  "permissions": [
+    "file.search",
+    "file.move",
+    "file.rename",
+    "folder.create"
+  ],
+  "tools": [
+    "file.search",
+    "folder.create",
+    "file.move",
+    "file.rename"
+  ],
+  "confirmation": "preview_then_confirm_batch_changes",
+  "triggers": [
+    "Organize my Downloads folder",
+    "Move these reports into folders by year",
+    "Rename these files consistently",
+    "Clean up this project folder"
+  ]
+}

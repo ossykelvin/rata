@@ -14,9 +14,10 @@ packages/
     router.cjs
     contracts.cjs
 skills/
+  pack.json
   <skill-id>/
+    skill.json
     SKILL.md
-skills.manifest.json
 ```
 
 ## Suggested runtime types
@@ -48,10 +49,10 @@ type SkillRun = {
 ## Security requirements
 
 - Skill files are declarative prompts/configuration, not executable code.
-- Validate manifest data with a schema before loading.
+- Validate every `skill.json` fragment with a schema before loading it; reject malformed fragments independently.
 - Never dynamically `eval`, `require`, import or execute code referenced by a skill prompt.
 - Registered tools remain hard-coded/approved implementations.
-- Tool permissions come from the Tool Registry/Policy Engine; manifest permissions are requirements, not grants.
+- Tool permissions come from the Tool Registry/Policy Engine; fragment permissions are requirements, not grants.
 - Long-running/background skills must be cancellable.
 - Persist only minimum task status and audit metadata.
 - Never put secrets into prompts.
@@ -60,13 +61,13 @@ type SkillRun = {
 ## Implementation tickets
 
 ### RATA-SKILL-001: Skill Registry — done
-Load and validate `skills.manifest.json`, expose installed skill metadata, and fail closed on malformed definitions.
+Scan and validate `skills/<id>/skill.json`, expose installed skill metadata, and fail closed per fragment so one malformed definition does not disable valid skills.
 
 ### RATA-SKILL-002: Skill Prompt Loader — done (load-only)
 Read only the selected `SKILL.md`, extract its system-prompt block. Do not merge it into a live model until RATA-002 exists.
 
 ### RATA-SKILL-003: Skill Router — done (deterministic)
-Implement deterministic routing using the manifest. The router returns skill IDs, required permissions, confirmation status and missing tools.
+Implement deterministic routing using validated fragments. The router returns skill IDs, required permissions, confirmation status and missing tools.
 
 ### RATA-SKILL-004: Background Job Manager
 Add queued/running/cancelled/completed lifecycle for `background_capable` skills, with progress events to the overlay and Control Center.

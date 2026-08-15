@@ -42,8 +42,8 @@ Skills may be selected and described. Only registered tools may act.
 - `electron/tools/`: auto-discovered per-domain tool modules. Each module declares the tool IDs it owns and creates complete registry definitions from injected native dependencies. Composition fails closed on duplicate or undeclared IDs. `electron/mvp-tools.cjs` remains a compatibility export only.
 - `packages/contracts/`: runtime validation at privileged IPC boundaries.
 - `packages/agent-core/`: provider-independent policy, tool registration and orchestration foundations.
-- `packages/skills/`: skill registry, prompt loader and deterministic router.
-- `skills/`: declarative skill prompt packs. Not executable.
+- `packages/skills/`: per-fragment skill registry, prompt loader and deterministic router. The registry scans `skills/<id>/skill.json` deterministically; an invalid fragment is excluded and reported without disabling valid skills.
+- `skills/`: declarative skill metadata and prompt packs. Each skill owns its `skill.json` and `SKILL.md`; neither is executable or grants authority.
 
 Tool execution is centralized in `ToolRegistry.execute()`. A registered tool must declare its risk, confirmation policy and input validator before it can execute.
 

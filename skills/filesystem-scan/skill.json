@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "order": 2,
+  "id": "filesystem-scan",
+  "name": "Filesystem Scan",
+  "path": "skills/filesystem-scan/SKILL.md",
+  "category": "desktop",
+  "risk": "read-only",
+  "background_capable": true,
+  "permissions": [
+    "filesystem.scan",
+    "file.metadata.read"
+  ],
+  "tools": [
+    "filesystem.scan",
+    "filesystem.diskUsage",
+    "filesystem.hash"
+  ],
+  "confirmation": "confirm_if_scope_is_entire_system_or_protected",
+  "triggers": [
+    "Scan my C drive and tell me what is taking space",
+    "Find large files",
+    "Check this folder for duplicates",
+    "Give me a storage health report"
+  ]
+}
