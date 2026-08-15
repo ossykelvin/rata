@@ -56,8 +56,9 @@ function createSkillRegistry({ rootDir, manifestPath = 'skills.manifest.json', t
   }
 
   function summarize(skill) {
-    const availableTools = toolRegistry && typeof toolRegistry.get === 'function'
-      ? skill.tools.filter(id => Boolean(toolRegistry.get(id)))
+    // Existence check only — the skill layer must never hold a tool executor.
+    const availableTools = toolRegistry && typeof toolRegistry.has === 'function'
+      ? skill.tools.filter(id => toolRegistry.has(id))
       : []
     const missingTools = skill.tools.filter(id => !availableTools.includes(id))
     return toPublicSkill(skill, { availableTools, missingTools })
