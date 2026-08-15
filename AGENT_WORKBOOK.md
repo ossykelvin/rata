@@ -68,6 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
+| Claude | REVIEW-001 security review | `claude/REVIEW-001-mvp-security-review` | DONE, awaiting merge (stacked on P0-0) |
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, awaiting merge |
 | Codex | — | — | idle |
 | Cursor | — | — | idle |
@@ -75,6 +76,27 @@ One line per agent. Keep it current — this is the first thing another agent re
 ---
 
 ## Claude
+
+### 2026-08-15 — REVIEW-001 — MVP architecture and security review
+
+**Status:** DONE (branch `claude/REVIEW-001-mvp-security-review`, stacked on `claude/P0-0-backlog-and-guardrails` — merge P0-0 first)
+
+**Output:** `docs/reviews/REVIEW-001-mvp-security.md`. Reviewed `electron/`, `packages/contracts/`, `packages/agent-core/`, `packages/skills/`, `src/`, `index.html` at commit `3bfc271`.
+
+**Verdict:** architecture is sound — tool contracts enforced at registration, destructive denied at policy, skills carry no authority, approval input captured at request time, audit log redacted. Nothing in flight is blocked.
+
+**Findings — 5 high, 5 medium, 4 low.** Three were reproduced by executing the shipped modules, not inferred:
+
+- **H1** `packages/contracts/ipc-validation.cjs:21` — settings validator accepts inherited prototype keys. `{key:'constructor'}` and `{key:'toString'}` pass validation and reach the persisted store. **Lane G (mine).**
+- **H2** `electron/mvp-tools.cjs:29` — `system.openApp` allow-list bypassed the same way; `appName:'constructor'` passes and reaches `spawn()`. Not arbitrary execution today (real `spawn(undefined)` throws `ERR_INVALID_ARG_TYPE`) but the allow-list returns "allowed" for input it must reject. **Lane Codex, fold into P0-2.**
+- **H3/H4/H5** — no `setWindowOpenHandler`/`will-navigate` guards, no IPC sender validation, no CSP. Together these are the confused-deputy path: a navigated-away window keeps `window.rata`. **Fold into P0-1.**
+- **M1** `mock-agent.cjs:101` — pending approvals unbounded and never expire; 5,000 unanswered requests retained, oldest still executable.
+- **M2** `tool-registry.cjs:34` — `get()` returns the live executor, so "execute only through `ToolRegistry.execute()`" is convention, not structure.
+- **M3** store does not validate settings loaded from disk, contradicting ADR-004's defence-in-depth claim.
+- **M4** microphone gating is renderer-side only — **blocks RATA-004**.
+- **M5** approval preview `JSON.stringify`s raw tool input — **blocks RATA-007**.
+
+**Note for Lanes D/E/F:** H1 and H2 are the same root-cause defect (unguarded dynamic key lookup used as an allow-list). Use `Object.create(null)` or a `Map` for every allow-list added in the bridge, Graph and browser lanes.
 
 ### 2026-08-15 — P0-0 — Product backlog and parallel-work guardrails
 
