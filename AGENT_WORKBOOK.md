@@ -155,6 +155,16 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Codex
 
+### 2026-08-15 — Codex — WEB-001 safe web fetch and research synthesis
+
+**Status:** BLOCKED ON PHASE 0 (branch `codex/WEB-001-web-fetch-pipeline`, issue #30)
+
+**Requested:** Link `web.fetch` with the configured Serper and Gemini capabilities.
+
+**Finding:** `RATA_SERPER_API_KEY` is already scoped to `web.search`, and `GEMINI_API_KEY` is already scoped to the Gemini provider adapter. Passing either credential directly into a URL-fetch tool would widen secret access unnecessarily. The safe pipeline is `web.search` (Serper) → `web.fetch` (validated public URL, no provider keys) → untrusted-content fence → provider-independent orchestration → Gemini adapter.
+
+**Blocker:** `docs/PRODUCT_BACKLOG.md` forbids feature work until all Phase 0 tickets merge. P0-4, P0-5, and P0-6 have not landed. No implementation files or credentials were changed. Issue #30 records SSRF, redirect, size/type, prompt-injection, confirmation, testing, and Claude-review requirements for implementation after the gate opens.
+
 ### 2026-08-15 — Codex — CONFIG-001 activate local AI providers
 
 **Status:** DONE (branch `codex/CONFIG-001-activate-ai-providers`)
