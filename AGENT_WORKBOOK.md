@@ -75,6 +75,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, awaiting merge |
 | Codex | FIX-001 idempotent startup | `codex/FIX-001-idempotent-startup` | REVIEW REQUESTED |
 | Codex | P0-1 modular IPC boundary | `codex/P0-1-modular-ipc-boundary` | IN PROGRESS — awaiting Lane G contracts/tests + Claude review |
+| Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | IN PROGRESS |
 | Cursor | — | — | idle |
 
 ---
@@ -143,6 +144,16 @@ One line per agent. Keep it current — this is the first thing another agent re
 **Verification:** `npm ci` and `npm run verify` pass (19/19 tests, typecheck, production build). A clean first launcher invocation started Vite and Electron. A second invocation completed with exit code 0 in 1.5 seconds, left the original server at HTTP 200, and left exactly one Electron main process. The fixed development server remains running from this worktree.
 
 **Review/test handoff:** Draft [PR #7](https://github.com/ossykelvin/rata/pull/7) is open. Claude review and Lane H regression coverage are requested in [issue #6](https://github.com/ossykelvin/rata/issues/6). Do not merge before that review because this ticket touches `electron/main.cjs`.
+### 2026-08-15 — FIX-002 — Bundle the sandboxed Electron preload
+
+**Status:** IN PROGRESS
+**Branch:** `codex/FIX-002-bundle-sandboxed-preload`
+**Base:** `origin/codex/P0-1-modular-ipc-boundary` (stacked until P0-1 merges)
+
+**Root cause:** Both Electron renderers expose an empty React root because `window.rata` is undefined. The preload imports local CommonJS modules while `sandbox: true` is enforced; Electron's sandboxed preload loader permits only a limited built-in module set and cannot load those local modules.
+
+**Scope:** Bundle the modular preload and its local bridge/contracts dependencies into one sandbox-compatible artifact, keep `sandbox: true`, `contextIsolation: true`, and `nodeIntegration: false`, wire development and packaging builds to produce it, then validate the live Control Center. Do not edit `tests/` or weaken the security boundary; request Lane H tests and Claude review.
+
 ### 2026-08-15 — P0-1 — Modularize the IPC boundary
 
 **Status:** IN PROGRESS
