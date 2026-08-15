@@ -1,0 +1,324 @@
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
+
+const {
+  createMvpRegistry,
+  createToolDefinitions,
+  createToolRegistry,
+  discoverToolModules,
+  validateToolModule
+} = require('../electron/tools/index.cjs')
+const compatibility = require('../electron/mvp-tools.cjs')
+
+// Lane H regression coverage for P0-2 (issue #19).
+//
+// Composition is privileged: it decides which code becomes a registered tool.
+// Every check below asserts it FAILS CLOSED — a malformed or conflicting
+// module must abort composition entirely rather than register a subset.
+
+const TOOLS_DIR = path.join(__dirname, '..', 'electron', 'tools')
+
+/** The four tools the MVP ships. Changing this list is a security decision. */
+const EXPECTED_TOOL_IDS = ['calculator.evaluate', 'clipboard.write', 'file.delete', 'system.openApp']
+
+const DEPENDENCIES = Object.freeze({
+  spawnProcess: () => ({ unref() {} }),
+  clipboardApi: { writeText() {} }
+})
+
+/** Minimal well-formed module, so each test varies exactly one thing. */
+function moduleFixture(overrides = {}) {
+  return {
+    id: 'fixture',
+    toolIds: ['fixture.alpha'],
+    create: () => [{
+      id: 'fixture.alpha',
+      description: 'Fixture tool.',
+      risk: 'read',
+      confirmation: 'never',
+      validateInput: input => input,
+      execute: async () => ({ summary: 'ok', message: 'ok' })
+    }],
+    ...overrides
+  }
+}
+
+// --- discovery ----------------------------------------------------------
+
+test('discovery reads only the trusted electron/tools directory', () => {
+  const modules = discoverToolModules()
+  assert.ok(modules.length >= 4)
+  for (const module of modules) {
+    assert.equal(typeof module.id, 'string')
+    assert.equal(typeof module.create, 'function')
+  }
+  // index.cjs must never be discovered as a domain module.
+  assert.equal(modules.some(module => module.id === 'index'), false)
+})
+
+test('discovery is deterministic across repeated calls', () => {
+  const first = discoverToolModules().map(module => module.id)
+  const second = discoverToolModules().map(module => module.id)
+  const third = discoverToolModules().map(module => module.id)
+  assert.deepEqual(first, second)
+  assert.deepEqual(second, third)
+  assert.deepEqual(first, [...first].sort(), 'discovery order is not sorted')
+})
+
+test('discovery covers every module file on disk, so none is silently skipped', () => {
+  const onDisk = fs.readdirSync(TOOLS_DIR, { withFileTypes: true })
+    .filter(entry => entry.isFile() && entry.name.endsWith('.cjs') && entry.name !== 'index.cjs')
+    .map(entry => path.basename(entry.name, '.cjs'))
+    .sort()
+  assert.deepEqual(discoverToolModules().map(module => module.id).sort(), onDisk)
+})
+
+// --- module validation --------------------------------------------------
+
+test('malformed modules are rejected', () => {
+  for (const bad of [null, undefined, 'module', 42]) {
+    assert.throws(() => validateToolModule(bad), /must export an object/)
+  }
+  // An array is `typeof 'object'`, so it passes the first guard and is caught
+  // one line later on the id check. Different message, still fails closed —
+  // which is what matters. Asserted without a message matcher on purpose.
+  assert.throws(() => validateToolModule([]), TypeError)
+  assert.throws(() => validateToolModule(moduleFixture({ id: 'Bad-ID' })), /lowercase id/)
+  assert.throws(() => validateToolModule(moduleFixture({ id: '' })), /lowercase id/)
+  assert.throws(() => validateToolModule(moduleFixture({ toolIds: [] })), /must declare toolIds/)
+  assert.throws(() => validateToolModule(moduleFixture({ toolIds: 'fixture.alpha' })), /must declare toolIds/)
+  assert.throws(() => validateToolModule(moduleFixture({ toolIds: ['notnamespaced'] })), /invalid tool id/)
+  assert.throws(() => validateToolModule(moduleFixture({ toolIds: [42] })), /invalid tool id/)
+  assert.throws(() => validateToolModule(moduleFixture({ create: null })), /must declare create/)
+})
+
+test('a module declaring the same tool twice is rejected', () => {
+  const module = moduleFixture({ toolIds: ['fixture.alpha', 'fixture.alpha'] })
+  assert.throws(() => validateToolModule(module), /duplicate tool id/)
+})
+
+test('composition rejects an empty or non-array module list', () => {
+  assert.throws(() => createToolDefinitions({ dependencies: DEPENDENCIES, modules: [] }), /At least one tool module/)
+  assert.throws(() => createToolDefinitions({ dependencies: DEPENDENCIES, modules: 'system' }), /At least one tool module/)
+})
+
+test('composition rejects a non-object dependency bag', () => {
+  for (const bad of [null, 'deps', []]) {
+    assert.throws(
+      () => createToolDefinitions({ dependencies: bad, modules: [moduleFixture()] }),
+      /dependencies must be an object/
+    )
+  }
+})
+
+// --- ownership conflicts ------------------------------------------------
+
+test('duplicate module ids are rejected', () => {
+  const modules = [moduleFixture(), moduleFixture({ toolIds: ['fixture.beta'], create: () => [] })]
+  assert.throws(() => createToolDefinitions({ dependencies: DEPENDENCIES, modules }), /Duplicate tool module id: fixture/)
+})
+
+test('two modules claiming the same tool id are rejected', () => {
+  const modules = [
+    moduleFixture({ id: 'first' }),
+    moduleFixture({ id: 'second' })
+  ]
+  assert.throws(
+    () => createToolDefinitions({ dependencies: DEPENDENCIES, modules }),
+    /fixture\.alpha is declared by both first and second/
+  )
+})
+
+test('a module may not silently claim a tool another module owns', () => {
+  const shadow = {
+    id: 'shadow',
+    toolIds: ['system.openApp'],
+    create: () => [{
+      id: 'system.openApp',
+      description: 'Shadowed.',
+      risk: 'read',
+      confirmation: 'never',
+      validateInput: input => input,
+      execute: async () => ({ summary: 'x', message: 'x' })
+    }]
+  }
+  const modules = [...discoverToolModules(), shadow]
+  assert.throws(() => createToolDefinitions({ dependencies: DEPENDENCIES, modules }), /declared by both/)
+})
+
+// --- declared vs created mismatch ---------------------------------------
+
+test('a module that creates fewer tools than it declares is rejected', () => {
+  const module = moduleFixture({ toolIds: ['fixture.alpha', 'fixture.beta'] })
+  assert.throws(
+    () => createToolDefinitions({ dependencies: DEPENDENCIES, modules: [module] }),
+    /does not match its declared toolIds/
+  )
+})
+
+test('a module that creates an undeclared tool is rejected', () => {
+  const module = moduleFixture({
+    create: () => [{
+      id: 'fixture.smuggled',
+      description: 'Undeclared.',
+      risk: 'read',
+      confirmation: 'never',
+      validateInput: input => input,
+      execute: async () => ({ summary: 'x', message: 'x' })
+    }]
+  })
+  assert.throws(
+    () => createToolDefinitions({ dependencies: DEPENDENCIES, modules: [module] }),
+    /does not match its declared toolIds/
+  )
+})
+
+test('a module returning nothing usable is rejected', () => {
+  for (const created of [[], null, 'tool', {}]) {
+    const module = moduleFixture({ create: () => created })
+    assert.throws(
+      () => createToolDefinitions({ dependencies: DEPENDENCIES, modules: [module] }),
+      /must create a non-empty array|does not match its declared toolIds/
+    )
+  }
+})
+
+test('a module creating the same id twice is rejected', () => {
+  const definition = {
+    id: 'fixture.alpha',
+    description: 'Fixture.',
+    risk: 'read',
+    confirmation: 'never',
+    validateInput: input => input,
+    execute: async () => ({ summary: 'x', message: 'x' })
+  }
+  const module = moduleFixture({ create: () => [definition, { ...definition }] })
+  assert.throws(() => createToolDefinitions({ dependencies: DEPENDENCIES, modules: [module] }), /created duplicate tool ids/)
+})
+
+// --- metadata still enforced by ToolRegistry.register() -----------------
+
+test('invalid tool metadata is rejected by ToolRegistry.register(), not the composer', () => {
+  const cases = [
+    [{ risk: 'omnipotent' }, /invalid risk level/],
+    [{ confirmation: 'sometimes' }, /invalid confirmation policy/],
+    [{ description: '' }, /must declare a description/],
+    [{ validateInput: undefined }, /must declare validateInput and execute/],
+    [{ execute: undefined }, /must declare validateInput and execute/],
+    // An external-write tool cannot opt out of confirmation.
+    [{ risk: 'external-write', confirmation: 'never' }, /cannot disable confirmation/],
+    // A configurable tool must name the setting that governs it.
+    [{ confirmation: 'configurable' }, /must declare confirmationSetting/]
+  ]
+
+  for (const [override, expected] of cases) {
+    const module = moduleFixture({
+      create: () => [{
+        id: 'fixture.alpha',
+        description: 'Fixture tool.',
+        risk: 'read',
+        confirmation: 'never',
+        validateInput: input => input,
+        execute: async () => ({ summary: 'ok', message: 'ok' }),
+        ...override
+      }]
+    })
+    assert.throws(() => createToolRegistry({ dependencies: DEPENDENCIES, modules: [module] }), expected)
+  }
+})
+
+test('composition cannot smuggle a tool past register()', () => {
+  // Every definition the composer produces must survive register(). If a
+  // module produced a definition register() would reject, the whole registry
+  // build must fail rather than yield a partially populated registry.
+  const module = moduleFixture({
+    create: () => [{ id: 'fixture.alpha', description: 'No metadata.' }]
+  })
+  assert.throws(() => createToolRegistry({ dependencies: DEPENDENCIES, modules: [module] }), /invalid risk level/)
+})
+
+// --- native dependency failures -----------------------------------------
+
+test('missing native dependencies fail with a clear message', () => {
+  // Modules are created in sorted order, so `clipboard` reports before
+  // `system`. Each message names the specific dependency that is absent.
+  assert.throws(() => createMvpRegistry({}), /clipboardApi dependency is required/)
+  assert.throws(() => createMvpRegistry(), /clipboardApi dependency is required/)
+  assert.throws(
+    () => createMvpRegistry({ clipboardApi: { writeText() {} } }),
+    /spawnProcess dependency is required/
+  )
+  // Whatever is missing, no registry is produced at all.
+  for (const deps of [{}, { clipboardApi: { writeText() {} } }, { spawnProcess: () => ({ unref() {} }) }]) {
+    assert.throws(() => createMvpRegistry(deps), /dependency is required/)
+  }
+})
+
+// --- stability of the shipped surface -----------------------------------
+
+test('the four shipped tool ids are unchanged', () => {
+  const registry = createMvpRegistry(DEPENDENCIES)
+  assert.deepEqual(registry.list().map(tool => tool.id).sort(), EXPECTED_TOOL_IDS)
+})
+
+test('shipped tools keep their risk and confirmation metadata', () => {
+  const registry = createMvpRegistry(DEPENDENCIES)
+  const meta = id => registry.describe(id)
+
+  assert.deepEqual(
+    { risk: meta('system.openApp').risk, confirmation: meta('system.openApp').confirmation },
+    { risk: 'safe-write', confirmation: 'never' }
+  )
+  assert.deepEqual(
+    {
+      risk: meta('clipboard.write').risk,
+      confirmation: meta('clipboard.write').confirmation,
+      setting: meta('clipboard.write').confirmationSetting
+    },
+    { risk: 'safe-write', confirmation: 'configurable', setting: 'clipboardConfirm' }
+  )
+  assert.deepEqual(
+    { risk: meta('calculator.evaluate').risk, confirmation: meta('calculator.evaluate').confirmation },
+    { risk: 'read', confirmation: 'never' }
+  )
+  assert.deepEqual(
+    { risk: meta('file.delete').risk, confirmation: meta('file.delete').confirmation },
+    { risk: 'destructive', confirmation: 'always' }
+  )
+})
+
+test('the compatibility entry point still exports the MVP surface', () => {
+  assert.equal(typeof compatibility.createMvpRegistry, 'function')
+  assert.equal(typeof compatibility.isAllowListedApp, 'function')
+  assert.ok(compatibility.APP_ALLOW_LIST)
+  // REVIEW-001 H2 must survive the move: null-prototype, own-property only.
+  assert.equal(Object.getPrototypeOf(compatibility.APP_ALLOW_LIST), null)
+  assert.equal(compatibility.isAllowListedApp('constructor'), false)
+  assert.equal(compatibility.isAllowListedApp('notepad'), true)
+
+  const viaCompat = compatibility.createMvpRegistry(DEPENDENCIES).list().map(tool => tool.id).sort()
+  assert.deepEqual(viaCompat, EXPECTED_TOOL_IDS)
+})
+
+test('composition still executes tools only through the registry', async () => {
+  const spawned = []
+  const registry = createMvpRegistry({
+    spawnProcess: exe => { spawned.push(exe); return { unref() {} } },
+    clipboardApi: { writeText() {} }
+  })
+
+  // Metadata accessors must not hand out an executor (REVIEW-001 M2).
+  assert.equal(typeof registry.describe('system.openApp').execute, 'undefined')
+
+  await registry.execute('system.openApp', { appName: 'notepad' })
+  assert.deepEqual(spawned, ['notepad.exe'])
+
+  // And the allow-list bypass stays closed after the refactor.
+  await assert.rejects(
+    () => registry.execute('system.openApp', { appName: 'constructor' }),
+    /not in the MVP allow-list/
+  )
+  assert.deepEqual(spawned, ['notepad.exe'], 'a non-allow-listed name reached the spawner')
+})

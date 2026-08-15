@@ -7,7 +7,7 @@ const crypto = require('node:crypto')
 const { JsonStore } = require('./store.cjs')
 const { PolicyEngine } = require('../packages/agent-core/policy-engine.cjs')
 const { MockAgent } = require('../packages/agent-core/mock-agent.cjs')
-const { createMvpRegistry } = require('./mvp-tools.cjs')
+const { createToolRegistry } = require('./tools/index.cjs')
 const { registerIpcHandlers } = require('./ipc/index.cjs')
 const { createSecurityPolicy } = require('./security.cjs')
 const { IPC } = require('../packages/contracts/ipc-channels.cjs')
@@ -168,7 +168,9 @@ if (!hasSingleInstanceLock) {
       // Audit the refusal without recording payloads.
       onBlocked: ({ url }) => logActivity('Blocked navigation', `Refused a foreign destination: ${String(url)}`, 'warning')
     })
-    const registry = createMvpRegistry({ spawnProcess: spawn, clipboardApi: clipboard })
+    const registry = createToolRegistry({
+      dependencies: { spawnProcess: spawn, clipboardApi: clipboard }
+    })
     const policy = new PolicyEngine()
     skillRuntime = createSkillRuntime(registry)
     agent = new MockAgent({

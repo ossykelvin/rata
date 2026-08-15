@@ -12,7 +12,7 @@ src/views (React UI)
   → packages/skills/router.cjs (selects a skill id)
   → packages/agent-core/policy-engine.cjs
   → packages/agent-core/tool-registry.cjs
-  → electron/mvp-tools.cjs (allow-listed adapters)
+  → electron/tools/index.cjs + electron/tools/*.cjs (auto-composed allow-listed adapters)
   → audit event → UI
 ```
 
@@ -28,7 +28,9 @@ src/views (React UI)
 | `electron/main.cjs` | Windows, tray, runtime dependency composition | Per-domain IPC handler implementations |
 | `electron/ipc/` | Per-domain validated IPC handlers | Undeclared channels or renderer APIs |
 | `electron/security.cjs` | Navigation, popup and IPC sender guards | Business logic or tool execution |
-| `electron/mvp-tools.cjs` | Allow-listed native tool adapters | Unrestricted shell |
+| `electron/tools/index.cjs` | Discovers and composes declared tool-domain modules | User/model-supplied modules, undeclared tool IDs |
+| `electron/tools/*.cjs` | Per-domain allow-listed native tool adapters | Unrestricted shell, policy bypass |
+| `electron/mvp-tools.cjs` | Compatibility export for existing consumers | New tool registration logic |
 | `electron/store.cjs` | Non-secret JSON preferences + audit metadata | Tokens / secrets |
 | `packages/contracts/` | IPC channel names and payload validation | Native I/O |
 | `packages/agent-core/` | Mock agent, policy, tool registry, calculator parser | Provider SDKs in UI |
@@ -49,5 +51,5 @@ src/views (React UI)
 
 1. `RATA-002` provider interface in `packages/agent-core/`, not in React.
 2. Load `packages/skills/loader.cjs` prompts only after a provider exists.
-3. Add tools in `electron/mvp-tools.cjs` (or a future bridge) with tests.
+3. Add each tool domain as a declared module in `electron/tools/` with tests.
 4. Keep new Control Center pages under `src/views/control/`.
