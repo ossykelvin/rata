@@ -71,6 +71,13 @@ function createMvpRegistry({ spawnProcess, clipboardApi }) {
       }
       return { text: value.text }
     },
+    // Truncated on purpose: clipboard text can be up to 1,000,000 characters
+    // and the approval card must stay readable.
+    describeInput: input => {
+      const text = String(input.text)
+      const shown = text.length > 200 ? `${text.slice(0, 200)}…` : text
+      return `Copy “${shown}” to your clipboard.`
+    },
     execute: async ({ text }) => {
       clipboardApi.writeText(text)
       return { summary: 'Clipboard updated', message: 'Done. I copied that text to your clipboard.' }
