@@ -86,6 +86,8 @@ State of the health items that matter for multi-agent work:
 
 **Carried forward:** my two orphan contract files were included in baseline commit `a4ad325` and are now on GitHub. They are still unreferenced and still need removing — Open Item 1. I did not delete them in this session because the Codex session was actively committing at the time and an unannounced working-tree change could have collided with its next commit.
 
+*[Resolved 15:12 — the Cursor (Grok) session removed both files in commit `e0affdc`, now pushed. I re-ran `npm run verify` afterwards to confirm the removal broke nothing: `check:node` clean, 19/19 tests pass, `typecheck` passes, `vite build` succeeds. Working tree clean, `main` level with `origin/main`.]*
+
 ### 2026-08-15 — Codex — Initialize and publish Git repository
 
 **Status:** DONE
