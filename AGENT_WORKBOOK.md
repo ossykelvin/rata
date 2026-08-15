@@ -68,6 +68,9 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
+| Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, merged as #2 |
+| Codex | P0-1 modular IPC | `codex/P0-1-modular-ipc-boundary` | DRAFT PR #4 |
+| Cursor | RATA-003 character animation | `cursor/rata-003-character-animation-9241` | DONE, PR #5 |
 | Claude | REVIEW-001 security review | `claude/REVIEW-001-mvp-security-review` | DONE, awaiting merge (stacked on P0-0) |
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, awaiting merge |
 | Codex | FIX-001 idempotent startup | `codex/FIX-001-idempotent-startup` | REVIEW REQUESTED |
@@ -159,7 +162,18 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ## Cursor
 
-*No entries under the lane protocol yet. Earlier work is in the archive below.*
+### 2026-08-15 — RATA-003 — Character animation engine
+
+**Status:** DONE (branch `cursor/rata-003-character-animation-9241`, draft PR #5)
+**Branch:** `cursor/rata-003-character-animation-9241`
+
+**Done:** Event-driven character presentation. Overlay/Control Center/chat/dashboard keep importing `RataAvatar`; that file re-exports `RataCharacter`. States including `awaiting_approval` and `sleeping` map to `public/character/*.svg` placeholders. Unknown states use the idle asset. Missing files fall back to a letter-mark silhouette. No renderer business logic. No edits to `src/types.ts`, `src/styles/global.css`, Electron, contracts, or agent-core.
+
+**Files touched:** `src/components/character/`, `src/styles/character.css`, `public/character/`, `src/components/RataAvatar.tsx`, `tests/character-states.test.cjs`, `docs/CHARACTER-ASSETS.md`, `docs/ARCHITECTURE.md`, `docs/CODEMAP.md`, `docs/VALIDATION.md`, `README.md`, `src/views/control/AppearancePage.tsx`, `src/views/control/DeveloperPage.tsx`.
+
+**Validation:** `npm run verify` passed (`check:node`, 23 tests, `typecheck`, `vite build`). GUI smoke still blocked: `window.rata` is undefined until Codex P0-1.
+
+**Blocked on:** preload/`window.rata` for Electron smoke. Real character art remains BLOCKED-ON-HUMAN. Lane C (RATA-004) waits on Lane A streaming.
 
 ---
 

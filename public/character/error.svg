@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" role="img" aria-hidden="true">
+  <title>Rata error placeholder</title>
+  <ellipse cx="100" cy="222" rx="46" ry="8" fill="#04101f" opacity=".45"/>
+  <path d="M62 214c8-78 68-78 76 0-18-14-58-14-76 0z" fill="#4a1c24"/>
+  <circle cx="100" cy="92" r="46" fill="#e8c4b0"/>
+  <ellipse cx="100" cy="78" rx="46" ry="18" fill="#7f1d1d"/>
+  <circle cx="84" cy="104" r="5" fill="#1b2a44"/>
+  <circle cx="116" cy="104" r="5" fill="#1b2a44"/>
+  <path d="M90 128c8-6 12-6 20 0" fill="none" stroke="#b57b62" stroke-width="3" stroke-linecap="round"/>
+  <path d="M150 40l22 22M172 40l-22 22" stroke="#ff6b7a" stroke-width="5" stroke-linecap="round"/>
+</svg>

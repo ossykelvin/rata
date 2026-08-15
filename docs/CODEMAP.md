@@ -21,10 +21,12 @@ src/views (React UI)
 | Path | Owns | Must not |
 |---|---|---|
 | `src/` | Overlay, Control Center, character presentation | Node, Electron, OS, tools |
+| `src/components/character/` | Event-driven character states and asset catalog | Tools, policy, IPC |
 | `electron/preload.cjs` | Exposes the composed `window.rata` bridge | Generic `ipcRenderer` / `fs` |
 | `electron/bridge/` | Per-domain preload bridge fragments | Raw or undeclared IPC channels |
 | `electron/main.cjs` | Windows, tray, runtime dependency composition | Per-domain IPC handler implementations |
 | `electron/ipc/` | Per-domain validated IPC handlers | Undeclared channels or renderer APIs |
+| `electron/security.cjs` | Navigation, popup and IPC sender guards | Business logic or tool execution |
 | `electron/mvp-tools.cjs` | Allow-listed native tool adapters | Unrestricted shell |
 | `electron/store.cjs` | Non-secret JSON preferences + audit metadata | Tokens / secrets |
 | `packages/contracts/` | IPC channel names and payload validation | Native I/O |
