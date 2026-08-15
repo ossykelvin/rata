@@ -69,7 +69,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, awaiting merge |
-| Codex | — | — | idle |
+| Codex | P0-1 modular IPC boundary | `codex/P0-1-modular-ipc-boundary` | IN PROGRESS |
 | Cursor | — | — | idle |
 
 ---
@@ -103,7 +103,14 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ## Codex
 
-*No entries under the lane protocol yet. Earlier work is in the archive below.*
+### 2026-08-15 — P0-1 — Modularize the IPC boundary
+
+**Status:** IN PROGRESS
+**Branch:** `codex/P0-1-modular-ipc-boundary`
+
+**Scope:** Replace the Electron IPC and preload hub registration with auto-composed modules under `electron/ipc/` and `electron/bridge/`, preserving the current renderer API and security settings. Contract-owned work under `packages/contracts/` remains delegated to Claude through issue #1; Codex will consume the agreed aggregate and will not edit that path.
+
+**Planned validation:** focused IPC/bridge composition tests plus full `npm run verify`. The PR touches `electron/` and requires Claude review before merge.
 
 ---
 
