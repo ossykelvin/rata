@@ -80,6 +80,9 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Codex | P0-3 skill manifest fragments | `codex/P0-3-skill-manifest-fragments` | DRAFT PR #25 — awaiting Lane H tests + Claude review |
 | Cursor | P0-4 decouple renderer | `cursor/P0-4-decouple-renderer` | DONE, PR pending |
 | Cursor | ISSUE-34 overlay widget drag | `cursor/ISSUE-34-overlay-drag` | DONE, PR #36 — rebase after P0-4 CSS split |
+| Cursor | ISSUE-34 overlay widget drag | `cursor/ISSUE-34-overlay-drag` | DONE, PR #36 |
+| Cursor | — | — | idle |
+| Cursor | ISSUE-34 overlay widget drag | `cursor/ISSUE-34-overlay-drag` | IN PROGRESS |
 | Cursor | ISSUE-29 overlay long-response scroll | `cursor/ISSUE-29-overlay-scroll` | DONE, PR #32 |
 | Cursor | ISSUE-17 restore character image | `cursor/ISSUE-17-restore-character-image` | DONE, PR #18 |
 
@@ -278,6 +281,14 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-15 — ISSUE-34 — Overlay widget drag
 
+**Status:** DONE (PR #36, branch `cursor/ISSUE-34-overlay-drag`)
+**Branch:** `cursor/ISSUE-34-overlay-drag`
+
+**Done:** The character is a native drag surface (`pointer-events: none` so the grab hits `-webkit-app-region: drag`). Ask/Hide is a separate no-drag chip. The speech-bubble header can also drag; the message, approvals, and quick input stay interactive. No Electron edits.
+
+**Files touched:** `src/views/Overlay.tsx`, `src/components/SpeechBubble.tsx`, `src/styles/global.css`, `tests/overlay-drag.test.cjs`, `docs/VALIDATION.md`.
+
+**Validation:** `npm run verify` passed (138 tests). GUI smoke: drag region is `drag`, character `pointer-events: none`, Ask is `no-drag` and opens the input.
 **Status:** IN PROGRESS
 **Branch:** `cursor/ISSUE-34-overlay-drag`
 

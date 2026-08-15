@@ -72,13 +72,28 @@ export function Overlay() {
   return (
     <main className="overlay-root" style={{ opacity: settings?.opacity ?? 1 }}>
       <div className="drag-zone">
+        {/* P0-4 moved conversation state into useAgentConversation; ISSUE-34
+            replaced the single avatar button with a drag stack plus a separate
+            Ask control. Both are kept: state comes from the hook, markup from
+            the drag layout. */}
         <SpeechBubble message={conversation.lastMessage} state={conversation.agentState} />
         {conversation.approval && (
           <ApprovalActions approval={conversation.approval} onApprove={conversation.approve} onReject={conversation.reject} />
         )}
-        <button className="rata-button no-drag" onClick={() => setExpanded(value => !value)} aria-label="Open Rata input">
-          <RataAvatar state={conversation.agentState} />
-        </button>
+        <div className="rata-stack">
+          <div className="rata-button">
+            <RataAvatar state={conversation.agentState} />
+          </div>
+          <button
+            type="button"
+            className="rata-ask no-drag"
+            onClick={() => setExpanded(value => !value)}
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Hide Rata input' : 'Open Rata input'}
+          >
+            {expanded ? 'Hide' : 'Ask'}
+          </button>
+        </div>
       </div>
 
       {expanded && (
