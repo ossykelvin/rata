@@ -80,6 +80,8 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Codex | P0-3 skill manifest fragments | `codex/P0-3-skill-manifest-fragments` | DRAFT PR #25 — awaiting Lane H tests + Claude review |
 | Cursor | ISSUE-34 overlay widget drag | `cursor/ISSUE-34-overlay-drag` | DONE, PR #36 |
 | Cursor | — | — | idle |
+| Cursor | ISSUE-34 overlay widget drag | `cursor/ISSUE-34-overlay-drag` | IN PROGRESS |
+| Cursor | ISSUE-29 overlay long-response scroll | `cursor/ISSUE-29-overlay-scroll` | DONE, PR #32 |
 | Cursor | ISSUE-17 restore character image | `cursor/ISSUE-17-restore-character-image` | DONE, PR #18 |
 
 ---
@@ -154,6 +156,16 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 ---
 
 ## Codex
+
+### 2026-08-15 — Codex — WEB-001 safe web fetch and research synthesis
+
+**Status:** BLOCKED ON PHASE 0 (branch `codex/WEB-001-web-fetch-pipeline`, issue #30)
+
+**Requested:** Link `web.fetch` with the configured Serper and Gemini capabilities.
+
+**Finding:** `RATA_SERPER_API_KEY` is already scoped to `web.search`, and `GEMINI_API_KEY` is already scoped to the Gemini provider adapter. Passing either credential directly into a URL-fetch tool would widen secret access unnecessarily. The safe pipeline is `web.search` (Serper) → `web.fetch` (validated public URL, no provider keys) → untrusted-content fence → provider-independent orchestration → Gemini adapter.
+
+**Blocker:** `docs/PRODUCT_BACKLOG.md` forbids feature work until all Phase 0 tickets merge. P0-4, P0-5, and P0-6 have not landed. No implementation files or credentials were changed. Issue #30 records SSRF, redirect, size/type, prompt-injection, confirmation, testing, and Claude-review requirements for implementation after the gate opens.
 
 ### 2026-08-15 — Codex — CONFIG-001 activate local AI providers
 
@@ -262,6 +274,25 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 **Files touched:** `src/views/Overlay.tsx`, `src/components/SpeechBubble.tsx`, `src/styles/global.css`, `tests/overlay-drag.test.cjs`, `docs/VALIDATION.md`.
 
 **Validation:** `npm run verify` passed (138 tests). GUI smoke: drag region is `drag`, character `pointer-events: none`, Ask is `no-drag` and opens the input.
+**Status:** IN PROGRESS
+**Branch:** `cursor/ISSUE-34-overlay-drag`
+
+**Scope:** Lane B / renderer. Make the overlay character a native drag surface so the widget can be moved across the screen. Keep bubble body, approvals, and Ask input interactive. No Electron privilege-boundary edits.
+
+**Files currently touching:** `AGENT_WORKBOOK.md` (claim only; implementation follows).
+
+---
+
+### 2026-08-15 — ISSUE-29 — Overlay long-response scroll
+
+**Status:** DONE (PR #32, branch `cursor/ISSUE-29-overlay-scroll`)
+**Branch:** `cursor/ISSUE-29-overlay-scroll`
+
+**Done:** Overlay speech bubble keeps a fixed Rata/state header. Message body is a bounded vertical scroll region sized against remaining overlay height so the avatar and quick input stay visible. Long tokens wrap. Short replies stay compact. No Electron edits.
+
+**Files touched:** `src/components/SpeechBubble.tsx`, `src/styles/global.css`, `tests/overlay-speech-bubble.test.cjs`, `docs/VALIDATION.md`.
+
+**Validation:** `npm run verify` passed (134 tests). GUI smoke (VALIDATION.md item 13): short greeting stayed compact; a 24-paragraph reply with long URLs scrolled in `.bubble-body` (`scrollHeight` 2696 > `clientHeight` 123) while the Rata/state header, avatar, and quick input stayed inside the 360×470 overlay.
 
 ---
 

@@ -355,7 +355,7 @@ test('the web module receives a capability, never the credential', () => {
 test('a missing search capability does not take down the whole registry', async () => {
   // Unlike spawnProcess, absence here is legitimate — the user may have no
   // Serper key. Composition must still succeed and every other tool survive.
-  const { webSearch, ...withoutSearch } = DEPENDENCIES
+  const withoutSearch = { spawnProcess: DEPENDENCIES.spawnProcess, clipboardApi: DEPENDENCIES.clipboardApi }
   const registry = createMvpRegistry(withoutSearch)
   assert.deepEqual(registry.list().map(tool => tool.id).sort(), EXPECTED_TOOL_IDS)
   await assert.rejects(() => registry.execute('web.search', { query: 'test' }), /not configured/)

@@ -16,7 +16,7 @@ function readJsonFile(file, label) {
   try {
     return JSON.parse(fs.readFileSync(file, 'utf8'))
   } catch (error) {
-    throw new TypeError(`${label} could not be read: ${error.message}`)
+    throw new TypeError(`${label} could not be read: ${error.message}`, { cause: error })
   }
 }
 
@@ -40,7 +40,7 @@ function loadSkillFragments(rootDir, skillsPath = 'skills') {
   try {
     entries = fs.readdirSync(skillsDirectory, { withFileTypes: true })
   } catch (error) {
-    throw new TypeError(`Skills directory could not be read: ${error.message}`)
+    throw new TypeError(`Skills directory could not be read: ${error.message}`, { cause: error })
   }
 
   const errors = []

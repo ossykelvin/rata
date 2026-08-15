@@ -69,8 +69,6 @@ function withHealthyNeighbours(extra = {}, options = {}) {
   return sandbox({ fragments: { alpha: validFragment('alpha', 0), zulu: validFragment('zulu', 9), ...extra }, ...options })
 }
 
-const loadedIds = root => loadSkillFragments(root).skills.map(skill => skill.id)
-
 // --- shipped pack is unchanged -----------------------------------------
 
 test('all 20 shipped skill ids load with routing order preserved', () => {

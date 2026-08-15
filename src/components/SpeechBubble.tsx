@@ -12,7 +12,13 @@ export function SpeechBubble({ message, state }: Props) {
         <strong>Rata</strong>
         <span className={`state-chip state-${state}`}>{state.replaceAll('_', ' ')}</span>
       </div>
-      <p className="no-drag">{message}</p>
+      {/* bubble-body is the scroll container (ISSUE-29). The paragraph stays
+          no-drag so the text is selectable inside the drag region (ISSUE-34);
+          the container itself is exempted from the drag region in CSS rather
+          than here, so both features keep the class names they expect. */}
+      <div className="bubble-body">
+        <p className="no-drag">{message}</p>
+      </div>
     </div>
   )
 }
