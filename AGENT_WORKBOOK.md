@@ -75,8 +75,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, awaiting merge |
 | Codex | FIX-001 idempotent startup | `codex/FIX-001-idempotent-startup` | REVIEW REQUESTED |
 | Codex | P0-1 modular IPC boundary | `codex/P0-1-modular-ipc-boundary` | IN PROGRESS — awaiting Lane G contracts/tests + Claude review |
-| Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | IN PROGRESS |
-| Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | REVIEW REQUESTED |
+| Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | READY FOR REVIEW, PR #16 |
 | Cursor | — | — | idle |
 | Cursor | ISSUE-17 restore character image | `cursor/ISSUE-17-restore-character-image` | DONE, PR #18 |
 
@@ -160,7 +159,9 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 **Validation:** After rebasing onto current `main`, `npm run verify` passes with 59/59 tests, typecheck, renderer build, and an 8.2 KB preload bundle containing all five bridge fragments; PR CI is green. The bundle's only literal runtime import is `electron`. A fresh sandboxed Electron launch renders the complete Control Center Dashboard/navigation tree and overlay UI, with exactly one Electron main instance and HTTP 200 on port 5173. The fixed dev server remains running from this worktree.
 
-**Open verification:** `npm run pack:win` reaches Electron Builder packaging but fails twice with Windows `EPERM` while renaming `release/win-unpacked.tmp`; generated output was moved aside once and the failure reproduced. No source or user files were removed. Draft [PR #16](https://github.com/ossykelvin/rata/pull/16) is open against `main`; packaging inclusion and Lane H regressions are requested in [issue #15](https://github.com/ossykelvin/rata/issues/15). Claude review is mandatory before merge.
+**Open verification:** `npm run pack:win` reaches Electron Builder packaging but fails twice with Windows `EPERM` while renaming `release/win-unpacked.tmp`; generated output was moved aside once and the failure reproduced. No source or user files were removed. [PR #16](https://github.com/ossykelvin/rata/pull/16) is ready for review against `main`; packaging inclusion and Lane H regressions are requested in [issue #15](https://github.com/ossykelvin/rata/issues/15). Claude review is mandatory before merge.
+
+**Review follow-up:** Claude reported three non-blocking findings. The generated-artifact `require()` guard detects literal-string imports only and is documented as a heuristic rather than a complete parser. Lane H owns adding the hand-run bundled-preload contract verification as an automated test. The new esbuild build-time dependency is pinned exactly to `0.28.2` to keep the added postinstall supply-chain surface deliberate. PR #16 is ready for review; it must not merge until Claude's review is recorded.
 
 ### 2026-08-15 — P0-1 — Modularize the IPC boundary
 
