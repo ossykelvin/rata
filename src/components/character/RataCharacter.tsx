@@ -21,7 +21,7 @@ export function RataCharacter({ state = 'idle', size = 'large' }: RataCharacterP
 
   return (
     <div
-      className={`rata-character rata-character-${presentation.state} ${size === 'small' ? 'rata-character-small' : ''}`}
+      className={`rata-character rata-character-${presentation.state}${size === 'small' ? ' rata-character-small' : ''}${presentation.crop ? ' rata-character-crop' : ''}`}
       data-character-state={presentation.state}
       aria-label={label}
     >
@@ -33,7 +33,7 @@ export function RataCharacter({ state = 'idle', size = 'large' }: RataCharacterP
         ) : (
           <img
             src={presentation.src}
-            alt=""
+            alt="Rata, the office assistant"
             draggable={false}
             onError={() => setAssetFailed(true)}
           />
