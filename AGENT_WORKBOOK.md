@@ -78,6 +78,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | READY FOR REVIEW, PR #16 |
 | Codex | P0-2 modular tool registration | `codex/P0-2-modular-tool-registration` | DRAFT PR #20 — awaiting Lane H tests + Claude review |
 | Codex | P0-3 skill manifest fragments | `codex/P0-3-skill-manifest-fragments` | DRAFT PR #25 — awaiting Lane H tests + Claude review |
+| Cursor | TRIVIA-001 Serper-first prompt | `cursor/TRIVIA-001-serper-first` | IN PROGRESS |
 | Cursor | FIX overlay drag overflow | `cursor/FIX-overlay-drag-overflow` | IN PROGRESS |
 | Cursor | FIX app icon and taskbar | `cursor/FIX-app-icon` | DONE, PR #41 |
 | Cursor | P0-4 decouple renderer | `cursor/P0-4-decouple-renderer` | DONE, PR pending |
@@ -267,6 +268,15 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 ---
 
 ## Cursor
+
+### 2026-08-16 — TRIVIA-001 — Align Trivia prompt with Serper-first routing
+
+**Status:** IN PROGRESS
+**Branch:** `cursor/TRIVIA-001-serper-first`
+
+**Scope:** Issue #42. Update only `skills/trivia/skill.json` and `skills/trivia/SKILL.md` so the declarative pack matches Serper-first verification, untrusted search evidence, Gemini/OpenRouter auto-mode preference, and tool-policy confirmation. No runtime or test-file edits.
+
+---
 
 ### 2026-08-15 — FIX — Overlay drag after P0-4 overflow clip
 
