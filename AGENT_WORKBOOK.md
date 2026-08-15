@@ -77,7 +77,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Codex | P0-1 modular IPC boundary | `codex/P0-1-modular-ipc-boundary` | IN PROGRESS — awaiting Lane G contracts/tests + Claude review |
 | Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | READY FOR REVIEW, PR #16 |
 | Codex | P0-2 modular tool registration | `codex/P0-2-modular-tool-registration` | DRAFT PR #20 — awaiting Lane H tests + Claude review |
-| Codex | P0-3 skill manifest fragments | `codex/P0-3-skill-manifest-fragments` | IN PROGRESS |
+| Codex | P0-3 skill manifest fragments | `codex/P0-3-skill-manifest-fragments` | DRAFT PR #25 — awaiting Lane H tests + Claude review |
 | Cursor | — | — | idle |
 | Cursor | ISSUE-17 restore character image | `cursor/ISSUE-17-restore-character-image` | DONE, PR #18 |
 
@@ -156,13 +156,21 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-15 — P0-3 — Skills manifest to per-skill fragments
 
-**Status:** IN PROGRESS
+**Status:** DRAFT PR #25 — REVIEW REQUESTED
 **Branch:** `codex/P0-3-skill-manifest-fragments`
 **Base:** `main` after P0-2 merged
 
 **Scope:** Replace the shared root `skills.manifest.json` array with one `skills/<id>/skill.json` fragment per skill. Update the skills registry/contracts so fragments are discovered deterministically and validation fails closed per fragment: an invalid skill is excluded and reported without disabling valid skills. Preserve declarative-only skills, prompt path confinement, public skill shape, routing behaviour, and current IDs.
 
 **Planned validation:** migrate every manifest record without semantic drift, exercise malformed/duplicate/path-escape fragments with focused checks, run `npm run verify`, update architecture/source-map documentation, and request Claude review plus Lane H tests before merge.
+
+**Implemented:** Replaced the root aggregate with 20 independently owned `skills/<id>/skill.json` fragments and `skills/pack.json`. Each fragment declares schema version and original routing order. The registry discovers directories deterministically, validates each fragment and prompt path independently, excludes invalid fragments, reports errors, and keeps valid skills loaded. Original skill IDs, public metadata, tool requirements, triggers, and tie-breaking order are preserved exactly. Legacy aggregate validation/loading remains compatibility-only when explicitly requested or when no skills directory exists. The packaged file list no longer names `skills.manifest.json`.
+
+**Security/docs:** Skills remain declarative data and never grant authority. Directory/id matching, schema/order checks, path confinement, missing-prompt checks, and duplicate identity checks fail closed per fragment. ADR-003, architecture, source map, skills documentation, handover, and packaging validation guidance now describe the fragment model.
+
+**Validation:** A semantic comparison against the former aggregate passed for all 20 records and pack metadata. Focused malformed JSON, path-escape, and invalid-pack isolation checks passed while valid skills remained loaded. `npm ci` found 0 vulnerabilities. `npm run verify` is green: 47 CommonJS files, 80/80 tests, typecheck, renderer build, and preload build. `npm run pack:win` passed; ASAR inspection found one pack descriptor, 20 fragments, 20 prompts, and zero legacy root manifests.
+
+**Review/test handoff:** Draft [PR #25](https://github.com/ossykelvin/rata/pull/25) is open. Lane H regression coverage and the mandatory Claude Phase 0/security review are requested in [issue #24](https://github.com/ossykelvin/rata/issues/24). Do not merge before both land.
 
 ### 2026-08-15 — P0-2 — Modularize tool registration
 
