@@ -1,0 +1,48 @@
+# Runs the repository's own verification command on every pull request.
+#
+# Without this, the branch-per-ticket protocol in docs/PRODUCT_BACKLOG.md is
+# unenforced: branch protection can only require checks that actually exist.
+#
+# Runs on Windows because Rata is a Windows-first Electron application and the
+# packaging path is Windows-specific. Slower than ubuntu, but it tests the
+# platform users actually run.
+name: verify
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# A newer push to the same branch cancels the older in-flight run.
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out the branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      # `npm ci` installs exactly the committed lockfile. Never `npm install`
+      # in CI: it can silently resolve different versions than the developer had.
+      - name: Install dependencies
+        run: npm ci
+
+      # check:node -> test -> typecheck -> build
+      # Keep this a single call so CI and local runs cannot drift apart.
+      - name: Verify
+        run: npm run verify

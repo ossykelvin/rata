@@ -1,0 +1,25 @@
+# Normalize line endings so Windows and CI agree on file contents.
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF.
+*.bat  text eol=crlf
+*.ps1  text eol=crlf
+
+# The workbook is append-mostly and every agent must edit it each session,
+# which makes it a guaranteed conflict under a normal three-way merge.
+# `union` keeps both sides' lines instead of raising a conflict.
+#
+# Caveat: union can interleave concurrent edits to the SAME section, so each
+# agent writes only under its own heading (see AGENT_WORKBOOK.md). Read the
+# result after a merge rather than trusting it blindly.
+AGENT_WORKBOOK.md merge=union
+
+# Generated. Let git resolve it, then re-run `npm install` to make it coherent.
+package-lock.json  -diff
+
+# Binary assets: never try to merge these.
+*.png  binary
+*.jpg  binary
+*.webm binary
+*.riv  binary
+*.ico  binary
