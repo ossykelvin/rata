@@ -14,19 +14,6 @@ const { buildPrompt, fenceUntrusted, safeErrorMessage } = require('../packages/a
 
 const USER = [{ role: 'user', content: 'hello' }]
 
-function geminiFetch(handler) {
-  return async (url, options) => handler({ url, options })
-}
-
-function okGemini(text) {
-  return geminiFetch(async ({ options }) => ({
-    ok: true,
-    status: 200,
-    json: async () => ({ candidates: [{ content: { parts: [{ text }] } }] }),
-    _sent: options
-  }))
-}
-
 test('gemini sends the key as a header, never in the URL', async () => {
   let seen = null
   const provider = createGeminiProvider({
