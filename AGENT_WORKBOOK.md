@@ -76,6 +76,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Codex | FIX-001 idempotent startup | `codex/FIX-001-idempotent-startup` | REVIEW REQUESTED |
 | Codex | P0-1 modular IPC boundary | `codex/P0-1-modular-ipc-boundary` | IN PROGRESS — awaiting Lane G contracts/tests + Claude review |
 | Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | READY FOR REVIEW, PR #16 |
+| Codex | P0-2 modular tool registration | `codex/P0-2-modular-tool-registration` | IN PROGRESS |
 | Cursor | — | — | idle |
 | Cursor | ISSUE-17 restore character image | `cursor/ISSUE-17-restore-character-image` | DONE, PR #18 |
 
@@ -130,6 +131,16 @@ One line per agent. Keep it current — this is the first thing another agent re
 ---
 
 ## Codex
+
+### 2026-08-15 — P0-2 — Modularize tool registration
+
+**Status:** IN PROGRESS
+**Branch:** `codex/P0-2-modular-tool-registration`
+**Base:** `main` after P0-1 and FIX-002 merged
+
+**Scope:** Replace the shared `electron/mvp-tools.cjs` registration hub with auto-composed domain modules under `electron/tools/`, preserving current tool IDs, metadata, policy behaviour, and dependency injection. Fold security finding H2 into the system tool by using a prototype-safe allow-list. Do not edit Claude-owned `packages/contracts/` or `tests/`; request Lane H regression coverage and Claude review before merge.
+
+**Planned validation:** exercise discovery/composition failure cases with injected smoke checks, run `npm run verify`, and document the extension boundary in the source map and architecture docs.
 
 ### 2026-08-15 — FIX-001 — Idempotent Windows development startup
 
