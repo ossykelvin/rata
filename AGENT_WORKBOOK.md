@@ -159,6 +159,12 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Codex
 
+### 2026-08-16 — Codex — WEB-001 Claude review findings 1–3
+
+**Status:** IN PROGRESS (branch `codex/WEB-001-implement-safe-fetch`, PR #40)
+
+**Scope:** Address only Claude review findings 1–3: include the resolved `web.fetch` URL in capability audit events without page content or credentials; split fetch confirmation into a default-on `webFetchConfirm` setting across tool metadata, runtime validation, persistence and renderer typing; export `pinnedRequest` for Lane H unit coverage. Mechanically rename the three specified Lane H assertions, preserve the reviewed SSRF implementation, leave findings 4–7 untouched, update ADR-008's confirmation description, and make observable changes explicit in the PR description. Claude review remains required.
+
 ### 2026-08-16 — Codex — Speech recognition validation
 
 **Status:** AUTOMATED CHECKS PASS; BLOCKED-ON-HUMAN for the real microphone/audio smoke test.
