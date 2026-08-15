@@ -17,7 +17,7 @@ This workbook is the **activity log** — what has actually been done, by whom, 
 
 ## Repo snapshot
 
-*Last verified: 2026-08-15 15:01 by Codex.*
+*Last verified: 2026-08-15 15:05 by Claude (Opus 5).*
 
 Layout after the 2026-08-15 refactor:
 
