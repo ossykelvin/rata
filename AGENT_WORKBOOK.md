@@ -68,13 +68,36 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
+| Claude | REVIEW-001 security review | `claude/REVIEW-001-mvp-security-review` | DONE, awaiting merge (stacked on P0-0) |
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, awaiting merge |
 | Codex | FIX-001 idempotent startup | `codex/FIX-001-idempotent-startup` | REVIEW REQUESTED |
+| Codex | P0-1 modular IPC boundary | `codex/P0-1-modular-ipc-boundary` | IN PROGRESS — awaiting Lane G contracts/tests + Claude review |
 | Cursor | — | — | idle |
 
 ---
 
 ## Claude
+
+### 2026-08-15 — REVIEW-001 — MVP architecture and security review
+
+**Status:** DONE (branch `claude/REVIEW-001-mvp-security-review`, stacked on `claude/P0-0-backlog-and-guardrails` — merge P0-0 first)
+
+**Output:** `docs/reviews/REVIEW-001-mvp-security.md`. Reviewed `electron/`, `packages/contracts/`, `packages/agent-core/`, `packages/skills/`, `src/`, `index.html` at commit `3bfc271`.
+
+**Verdict:** architecture is sound — tool contracts enforced at registration, destructive denied at policy, skills carry no authority, approval input captured at request time, audit log redacted. Nothing in flight is blocked.
+
+**Findings — 5 high, 5 medium, 4 low.** Three were reproduced by executing the shipped modules, not inferred:
+
+- **H1** `packages/contracts/ipc-validation.cjs:21` — settings validator accepts inherited prototype keys. `{key:'constructor'}` and `{key:'toString'}` pass validation and reach the persisted store. **Lane G (mine).**
+- **H2** `electron/mvp-tools.cjs:29` — `system.openApp` allow-list bypassed the same way; `appName:'constructor'` passes and reaches `spawn()`. Not arbitrary execution today (real `spawn(undefined)` throws `ERR_INVALID_ARG_TYPE`) but the allow-list returns "allowed" for input it must reject. **Lane Codex, fold into P0-2.**
+- **H3/H4/H5** — no `setWindowOpenHandler`/`will-navigate` guards, no IPC sender validation, no CSP. Together these are the confused-deputy path: a navigated-away window keeps `window.rata`. **Fold into P0-1.**
+- **M1** `mock-agent.cjs:101` — pending approvals unbounded and never expire; 5,000 unanswered requests retained, oldest still executable.
+- **M2** `tool-registry.cjs:34` — `get()` returns the live executor, so "execute only through `ToolRegistry.execute()`" is convention, not structure.
+- **M3** store does not validate settings loaded from disk, contradicting ADR-004's defence-in-depth claim.
+- **M4** microphone gating is renderer-side only — **blocks RATA-004**.
+- **M5** approval preview `JSON.stringify`s raw tool input — **blocks RATA-007**.
+
+**Note for Lanes D/E/F:** H1 and H2 are the same root-cause defect (unguarded dynamic key lookup used as an allow-list). Use `Object.create(null)` or a `Map` for every allow-list added in the bridge, Graph and browser lanes.
 
 ### 2026-08-15 — P0-0 — Product backlog and parallel-work guardrails
 
@@ -117,6 +140,20 @@ One line per agent. Keep it current — this is the first thing another agent re
 **Verification:** `npm ci` and `npm run verify` pass (19/19 tests, typecheck, production build). A clean first launcher invocation started Vite and Electron. A second invocation completed with exit code 0 in 1.5 seconds, left the original server at HTTP 200, and left exactly one Electron main process. The fixed development server remains running from this worktree.
 
 **Review/test handoff:** Draft [PR #7](https://github.com/ossykelvin/rata/pull/7) is open. Claude review and Lane H regression coverage are requested in [issue #6](https://github.com/ossykelvin/rata/issues/6). Do not merge before that review because this ticket touches `electron/main.cjs`.
+### 2026-08-15 — P0-1 — Modularize the IPC boundary
+
+**Status:** IN PROGRESS
+**Branch:** `codex/P0-1-modular-ipc-boundary`
+
+**Scope:** Replace the Electron IPC and preload hub registration with auto-composed modules under `electron/ipc/` and `electron/bridge/`, preserving the current renderer API and security settings. Contract-owned work under `packages/contracts/` remains delegated to Claude through issue #1; Codex will consume the agreed aggregate and will not edit that path.
+
+**Planned validation:** focused IPC/bridge composition tests plus full `npm run verify`. The PR touches `electron/` and requires Claude review before merge.
+
+**Progress:** The Electron-owned handler and bridge composition is implemented. Current APIs and channel values are preserved; module discovery, declared-channel enforcement, duplicate detection, incomplete-registration detection, and rollback fail closed. ADR-005 and the architecture/source map document the boundary. No `packages/contracts/`, `tests/`, or `src/` paths were edited.
+
+**Validation:** Injected IPC/bridge smoke checks passed. `npm run verify` is green: 33 CommonJS files checked, 19/19 existing tests passed, TypeScript passed, and the Vite production build succeeded. `npm ci` reported 0 known vulnerabilities.
+
+**Coordination:** Lane G contract request is issue #1. Claude-owned regression-test request is issue #3. This work must not merge until the channel-fragment contract, committed regression tests, and Claude security review are complete.
 
 ---
 

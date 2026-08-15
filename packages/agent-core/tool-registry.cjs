@@ -1,6 +1,30 @@
 const RISKS = new Set(['read', 'safe-write', 'external-write', 'destructive'])
 const CONFIRMATION_POLICIES = new Set(['never', 'configurable', 'always'])
 
+/**
+ * Fields safe to hand to a caller that only needs to reason about a tool.
+ * `execute` and `validateInput` are deliberately absent. See REVIEW-001 M2.
+ */
+function toolMetadata(tool) {
+  return Object.freeze({
+    id: tool.id,
+    description: tool.description,
+    risk: tool.risk,
+    confirmation: tool.confirmation,
+    confirmationSetting: tool.confirmationSetting
+  })
+}
+
+/**
+ * The registry is the only place a privileged action may run.
+ *
+ * `CLAUDE.md` states tools must execute "through ToolRegistry.execute() so
+ * input validation cannot be skipped". That used to be convention: `get()`
+ * returned the live tool object including its executor, so any caller could
+ * invoke it directly and bypass validateInput(). Now no accessor hands out an
+ * executor at all — `execute()` is the only path to one, and it validates
+ * first. The guarantee is structural rather than a rule people remember.
+ */
 class ToolRegistry {
   constructor() {
     this.tools = new Map()
@@ -31,23 +55,37 @@ class ToolRegistry {
     this.tools.set(tool.id, tool)
   }
 
-  get(id) { return this.tools.get(id) }
+  /** Is this tool registered? Cheaper and clearer than a truthiness check. */
+  has(id) { return this.tools.has(id) }
+
+  /** Security metadata for a tool. Never returns an executor. */
+  describe(id) {
+    const tool = this.tools.get(id)
+    return tool ? toolMetadata(tool) : undefined
+  }
+
+  /**
+   * Retained for callers that reason about a tool. Returns metadata only —
+   * identical to describe(). Kept so `Boolean(registry.get(id))` and
+   * `registry.get(id).risk` keep working.
+   */
+  get(id) { return this.describe(id) }
 
   validate(id, input) {
-    const tool = this.get(id)
+    const tool = this.tools.get(id)
     if (!tool) throw new Error('Tool is not registered.')
     return tool.validateInput(input)
   }
 
   async execute(id, input) {
-    const tool = this.get(id)
+    const tool = this.tools.get(id)
     if (!tool) throw new Error('Tool is not registered.')
-    const validatedInput = this.validate(id, input)
-    return tool.execute(validatedInput)
+    // Validate here rather than trusting the caller to have done it.
+    return tool.execute(tool.validateInput(input))
   }
 
   list() {
-    return [...this.tools.values()].map(({ execute, validateInput, ...meta }) => meta)
+    return [...this.tools.values()].map(toolMetadata)
   }
 }
 
