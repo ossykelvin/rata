@@ -39,6 +39,8 @@ npm run verify
 npm run dev
 ```
 
+On Windows, `START_RATA_DEV.bat` performs the install/test/start sequence. Running it again while Rata is active focuses the existing Control Center instead of starting a conflicting Vite/Electron instance. Genuine startup failures remain visible in the launcher window.
+
 To make a local Windows installer:
 
 ```bash

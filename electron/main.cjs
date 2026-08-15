@@ -24,6 +24,7 @@ const isDev = !app.isPackaged
 const DEV_URL = 'http://127.0.0.1:5173/'
 const PROJECT_ROOT = path.join(__dirname, '..')
 const PACKAGED_ENTRY = pathToFileURL(path.join(__dirname, '..', 'dist', 'index.html')).href
+const hasSingleInstanceLock = app.requestSingleInstanceLock()
 
 function rendererTarget(route) {
   if (isDev) return `${DEV_URL}#/${route}`
@@ -124,6 +125,7 @@ function createTray() {
 
 function showControl() {
   if (!controlWindow) createControlCenter()
+  if (controlWindow.isMinimized()) controlWindow.restore()
   controlWindow.show()
   controlWindow.focus()
 }
@@ -142,55 +144,68 @@ function createSkillRuntime(toolRegistry) {
   return { registry, loader, router }
 }
 
-app.whenReady().then(() => {
-  store = new JsonStore(app)
-  security = createSecurityPolicy({
-    allowedPrefixes: rendererOrigins(),
-    // Audit the refusal without recording payloads.
-    onBlocked: ({ url }) => logActivity('Blocked navigation', `Refused a foreign destination: ${String(url)}`, 'warning')
+// FIX-001: a second launch must not start a second runtime. Two instances
+// would write the same JSON store and race each other.
+if (!hasSingleInstanceLock) {
+  app.quit()
+} else {
+  // Deliberately ignores the second instance's argv. Command-line arguments
+  // from another process are untrusted input and must not steer this one.
+  app.on('second-instance', () => {
+    showControl()
+    overlayWindow?.showInactive()
   })
-  const registry = createMvpRegistry({ spawnProcess: spawn, clipboardApi: clipboard })
-  const policy = new PolicyEngine()
-  skillRuntime = createSkillRuntime(registry)
-  agent = new MockAgent({
-    registry,
-    policy,
-    settings: () => store.getSettings(),
-    activity: logActivity,
-    skills: skillRuntime
-  })
-  registerIpcHandlers({
-    ipcMain,
-    IPC,
-    isTrustedSender: event => security.isTrustedSender(event),
-    onUntrustedSender: ({ channel, url }) =>
-      logActivity('Blocked IPC call', `${channel} was called from an untrusted frame: ${String(url)}`, 'error'),
-    services: {
-      getStore: () => store,
-      getAgent: () => agent,
-      getSkillRuntime: () => skillRuntime,
-      getOverlayWindow: () => overlayWindow,
-      showControl,
-      broadcastSettings,
-      logActivity,
-      Notification
-    }
-  })
-  createOverlay()
-  createControlCenter()
-  createTray()
-  logActivity('Rata started', skillRuntime.registry.loaded
-    ? `MVP runtime is online with ${skillRuntime.registry.count()} installed skills.`
-    : 'MVP runtime is online. Skill pack failed closed.', 'success')
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createOverlay(); createControlCenter()
-    } else showControl()
-  })
-})
+  app.whenReady().then(() => {
+    store = new JsonStore(app)
+    security = createSecurityPolicy({
+      allowedPrefixes: rendererOrigins(),
+      // Audit the refusal without recording payloads.
+      onBlocked: ({ url }) => logActivity('Blocked navigation', `Refused a foreign destination: ${String(url)}`, 'warning')
+    })
+    const registry = createMvpRegistry({ spawnProcess: spawn, clipboardApi: clipboard })
+    const policy = new PolicyEngine()
+    skillRuntime = createSkillRuntime(registry)
+    agent = new MockAgent({
+      registry,
+      policy,
+      settings: () => store.getSettings(),
+      activity: logActivity,
+      skills: skillRuntime
+    })
+    registerIpcHandlers({
+      ipcMain,
+      IPC,
+      isTrustedSender: event => security.isTrustedSender(event),
+      onUntrustedSender: ({ channel, url }) =>
+        logActivity('Blocked IPC call', `${channel} was called from an untrusted frame: ${String(url)}`, 'error'),
+      services: {
+        getStore: () => store,
+        getAgent: () => agent,
+        getSkillRuntime: () => skillRuntime,
+        getOverlayWindow: () => overlayWindow,
+        showControl,
+        broadcastSettings,
+        logActivity,
+        Notification
+      }
+    })
+    createOverlay()
+    createControlCenter()
+    createTray()
+    logActivity('Rata started', skillRuntime.registry.loaded
+      ? `MVP runtime is online with ${skillRuntime.registry.count()} installed skills.`
+      : 'MVP runtime is online. Skill pack failed closed.', 'success')
 
-app.on('before-quit', () => { app.isQuitting = true })
-app.on('window-all-closed', event => {
-  event?.preventDefault?.()
-})
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createOverlay(); createControlCenter()
+      } else showControl()
+    })
+  })
+
+  app.on('before-quit', () => { app.isQuitting = true })
+  app.on('window-all-closed', event => {
+    event?.preventDefault?.()
+  })
+}
