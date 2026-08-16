@@ -107,17 +107,6 @@ class MockAgent {
       return this.runTool('system.openApp', { appName }, `Open ${appName}`)
     }
 
-    // Provider output is accepted here only as a versioned data proposal. The
-    // parser permits one existing registered tool and two fixed app names;
-    // ToolRegistry validation and policy evaluation still happen afterwards.
-    if (
-      this.provider &&
-      this.registry.has?.('system.openApp') &&
-      looksLikeSystemActionRequest(text)
-    ) {
-      return this.handleSystemAction(text)
-    }
-
     const copyMatch = text.match(/^copy\s+(.+?)(?:\s+to\s+(?:the\s+)?clipboard)?$/i)
     if (copyMatch) {
       const value = copyMatch[1].replace(/\s+to\s+(?:the\s+)?clipboard$/i, '').trim()
@@ -155,6 +144,25 @@ class MockAgent {
     const routed = this.skills?.router?.route(text)
     if (routed?.selectedSkillIds?.length) {
       return this.handleSkill(text, routed)
+    }
+
+    // Provider output is accepted here only as a versioned data proposal. The
+    // parser permits one existing registered tool and two fixed app names;
+    // ToolRegistry validation and policy evaluation still happen afterwards.
+    //
+    // This sits last, below every explicit tool route. The launch hint is broad
+    // enough to match ordinary questions ("how do I run a program?") and
+    // explicit tool intent ("search the web for how to run a program"), and
+    // when it ran first those were answered with a launch refusal instead of
+    // being routed or answered. Anything that is not a launch falls through to
+    // ask() below rather than being refused.
+    if (
+      this.provider &&
+      this.registry.has?.('system.openApp') &&
+      looksLikeSystemActionRequest(text)
+    ) {
+      const launched = await this.handleSystemAction(text)
+      if (launched) return launched
     }
 
     return this.ask(text)
@@ -204,20 +212,16 @@ class MockAgent {
       }
       if (!proposal) {
         this.activity('System action declined', 'The request did not match an allow-listed application.', 'info')
-        return {
-          message: 'I can only safely launch Notepad or Calculator right now. I did not run a command.',
-          state: 'idle'
-        }
+        return undefined
       }
       this.activity('System action proposed', `${proposal.toolId}: ${proposal.input.appName}`, 'info')
       return this.runTool(proposal.toolId, proposal.input, proposal.title)
     } catch (error) {
+      // Fail closed on the *action*: nothing is executed. The request is still
+      // answered as ordinary text, which carries no authority.
       const code = typeof error?.code === 'string' ? error.code : 'provider-or-plan-failure'
       this.activity('System action rejected', code, 'warning')
-      return {
-        message: 'I could not safely interpret that application-launch request. No command was run.',
-        state: 'error'
-      }
+      return undefined
     }
   }
 
