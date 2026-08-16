@@ -194,7 +194,7 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-16 — Codex — REVIEW-001 M3 disk setting validation
 
-**Status:** READY FOR CLAUDE REVIEW (branch `codex/REVIEW-001-M3-store-validation`)
+**Status:** READY FOR CLAUDE REVIEW — draft PR #57 (branch `codex/REVIEW-001-M3-store-validation`)
 
 **Scope:** Validate settings loaded from disk in `electron/store.cjs` with the existing Lane G validators from `packages/contracts/ipc-validation.cjs`. Drop unknown keys, replace invalid/wrong-type/out-of-range values with safe defaults, prevent `microphoneEnabled` and confirmation settings from being loosened by corrupted or hand-edited storage, and surface sanitized fallback events in the activity feed. Add injected storage regressions under `tests/` without changing Lane G contracts, run `npm run verify`, and request Claude review.
 
