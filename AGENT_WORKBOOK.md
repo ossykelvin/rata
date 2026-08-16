@@ -68,6 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
+| Cursor | RATA-005 system status tools | `cursor/RATA-005-system-status` | IN PROGRESS |
 | Cursor | FIX overlay min/close | `cursor/FIX-overlay-min-close` | DONE, PR pending |
 | Cursor | FIX voice permission gate | `cursor/FIX-voice-permission-gate` | DONE, PR #62 |
 | Cursor | FIX critical-thinking provider | `cursor/FIX-critical-thinking-provider` | DONE, PR pending |
@@ -444,6 +445,17 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 ---
 
 ## Cursor
+
+### 2026-08-16 — RATA-005 — System status and keep-awake tools
+
+**Status:** IN PROGRESS
+**Branch:** `cursor/RATA-005-system-status`
+
+**Scope:** Extend `electron/tools/system.cjs` with `system.info`, `system.storage`, `system.processSummary`, and `system.keepAwake.start/stop/status`. Inject os, storage, process list, and powerSaveBlocker. Unblock system-info and keep-awake skills without editing SKILL.md.
+
+**Files currently touching:** `electron/tools/system.cjs`, `electron/main.cjs`, `tests/system-status.test.cjs`, `tests/tool-composition.test.cjs`, `docs/CODEMAP.md`.
+
+---
 
 ### 2026-08-16 — FIX — Overlay minimize and close
 
