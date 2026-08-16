@@ -44,10 +44,10 @@ fence. The model still has no executor or policy authority; fencing is defence
 in depth, not the authority boundary.
 
 **Confirmation.** `web.fetch` is a `read` tool with configurable confirmation
-using the existing `webSearchConfirm` setting. The approval preview names the
-destination and states that the request leaves the machine. A Web Search skill
-workflow may approve search plus the first-result fetch as one explicit
-composite read.
+using its own default-on `webFetchConfirm` setting, separate from
+`webSearchConfirm`. The approval preview names the destination and states that
+the request leaves the machine. A Web Search skill workflow may approve search
+plus the first-result fetch as one explicit composite read.
 
 ## Consequences
 

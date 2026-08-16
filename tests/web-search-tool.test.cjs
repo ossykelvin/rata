@@ -59,7 +59,7 @@ test('approval can be disabled deliberately', async () => {
   const agent = new MockAgent({
     registry,
     policy: new PolicyEngine(),
-    settings: () => ({ webSearchConfirm: false }),
+    settings: () => ({ webSearchConfirm: false, webFetchConfirm: false }),
     activity: () => {}
   })
   const reply = await agent.handle('search the web for windows automation')
@@ -196,7 +196,7 @@ test('a successful search still returns its results when synthesis cannot run', 
   const agent = new MockAgent({
     registry,
     policy: new PolicyEngine(),
-    settings: () => ({ webSearchConfirm: false }),
+    settings: () => ({ webSearchConfirm: false, webFetchConfirm: false }),
     activity: () => {}
   })
 

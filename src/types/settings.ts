@@ -11,4 +11,6 @@ export type RataSettings = {
   clipboardConfirm: boolean
   /** Web search sends the query to a third party. Confirmed by default. */
   webSearchConfirm: boolean
+  /** Fetching a public page is a separate outbound action. Confirmed by default. */
+  webFetchConfirm: boolean
 }

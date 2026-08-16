@@ -287,10 +287,15 @@ class MockAgent {
   }
 
   async execute(id, input, continuation = null) {
+    const webFetchAuditUrl = id === 'web.fetch' && typeof input?.url === 'string' ? input.url : null
     try {
-      this.activity('Tool started', `${id}`, 'info')
+      this.activity('Tool started', webFetchAuditUrl ? `web.fetch: ${webFetchAuditUrl}` : `${id}`, 'info')
       const result = await this.registry.execute(id, input)
-      this.activity('Tool completed', `${id}: ${result.summary}`, 'success')
+      this.activity(
+        'Tool completed',
+        webFetchAuditUrl && typeof result?.url === 'string' ? `web.fetch: ${result.url}` : `${id}: ${result.summary}`,
+        'success'
+      )
       if (continuation?.kind === 'synthesize-web') {
         return this.answerWithWebContext(continuation.question, result)
       }
@@ -302,7 +307,7 @@ class MockAgent {
       }
       return { message: result.message, state: 'success' }
     } catch (error) {
-      this.activity('Tool failed', `${id}: ${error.message}`, 'error')
+      this.activity('Tool failed', webFetchAuditUrl ? `web.fetch: ${webFetchAuditUrl}` : `${id}: ${error.message}`, 'error')
       return { message: `I couldn't complete that action: ${error.message}`, state: 'error' }
     }
   }
@@ -313,8 +318,10 @@ class MockAgent {
     )
     if (!candidate) return { message: searchResult.message, state: 'success' }
 
+    let webFetchAuditUrl = null
     try {
       const input = this.registry.validate('web.fetch', { url: candidate.link })
+      webFetchAuditUrl = input.url
       const decision = this.policy.evaluate(this.registry.describe('web.fetch'), input, this.settings())
       if (decision.decision === 'deny') throw new Error(decision.reason)
       if (decision.decision === 'confirm' && !compositeApproved) {
@@ -323,13 +330,13 @@ class MockAgent {
           question
         })
       }
-      this.activity('Tool started', 'web.fetch', 'info')
+      this.activity('Tool started', `web.fetch: ${webFetchAuditUrl}`, 'info')
       const page = await this.registry.execute('web.fetch', input)
-      this.activity('Tool completed', `web.fetch: ${page.summary}`, 'success')
+      this.activity('Tool completed', `web.fetch: ${page.url}`, 'success')
       return this.answerWithWebContext(question, page)
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Unknown web fetch failure.'
-      this.activity('Tool failed', `web.fetch: ${reason}`, 'error')
+      this.activity('Tool failed', webFetchAuditUrl ? `web.fetch: ${webFetchAuditUrl}` : `web.fetch: ${reason}`, 'error')
       return {
         message: `${searchResult.message}\n\nI found results, but couldn't fetch the first public page for synthesis: ${reason}`,
         state: 'error'

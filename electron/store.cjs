@@ -13,7 +13,8 @@ const defaults = {
     // user opts in. See docs/decisions/ADR-007-ai-provider-chain.md.
     provider: 'mock',
     clipboardConfirm: true,
-    webSearchConfirm: true
+    webSearchConfirm: true,
+    webFetchConfirm: true
   },
   activity: []
 }

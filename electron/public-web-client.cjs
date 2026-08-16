@@ -263,6 +263,7 @@ function createPublicWebFetch({
 
 module.exports = {
   createPublicWebFetch,
+  pinnedRequest,
   validatePublicUrlSyntax,
   isPublicAddress,
   resolvePublicAddress,

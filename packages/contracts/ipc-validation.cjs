@@ -24,7 +24,9 @@ const settingValidators = Object.assign(Object.create(null), {
   provider: value => typeof value === 'string' && value.length <= MAX_PROVIDER_LENGTH && PROVIDER_IDS.includes(value),
   clipboardConfirm: value => typeof value === 'boolean',
   // Web search sends the query to a third party. Confirmed by default.
-  webSearchConfirm: value => typeof value === 'boolean'
+  webSearchConfirm: value => typeof value === 'boolean',
+  // Fetching a page is a separate outbound action. Confirmed by default.
+  webFetchConfirm: value => typeof value === 'boolean'
 })
 
 /** The complete set of writable settings. Use this rather than `key in obj`. */
