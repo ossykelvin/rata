@@ -40,26 +40,49 @@ function createWindowsVoice({
   }
 
   let child = null
+  let stopping = null
+  let startChain = Promise.resolve()
 
   function stop() {
     if (!child) return { ok: true }
     const current = child
     child = null
-    try { current.stdin.write('\n') } catch { /* already closed */ }
-    const killer = setTimeout(() => {
-      try { current.kill() } catch { /* already exited */ }
-    }, 2500)
-    current.once('exit', () => clearTimeout(killer))
+    const done = new Promise(resolve => {
+      let settled = false
+      const finish = () => {
+        if (settled) return
+        settled = true
+        clearTimeout(killer)
+        resolve()
+      }
+      const killer = setTimeout(() => {
+        try { current.kill() } catch { /* already exited */ }
+        finish()
+      }, 2500)
+      if (typeof killer.unref === 'function') killer.unref()
+      current.once('exit', finish)
+      try { current.stdin.write('\n') } catch { /* already closed */ }
+    })
+    stopping = done.finally(() => {
+      if (stopping === done) stopping = null
+    })
     return { ok: true }
   }
 
   function start() {
+    const result = startChain.then(startNow)
+    startChain = result.catch(() => {})
+    return result
+  }
+
+  async function startNow() {
     if (process.platform !== 'win32' && spawnProcess === spawn) {
       throw new Error('Windows speech recognition is only available on Windows.')
     }
+    if (stopping) await stopping
     if (child) return { ok: true }
 
-    child = spawnProcess('powershell.exe', [
+    const spawned = spawnProcess('powershell.exe', [
       '-NoProfile',
       '-NonInteractive',
       '-ExecutionPolicy', 'Bypass',
@@ -68,10 +91,11 @@ function createWindowsVoice({
       windowsHide: true,
       stdio: ['pipe', 'pipe', 'pipe']
     })
+    child = spawned
 
     let buffer = ''
-    child.stdout.setEncoding('utf8')
-    child.stdout.on('data', chunk => {
+    spawned.stdout.setEncoding('utf8')
+    spawned.stdout.on('data', chunk => {
       buffer += chunk
       const lines = buffer.split(/\r?\n/)
       buffer = lines.pop()
@@ -80,8 +104,8 @@ function createWindowsVoice({
         if (transcript) sendTranscript({ transcript })
       }
     })
-    child.stderr.setEncoding('utf8')
-    child.stderr.on('data', chunk => {
+    spawned.stderr.setEncoding('utf8')
+    spawned.stderr.on('data', chunk => {
       const text = String(chunk)
       if (text.includes('NO_MIC')) {
         logActivity('Voice listening failed', 'No default microphone was available.', 'error')
@@ -91,11 +115,15 @@ function createWindowsVoice({
         sendTranscript({ transcript: '', error: 'Windows speech recognition is not installed.' })
       }
     })
-    child.on('exit', (_code) => {
+    spawned.on('exit', () => {
       if (buffer.trim()) sendTranscript({ transcript: buffer.trim().slice(0, MAX_TRANSCRIPT_LENGTH) })
-      child = null
+      // Same shape as overlayWindow === window in main.cjs: an old child's
+      // exit must not clear a newer child's reference.
+      if (child === spawned) child = null
     })
-    child.on('error', () => { child = null })
+    spawned.on('error', () => {
+      if (child === spawned) child = null
+    })
     logActivity('Voice listening started', 'Windows speech recognition is listening.', 'info')
     return { ok: true }
   }

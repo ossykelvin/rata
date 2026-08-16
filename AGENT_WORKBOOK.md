@@ -68,7 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
-| Cursor | FIX voice permission gate | `cursor/FIX-voice-permission-gate` | IN PROGRESS |
+| Cursor | FIX voice permission gate | `cursor/FIX-voice-permission-gate` | DONE, PR pending |
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, merged as #2 |
 | Codex | P0-1 modular IPC | `codex/P0-1-modular-ipc-boundary` | DRAFT PR #4 |
 | Cursor | RATA-003 character animation | `cursor/rata-003-character-animation-9241` | DONE, PR #5 |
@@ -375,12 +375,16 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-16 — FIX — Voice permission gate and recognizer restart race
 
-**Status:** IN PROGRESS
+**Status:** DONE, PR pending
 **Branch:** `cursor/FIX-voice-permission-gate`
 
-**Scope:** RATA-004 review findings. Route Chromium `getUserMedia` and the Windows PowerShell recognizer through one `isMicrophoneEnabled` check. Re-evaluate the gate for the lifetime of a listen session (disable mid-session stops the child). Fix `voice-win.cjs` so `start()` during a pending `stop()` cannot spawn a second powershell, and an old child's `exit` cannot clear a newer child's reference.
+**Done:** RATA-004 review findings. Chromium `getUserMedia` and the Windows PowerShell recognizer both consult `isMicrophoneEnabled()` in `electron/security.cjs`. Disabling the microphone while a session is listening stops the child. `start()` during a pending `stop()` waits for the old child; an exiting child never clears a newer child's reference (same shape as `overlayWindow === window` in PR #54).
 
-**Files currently touching:** `AGENT_WORKBOOK.md` (claim only; implementation follows).
+**Files touched:** `electron/security.cjs`, `electron/ipc/voice.cjs`, `electron/ipc/settings.cjs`, `electron/voice-win.cjs`, `tests/voice-win.test.cjs`, `tests/electron-security.test.cjs`, `docs/SECURITY.md`, `docs/VALIDATION.md`, `docs/ARCHITECTURE.md`, `docs/CODEMAP.md`.
+
+**Validation:** `npm run verify` passed (226 tests). Injected-spawn tests cover mid-session disable, start-during-stop, and old-exit identity. No real microphone or powershell.exe.
+
+**Coordination:** Separate from PR #59 (Critical Thinking provider). Claude review required — this touches `electron/`.
 
 ---
 
