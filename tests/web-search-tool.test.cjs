@@ -13,9 +13,11 @@ function serperResponse(organic) {
   return async () => ({ ok: true, status: 200, json: async () => ({ organic }) })
 }
 
-function harness({ apiKey = 'test-key', fetchImpl } = {}) {
+function harness({ apiKey = 'test-key', fetchImpl, webFetch } = {}) {
   const registry = new ToolRegistry()
-  for (const definition of webModule.create({ webSearch: createSerperSearch({ apiKey, fetchImpl: fetchImpl || serperResponse([]) }) })) {
+  const deps = { webSearch: createSerperSearch({ apiKey, fetchImpl: fetchImpl || serperResponse([]) }) }
+  if (webFetch) deps.webFetch = webFetch
+  for (const definition of webModule.create(deps)) {
     registry.register(definition)
   }
   return registry
@@ -42,13 +44,17 @@ test('the query leaving the machine requires approval by default', async () => {
   assert.match(reply.approval.detail, /leaves your machine/)
 })
 
+// WEB-001 chains search -> fetch -> synthesis, so this now needs a fetch
+// capability to reach a success state. See the companion test below for what
+// happens when fetch is unavailable.
 test('approval can be disabled deliberately', async () => {
   const calls = []
   const registry = harness({
     fetchImpl: async (url, options) => {
       calls.push(JSON.parse(options.body).q)
       return { ok: true, status: 200, json: async () => ({ organic: [{ title: 'T', link: 'https://e.example', snippet: 'S' }] }) }
-    }
+    },
+    webFetch: async () => ({ url: 'https://e.example', contentType: 'text/html', title: 'T', content: 'page text', trust: 'untrusted-external' })
   })
   const agent = new MockAgent({
     registry,
@@ -170,4 +176,32 @@ test('describeConfig reports the override without exposing credentials', () => {
   assert.equal(described.providerModeOverride, 'auto')
   assert.equal(described.gemini, true)
   assert.equal(JSON.stringify(described).includes('secret'), false)
+})
+
+test('a successful search still returns its results when synthesis cannot run', async () => {
+  // WEB-001 made web.search the first half of a search -> fetch -> synthesise
+  // chain. When the fetch half is unavailable the search itself has already
+  // succeeded, so the results must survive.
+  //
+  // Pinned deliberately: the reply currently reports state 'error' even though
+  // the user's actual request (search) worked. Raised as a finding on #40 —
+  // this test records the behaviour so a change to it is visible.
+  const registry = harness({
+    fetchImpl: async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ organic: [{ title: 'T', link: 'https://e.example', snippet: 'S' }] })
+    })
+  })
+  const agent = new MockAgent({
+    registry,
+    policy: new PolicyEngine(),
+    settings: () => ({ webSearchConfirm: false }),
+    activity: () => {}
+  })
+
+  const reply = await agent.handle('search the web for windows automation')
+  assert.match(reply.message, /T/, 'the search results were lost')
+  assert.match(reply.message, /e\.example/)
+  assert.equal(reply.state, 'error', 'behaviour changed — see the finding on #40')
 })

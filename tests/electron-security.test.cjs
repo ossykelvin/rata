@@ -1,7 +1,7 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const { createSecurityPolicy } = require('../electron/security.cjs')
+const { createSecurityPolicy, decideRendererPermission, applySessionPermissionHandler } = require('../electron/security.cjs')
 const { registerIpcHandlers } = require('../electron/ipc/index.cjs')
 
 // Regression cover for REVIEW-001 findings H3 and H4.
@@ -196,4 +196,46 @@ test('H4: the trusted renderer still works', async () => {
   const result = await ipcMain.invoke('rata:alpha', { senderFrame: { url: APP_ORIGIN } })
   assert.equal(result, 'sensitive-result')
   assert.deepEqual(calls, ['executed'])
+})
+
+test('M4: media is allowed only when the microphone setting is on', () => {
+  const on = { microphoneEnabled: true }
+  const off = { microphoneEnabled: false }
+  assert.equal(decideRendererPermission('media', { mediaTypes: ['audio'] }, on), true)
+  assert.equal(decideRendererPermission('microphone', {}, on), true)
+  assert.equal(decideRendererPermission('media', { mediaTypes: ['audio'] }, off), false)
+  assert.equal(decideRendererPermission('media', { mediaTypes: ['audio'] }, {}), false)
+  assert.equal(decideRendererPermission('media', { mediaTypes: ['audio'] }, null), false)
+})
+
+test('M4: camera and unrelated renderer permissions stay denied', () => {
+  const on = { microphoneEnabled: true }
+  assert.equal(decideRendererPermission('media', { mediaTypes: ['video'] }, on), false)
+  assert.equal(decideRendererPermission('media', { mediaTypes: ['audio', 'video'] }, on), false)
+  assert.equal(decideRendererPermission('display-capture', {}, on), false)
+  assert.equal(decideRendererPermission('geolocation', {}, on), false)
+  assert.equal(decideRendererPermission('notifications', {}, on), false)
+})
+
+test('M4: the session handler reads live settings and denies by default', () => {
+  let enabled = false
+  const requests = []
+  const fakeSession = {
+    setPermissionRequestHandler(handler) { this.request = handler },
+    setPermissionCheckHandler(handler) { this.check = handler }
+  }
+  applySessionPermissionHandler(fakeSession, () => ({ microphoneEnabled: enabled }))
+  fakeSession.request(null, 'media', value => requests.push(value), { mediaTypes: ['audio'] })
+  enabled = true
+  fakeSession.request(null, 'media', value => requests.push(value), { mediaTypes: ['audio'] })
+  assert.deepEqual(requests, [false, true])
+  assert.equal(fakeSession.check(null, 'notifications', APP_ORIGIN, {}), false)
+})
+
+test('M4: a session object is required', () => {
+  assert.throws(() => applySessionPermissionHandler({}, () => ({})), /requires an Electron session/)
+  assert.throws(
+    () => applySessionPermissionHandler({ setPermissionRequestHandler() {} }),
+    /requires getSettings/
+  )
 })

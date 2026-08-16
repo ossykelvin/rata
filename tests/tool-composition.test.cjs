@@ -21,13 +21,17 @@ const compatibility = require('../electron/mvp-tools.cjs')
 const TOOLS_DIR = path.join(__dirname, '..', 'electron', 'tools')
 
 /** The tools the MVP ships. Changing this list is a security decision. */
-const EXPECTED_TOOL_IDS = ['calculator.evaluate', 'clipboard.write', 'file.delete', 'system.openApp', 'web.search']
+// WEB-001 added web.fetch. Updated deliberately: this list is the privileged
+// tool surface, and it must only change when a tool is consciously added.
+const EXPECTED_TOOL_IDS = ['calculator.evaluate', 'clipboard.write', 'file.delete', 'system.openApp', 'web.fetch', 'web.search']
 
 const DEPENDENCIES = Object.freeze({
   spawnProcess: () => ({ unref() {} }),
   clipboardApi: { writeText() {} },
-  // A bound capability, never the API key. See electron/serper-client.cjs.
-  webSearch: async () => []
+  // Bound capabilities, never credentials. See electron/serper-client.cjs
+  // and electron/public-web-client.cjs.
+  webSearch: async () => [],
+  webFetch: async () => ({ url: 'https://example.test/', contentType: 'text/html', title: 't', content: 'c', trust: 'untrusted-external' })
 })
 
 /** Minimal well-formed module, so each test varies exactly one thing. */
@@ -341,11 +345,12 @@ test('web.search is discovered, not bolted on after composition', () => {
 test('the web module receives a capability, never the credential', () => {
   const seen = []
   const definitions = require('../electron/tools/web.cjs').create({
-    webSearch: async query => { seen.push(query); return [] }
+    webSearch: async query => { seen.push(query); return [] },
+    webFetch: async () => ({ content: 'c', trust: 'untrusted-external' })
   })
   // The dependency it consumes is a function, so there is no key on the
   // module to read, log or forward.
-  assert.equal(definitions.length, 1)
+  assert.equal(definitions.length, 2)
   const bag = { webSearch: async () => [] }
   assert.deepEqual(Object.keys(bag), ['webSearch'])
   assert.equal(typeof bag.webSearch, 'function')

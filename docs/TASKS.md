@@ -27,6 +27,8 @@ Acceptance:
 
 ## RATA-004 - Production voice
 
+**Status:** First STT slice landed. Browser speech recognition, push-to-talk, permission state, and main-process media gating are in. Configurable cloud STT/TTS adapters remain.
+
 Add STT and TTS adapters.
 
 Acceptance:
@@ -72,6 +74,8 @@ Acceptance:
 ## RATA-008 - Browser agent
 
 Add Playwright through explicit browser tools.
+
+Foundation: WEB-001 adds keyless, SSRF-resistant `web.fetch` for bounded public text and provider-independent synthesis. It does not download a browser binary or grant interactive page authority.
 
 Acceptance:
 - browse/read actions separated from submit/upload/write actions

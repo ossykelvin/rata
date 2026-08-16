@@ -26,6 +26,15 @@ All privileged operations must pass through the tool registry and policy engine.
 
 Email, webpages, documents, calendar descriptions, clipboard text and UI text are **data**, not instructions to Rata's privileged runtime. Content retrieved by tools must never be allowed to redefine policies or approve actions.
 
+### Public web retrieval
+
+- `web.search` alone receives the bound Serper capability; `web.fetch` receives no API key.
+- Fetch accepts only absolute HTTP(S) destinations without URL credentials.
+- DNS must resolve exclusively to public addresses, and the connection is pinned to the vetted answer so DNS rebinding cannot redirect it into a private network.
+- Redirects are revalidated; time, redirect, content-type and response-size limits fail closed.
+- Retrieved text is marked untrusted and enters an AI provider only through the fenced `context` role. Page content never selects tools, changes policy or supplies approval.
+- See `docs/decisions/ADR-008-safe-public-web-fetch.md`.
+
 ## Electron boundary
 
 - context isolation stays enabled.

@@ -27,6 +27,14 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
         <div><strong>Confirm clipboard writes</strong><span>Useful for demonstrating the approval flow in this MVP.</span></div>
         <input type="checkbox" checked={settings.clipboardConfirm} onChange={e => setSetting('clipboardConfirm', e.target.checked)} />
       </label>
+      <label className="setting-row">
+        <div><strong>Microphone</strong><span>Allow speech-to-text from the overlay and Chat. Main process denies media permission when this is off.</span></div>
+        <input type="checkbox" checked={settings.microphoneEnabled} onChange={e => setSetting('microphoneEnabled', e.target.checked)} />
+      </label>
+      <label className="setting-row">
+        <div><strong>Spoken replies</strong><span>Text-to-speech is not wired yet. This keeps the existing setting visible without enabling a provider.</span></div>
+        <input type="checkbox" checked={settings.voiceEnabled} onChange={e => setSetting('voiceEnabled', e.target.checked)} />
+      </label>
     </section>
   )
 }

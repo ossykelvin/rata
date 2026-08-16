@@ -11,7 +11,7 @@ export function DeveloperPage() {
       <ol>
         <li>Replace mock model with provider abstraction and streaming (RATA-002).</li>
         <li>Load only the selected skill prompt beneath the global system prompt.</li>
-        <li>Add production speech-to-text and text-to-speech adapters.</li>
+        <li>Add production STT/TTS adapters. Browser push-to-talk speech recognition is already in the overlay and Chat.</li>
         <li>Build the authenticated C# Windows UI Automation bridge.</li>
         <li>Add Microsoft Graph delegated OAuth for mail/calendar.</li>
         <li>Replace placeholder character SVGs with production transparent art (human-gated).</li>
