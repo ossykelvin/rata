@@ -24,6 +24,7 @@ src/views (React UI)
 | `src/hooks/useVoice.ts` | Push-to-talk UI and transcript display | Audio capture, Node, OS speech |
 | `electron/voice-win.cjs` | Windows speech recognition adapter | Generic shell, model-generated commands |
 | `electron/file-access.cjs` | Root containment, denied names, bounded read-only file access | Any write, move, rename or delete |
+| `electron/weather-client.cjs` | Bound WeatherAPI capability, response mapping, credential-safe errors | The key in any log, error or return value |
 | `src/types/` | Renderer domain types and barrel | Privileged contracts or Electron APIs |
 | `src/styles/` | `base.css`, `overlay.css`, `control.css`, plus per-component sheets | Privileged styling or Node imports |
 | `src/views/control/` | Self-registered Control Center pages (`controlPage` + `import.meta.glob`) | Editing `ControlCenter.tsx` or `model.ts` to add a page |
@@ -55,6 +56,8 @@ src/views (React UI)
 - `file.delete` — registered and blocked
 - `web.search` — Serper-backed result discovery; confirmation configurable
 - `web.fetch` — keyless, bounded public-page retrieval; confirmation configurable
+- `file.search` / `file.stat` / `file.readText` / `file.searchContent` / `file.reveal` — read-only, root-confined local access
+- `weather.current` — WeatherAPI current conditions and air quality; confirmation configurable
 
 ## First safe changes for agents
 

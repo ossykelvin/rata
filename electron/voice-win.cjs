@@ -116,6 +116,11 @@ function createWindowsVoice({
       }
     })
     spawned.on('exit', () => {
+      // Deliberate: stop() (including microphone disable) still delivers a
+      // leftover partial line. Push-to-talk release uses the same stop(), so
+      // dropping the buffer would lose the last utterance. Complete lines
+      // already emitted stay emitted. New stdout after child is nulled is
+      // still delivered until the process actually exits.
       if (buffer.trim()) sendTranscript({ transcript: buffer.trim().slice(0, MAX_TRANSCRIPT_LENGTH) })
       // Same shape as overlayWindow === window in main.cjs: an old child's
       // exit must not clear a newer child's reference.

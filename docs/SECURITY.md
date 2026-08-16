@@ -51,13 +51,24 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
 - Reading content is confirmed by default (`fileReadConfirm`) because the text leaves the machine for a provider; searching by *name* is automatic.
 - See `docs/decisions/ADR-010-readonly-local-file-access.md`.
 
+### Weather lookup
+
+- The key is read from `WEATHER_API_KEY` in the main process and captured in the client closure. The tool layer receives a bound `getCurrentWeather(query)` capability, never the credential, and `describeConfig()` reports presence as a boolean only.
+- WeatherAPI accepts its key **only as a `key=` query parameter**, unlike Serper which uses a header, so the request URL is itself a secret. No error, log or returned value may contain it: every failure path returns a fixed string and the caught error is discarded rather than wrapped.
+- The response is mapped onto a fixed shape. Unmodelled provider fields never reach the agent, malformed numbers become `null`, and text is stripped of control characters and clamped.
+- Results carry `trust: 'untrusted-external'`. Third-party condition text is data to report, never an instruction.
+- Locations are restricted to place names, postcodes and coordinates. `auto:ip` IP geolocation and the `iata:`/`id:`/`metar:` prefixes are refused.
+- The location is extracted deterministically before the tool runs; no provider chooses it. A question with no place asks which place rather than assuming the user's location.
+- Lookups are confirmed by default (`weatherConfirm`) because the request reveals what place the user is asking about.
+- See `docs/decisions/ADR-011-weather-lookup.md`.
+
 ## Electron boundary
 
 - context isolation stays enabled.
 - Node integration stays disabled in renderers.
 - Preload exposes named functions only.
 - Never expose raw `ipcRenderer`, `fs`, `child_process`, shell execution or generic file APIs.
-- Microphone capture is gated by `isMicrophoneEnabled()` in `electron/security.cjs`. Chromium `media`/`microphone` permissions and the Windows speech child process both consult it. Turning the setting off stops an in-flight recognizer.
+- Microphone capture is gated by `isMicrophoneEnabled()` in `electron/security.cjs`. Chromium `media`/`microphone` permissions and the Windows speech child process both consult it. Turning the setting off stops an in-flight recognizer. A leftover partial transcript already buffered from that session is still delivered to the renderer; it is not dropped.
 - Validate settings, messages and approval identifiers in the main process before use. Preload and TypeScript types are developer ergonomics, not a trust boundary.
 - Settings loaded from disk pass through the same runtime validators as IPC
   writes. Unknown and invalid values are rejected and audited; invalid

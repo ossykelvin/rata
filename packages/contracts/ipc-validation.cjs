@@ -30,7 +30,10 @@ const settingValidators = Object.assign(Object.create(null), {
   // Local file *contents* flow onward to a provider, so reading one is an
   // egress decision like web.fetch rather than a plain local read. Confirmed
   // by default. RATA-006.
-  fileReadConfirm: value => typeof value === 'boolean'
+  fileReadConfirm: value => typeof value === 'boolean',
+  // A weather lookup sends the named location to a third party. Confirmed by
+  // default, like every other outbound request. RATA-007.
+  weatherConfirm: value => typeof value === 'boolean'
 })
 
 /** The complete set of writable settings. Use this rather than `key in obj`. */

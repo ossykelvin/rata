@@ -141,6 +141,23 @@ class MockAgent {
       })
     }
 
+    // Weather is a deterministic route: the location is extracted here, not
+    // chosen by a model, so no provider sees the request before the tool runs.
+    // RATA-007.
+    const weatherMatch = text.match(
+      /^(?:(?:can|could)\s+you\s+)?(?:please\s+)?(?:tell\s+me\s+|check\s+|do\s+you\s+know\s+|give\s+me\s+)?(?:what(?:'|’)?s|what\s+is|how(?:'|’)?s|how\s+is|hows)?\s*(?:the\s+)?(?:weather|temperature|air\s+quality)\b(?:\s+like)?(?:\s+(?:in|for|at|near))?\s*(.*)$/i
+    )
+    if (weatherMatch && this.registry.has?.('weather.current')) {
+      const place = weatherMatch[1].replace(/[?.!]+$/, '').replace(/\b(right now|now|today|currently|outside|please|like)\b/gi, '').trim()
+      if (place) {
+        return this.runTool('weather.current', { query: place }, `Check the weather in ${place}`)
+      }
+      return {
+        message: 'Which place should I check the weather for?',
+        state: 'idle'
+      }
+    }
+
     const routed = this.skills?.router?.route(text)
     if (routed?.selectedSkillIds?.length) {
       return this.handleSkill(text, routed)

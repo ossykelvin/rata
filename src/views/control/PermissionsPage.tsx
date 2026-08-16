@@ -10,9 +10,10 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
     ['Write to clipboard', 'safe-write', settings.clipboardConfirm ? 'Ask every time' : 'Automatic'],
     ['Find files by name', 'read', 'Automatic'],
     ['Read file contents', 'read', settings.fileReadConfirm ? 'Ask every time' : 'Automatic'],
+    ['Look up weather', 'read', settings.weatherConfirm ? 'Ask every time' : 'Automatic'],
     ['Send email / invite attendees', 'external-write', 'Always ask'],
     ['Delete files / cancel meetings', 'destructive', 'Always ask']
-  ], [settings.clipboardConfirm, settings.fileReadConfirm])
+  ], [settings.clipboardConfirm, settings.fileReadConfirm, settings.weatherConfirm])
 
   return (
     <section className="panel page-panel">
@@ -32,6 +33,10 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
       <label className="setting-row">
         <div><strong>Confirm reading file contents</strong><span>Rata searches names freely inside Documents, Downloads and Desktop, but file text may be sent to your AI provider.</span></div>
         <input type="checkbox" checked={settings.fileReadConfirm} onChange={e => setSetting('fileReadConfirm', e.target.checked)} />
+      </label>
+      <label className="setting-row">
+        <div><strong>Confirm weather lookups</strong><span>The place you ask about is sent to WeatherAPI.com.</span></div>
+        <input type="checkbox" checked={settings.weatherConfirm} onChange={e => setSetting('weatherConfirm', e.target.checked)} />
       </label>
       <label className="setting-row">
         <div><strong>Microphone</strong><span>Allow speech-to-text from the overlay and Chat. Main process denies media permission when this is off.</span></div>
