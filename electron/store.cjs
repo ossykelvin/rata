@@ -15,7 +15,8 @@ const defaults = {
     provider: 'mock',
     clipboardConfirm: true,
     webSearchConfirm: true,
-    webFetchConfirm: true
+    webFetchConfirm: true,
+    fileReadConfirm: true
   },
   activity: []
 }
@@ -28,7 +29,8 @@ const safeDiskFallbackSettings = Object.freeze({
   microphoneEnabled: false,
   clipboardConfirm: true,
   webSearchConfirm: true,
-  webFetchConfirm: true
+  webFetchConfirm: true,
+  fileReadConfirm: true
 })
 
 function isRecord(value) {
