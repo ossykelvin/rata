@@ -145,10 +145,10 @@ class MockAgent {
     // chosen by a model, so no provider sees the request before the tool runs.
     // RATA-007.
     const weatherMatch = text.match(
-      /^(?:what(?:'|’)?s|what is|how(?:'|’)?s|how is|hows)?\s*(?:the\s+)?(?:weather|temperature|air quality)\b(?:\s+(?:in|for|at))?\s*(.*)$/i
+      /^(?:(?:can|could)\s+you\s+)?(?:please\s+)?(?:tell\s+me\s+|check\s+|do\s+you\s+know\s+|give\s+me\s+)?(?:what(?:'|’)?s|what\s+is|how(?:'|’)?s|how\s+is|hows)?\s*(?:the\s+)?(?:weather|temperature|air\s+quality)\b(?:\s+like)?(?:\s+(?:in|for|at|near))?\s*(.*)$/i
     )
     if (weatherMatch && this.registry.has?.('weather.current')) {
-      const place = weatherMatch[1].replace(/[?.!]+$/, '').replace(/\b(right now|now|today|currently|outside|please)\b/gi, '').trim()
+      const place = weatherMatch[1].replace(/[?.!]+$/, '').replace(/\b(right now|now|today|currently|outside|please|like)\b/gi, '').trim()
       if (place) {
         return this.runTool('weather.current', { query: place }, `Check the weather in ${place}`)
       }
