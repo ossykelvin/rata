@@ -22,6 +22,13 @@ test('overlay character is a native drag surface with a separate Ask control', (
   assert.doesNotMatch(overlay, /rata-button no-drag/)
 })
 
+test('compact overlay widget is a native drag surface with a restore hit target', () => {
+  assert.match(overlay, /rata-stack--compact/)
+  assert.match(css, /\.overlay-root--compact \.drag-zone\s*\{[^}]*-webkit-app-region:\s*drag/)
+  assert.match(css, /\.rata-stack--compact\s*\{[^}]*-webkit-app-region:\s*drag/)
+  assert.match(overlay, /className="rata-restore no-drag"/)
+})
+
 test('message body, approvals, and input stay interactive', () => {
   assert.match(bubble, /<p className="no-drag">/)
   assert.match(css, /\.no-drag,\s*\.no-drag \*\s*\{[^}]*-webkit-app-region:\s*no-drag/)

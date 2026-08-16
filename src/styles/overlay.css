@@ -32,11 +32,11 @@ html:has(.overlay-root) #root {
 .speech-bubble p { margin: 0; color: #d7e3fb; font-size: 13px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; }
 .state-chip { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #a9c4ff; background: rgba(37,99,235,.16); border: 1px solid rgba(74,124,234,.25); border-radius: 999px; padding: 4px 7px; }
 .overlay-root--compact { justify-content: flex-end; align-items: flex-end; }
-.overlay-root--compact .drag-zone { flex: 0 0 auto; width: 92px; height: 92px; align-items: center; justify-content: center; }
-.rata-stack--compact { width: 92px; height: 92px; display: grid; place-items: center; border-radius: 28px; background: rgba(8, 20, 48, .92); border: 1px solid rgba(116, 157, 240, .25); box-shadow: 0 18px 40px rgba(0, 0, 0, .35); }
+.overlay-root--compact .drag-zone { flex: 0 0 auto; width: 92px; height: 92px; align-items: center; justify-content: center; -webkit-app-region: drag; }
+.rata-stack--compact { width: 92px; height: 92px; display: grid; place-items: center; border-radius: 28px; background: rgba(8, 20, 48, .92); border: 1px solid rgba(116, 157, 240, .25); box-shadow: 0 18px 40px rgba(0, 0, 0, .35); -webkit-app-region: drag; }
 .rata-restore { width: 58px; height: 58px; padding: 0; border: 0; border-radius: 18px; background: transparent; }
-.rata-restore .rata-character { pointer-events: none; }
-.overlay-window-controls { flex: 0 0 auto; align-self: flex-end; display: grid; grid-template-columns: 38px 38px; gap: 6px; padding: 7px; background: rgba(8, 20, 48, .95); border: 1px solid rgba(116,157,240,.25); box-shadow: 0 18px 40px rgba(0,0,0,.35); border-radius: 18px; backdrop-filter: blur(24px); }
+.rata-restore .rata-character,
+.rata-restore .rata-avatar { pointer-events: none; }
 .quick-input { flex: 0 0 auto; display: grid; grid-template-columns: 1fr 38px 38px 38px 38px 38px; gap: 6px; padding: 7px; background: rgba(8, 20, 48, .95); border: 1px solid rgba(116,157,240,.25); box-shadow: 0 18px 40px rgba(0,0,0,.35); border-radius: 18px; backdrop-filter: blur(24px); }
 .quick-input input { min-width: 0; background: transparent; border: 0; outline: none; color: white; padding: 0 10px; }
 .icon-button, .send-button { border: 0; border-radius: 12px; background: rgba(255,255,255,.07); color: #d7e3fb; }
