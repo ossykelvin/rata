@@ -29,7 +29,9 @@ the user always receives an answer.
 An orchestrated skill may supply a preferred provider when its product flow
 declares a specific order. The hint applies only in `auto` mode: Trivia uses
 Serper evidence, then prefers Gemini, then OpenRouter, with mock still terminal.
-An explicitly pinned `gemini`, `openrouter` or `mock` mode remains authoritative.
+Critical Thinking loads its selected prompt and prefers OpenRouter, then Gemini,
+with mock still terminal. An explicitly pinned `gemini`, `openrouter` or `mock`
+mode remains authoritative.
 
 **Mock stays the default.** The stored `provider` setting ships as `mock`, so a
 fresh install performs no network egress until the user opts in. The `provider`
