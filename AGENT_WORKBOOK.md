@@ -68,7 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
-| Cursor | FIX voice permission gate | `cursor/FIX-voice-permission-gate` | DONE, PR pending |
+| Cursor | FIX voice permission gate | `cursor/FIX-voice-permission-gate` | DONE, PR #62 |
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, merged as #2 |
 | Codex | P0-1 modular IPC | `codex/P0-1-modular-ipc-boundary` | DRAFT PR #4 |
 | Cursor | RATA-003 character animation | `cursor/rata-003-character-animation-9241` | DONE, PR #5 |
@@ -375,7 +375,7 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-16 — FIX — Voice permission gate and recognizer restart race
 
-**Status:** DONE, PR pending
+**Status:** DONE, PR #62
 **Branch:** `cursor/FIX-voice-permission-gate`
 
 **Done:** RATA-004 review findings. Chromium `getUserMedia` and the Windows PowerShell recognizer both consult `isMicrophoneEnabled()` in `electron/security.cjs`. Disabling the microphone while a session is listening stops the child. `start()` during a pending `stop()` waits for the old child; an exiting child never clears a newer child's reference (same shape as `overlayWindow === window` in PR #54).
