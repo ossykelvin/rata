@@ -342,6 +342,67 @@ test('a confident result is delivered to the renderer', async () => {
   assert.deepEqual(transcripts, [{ transcript: 'open notepad' }])
 })
 
+test("the user's own measured speech is delivered, not discarded", async () => {
+  // Ten consecutive spoken results on the reporting user's hardware scored
+  // 0.003 to 0.167. Gates of 0.4 and then 0.2 sat above every one of them, so
+  // every word was discarded and the feature looked dead while working.
+  const measured = [0.003, 0.012, 0.051, 0.060, 0.088, 0.101, 0.122, 0.125, 0.151, 0.167]
+  const transcripts = []
+  const child = fakeChild()
+  const voice = createWindowsVoice({
+    spawnProcess: () => child,
+    sendTranscript: payload => transcripts.push(payload),
+    logActivity: () => {}
+  })
+  await voice.start()
+  for (const score of measured) {
+    child.stdout.emit('data', `${score.toFixed(3)}|utterance at ${score}
+`)
+  }
+  assert.ok(transcripts.length > 0, 'real measured speech was discarded again')
+  // The last thing delivered is the best heard, not the last heard.
+  assert.match(transcripts[transcripts.length - 1].transcript, /0\.167/)
+})
+
+test('only an improvement on the session best is delivered', async () => {
+  const transcripts = []
+  const child = fakeChild()
+  const voice = createWindowsVoice({
+    spawnProcess: () => child,
+    sendTranscript: payload => transcripts.push(payload),
+    logActivity: () => {}
+  })
+  await voice.start()
+  child.stdout.emit('data', '0.120|first guess\n')
+  child.stdout.emit('data', '0.090|worse fragment\n')
+  child.stdout.emit('data', '0.300|much better\n')
+  child.stdout.emit('data', '0.100|trailing noise\n')
+  assert.deepEqual(
+    transcripts.map(payload => payload.transcript),
+    ['first guess', 'much better'],
+    'a worse later fragment overwrote a better transcript'
+  )
+})
+
+test('a new session starts its own best, so a quiet utterance still lands', async () => {
+  const transcripts = []
+  const children = [fakeChild(), fakeChild()]
+  let index = 0
+  const voice = createWindowsVoice({
+    spawnProcess: () => children[index++],
+    sendTranscript: payload => transcripts.push(payload),
+    logActivity: () => {}
+  })
+  await voice.start()
+  children[0].stdout.emit('data', '0.400|loud first session\n')
+  voice.stop()
+  children[0].emit('exit', 0)
+  await voice.start()
+  transcripts.length = 0
+  children[1].stdout.emit('data', '0.090|quiet second session\n')
+  assert.deepEqual(transcripts.map(p => p.transcript), ['quiet second session'])
+})
+
 test('a low-confidence result is audited rather than discarded in silence', async () => {
   // "Heard nothing" and "heard something and threw it away" are different
   // problems. They used to be indistinguishable from outside the recognizer,
@@ -356,11 +417,11 @@ test('a low-confidence result is audited rather than discarded in silence', asyn
   })
   await voice.start()
   events.length = 0
-  child.stdout.emit('data', '0.120|and if were\n')
+  child.stdout.emit('data', '0.012|and if were\n')
 
-  assert.equal(transcripts.length, 0, 'a low-confidence guess reached the input box')
+  assert.equal(transcripts.length, 0, 'an artefact reached the input box')
   assert.equal(events.length, 1, 'the discard was not audited')
-  assert.match(events[0].detail, /0\.120/)
+  assert.match(events[0].detail, /0\.012/)
   assert.match(events[0].detail, /and if were/)
 })
 
@@ -368,7 +429,9 @@ test('the gate is low enough not to swallow ordinary speech', () => {
   // A first attempt at 0.4 was tuned partly on synthesised audio scoring
   // 0.681, which is far cleaner than a real microphone in a real room, and it
   // silently swallowed genuine speech.
-  assert.ok(MIN_CONFIDENCE <= 0.25, `MIN_CONFIDENCE ${MIN_CONFIDENCE} is high enough to drop real speech`)
+  // The reporting user's speech peaked at 0.167. Anything at or above that
+  // discards every word they say.
+  assert.ok(MIN_CONFIDENCE < 0.167, `MIN_CONFIDENCE ${MIN_CONFIDENCE} discards real measured speech`)
 })
 
 test('the recognizer script emits confidence with every result', () => {
