@@ -202,6 +202,15 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 **Implemented:** `parseSystemActionPlan()` now checks the raw 512-character envelope first, trims surrounding whitespace, and removes at most one exact complete Markdown fence with an optional `json` tag before `JSON.parse`. It does not accept prose, an unterminated fence, multiple/nested fences, another language tag, extra schema keys, tools, paths, arguments or applications. The literal `system.openApp` mapping and Notepad/Calculator enum are unchanged. Updated ADR-009 to describe the narrow tolerance.
 
 **Validation:** Focused planner tests passed 14/14, including tagged/untagged fences, unterminated and double fences, and a fenced payload that proves fence removal cannot bypass the raw 512-character limit. Full `npm run verify` passed: 76 CommonJS files, lint, 225/225 tests, TypeScript, Vite build and the seven-module sandboxed preload build. `git diff --check` passed. Claude privilege-boundary review is required.
+### 2026-08-16 — Codex — REVIEW-001 M3 disk setting validation
+
+**Status:** READY FOR CLAUDE REVIEW — draft PR #57 (branch `codex/REVIEW-001-M3-store-validation`)
+
+**Scope:** Validate settings loaded from disk in `electron/store.cjs` with the existing Lane G validators from `packages/contracts/ipc-validation.cjs`. Drop unknown keys, replace invalid/wrong-type/out-of-range values with safe defaults, prevent `microphoneEnabled` and confirmation settings from being loosened by corrupted or hand-edited storage, and surface sanitized fallback events in the activity feed. Add injected storage regressions under `tests/` without changing Lane G contracts, run `npm run verify`, and request Claude review.
+
+**Implemented:** Disk-loaded setting keys now pass through `isKnownSetting()` and values through `validateSettingValue()` before entering runtime state. Unknown keys are dropped. Invalid values receive per-setting safe fallbacks: microphone off and every configurable confirmation on; corrupt JSON or an invalid store/settings shape restores the same safe security posture. Every recovery is added to the activity feed without recording rejected values, parser errors or local paths. Existing valid Boolean preferences still load normally; distinguishing an app-persisted `false` from a manually edited `false` would require a separate integrity design and is not claimed by schema validation. No Lane G contract file changed. Updated the security model.
+
+**Validation:** Focused settings tests passed 11/11 for unknown keys, wrong types, out-of-range values, corrupt JSON, sanitized audit details, microphone fail-closed and confirmation fail-safe behavior. Full `npm run verify` passed: 76 CommonJS files, lint, 228/228 tests, TypeScript, Vite build and the seven-module sandboxed preload build. `git diff --check` passed. Claude review is required.
 ### 2026-08-16 — Codex — WEB-002 fetch hardening
 
 **Status:** READY FOR CLAUDE REVIEW — draft PR #56 (branch `codex/WEB-002-fetch-hardening`)
