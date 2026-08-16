@@ -95,6 +95,28 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ## Claude
 
+### 2026-08-16 — Review pass over #56–#60 (WEB-002, M3, ADR-009 fence, critical thinking, overlay controls)
+
+**Status:** DONE. #56, #57, #58, #59 merged. #60 opened on Cursor's behalf and **blocked** pending a rebase.
+
+**#56 WEB-002 — approved, with one regression fixed on the branch.** Ports, redirect direction and the parse5 switch all verified by execution. `:080` and `:0443` normalise to the defaults so the allow-list has no numeric bypass; `http:443` and `https:80` are allowed and harmless. The HTTPS→HTTP refusal is applied per hop, so http→https→http is still caught at the third hop.
+
+The regression: **both parse5 tree walkers recursed.** A response is capped at `MAX_RESPONSE_BYTES`, but that cap still permits ~11,000 levels of nesting, and `<div>` repeated 5,000 deep is 55KB — comfortably inside the cap and enough to overflow the call stack. The failure was safe (the fetch threw, no content returned) but any page could trigger it cheaply and so disable web fetch at will. The regex implementation being replaced had no recursion, so this was new. Converted both walkers to an explicit stack, output byte-identical on the existing corpus, regression test at 5,000 and 11,000 levels.
+
+I also **withdraw my own finding (c)** from the WEB-001 review. Codex was right: empty Serper results were already represented as `[]` and already returned a successful "found nothing" response. It needed a regression pin, not a rewrite, and that is what they added.
+
+`parse5@7.3.0` packaging verified by execution rather than assumption — `npm run pack:win`, then `asar list` shows 46 parse5 entries inside `app.asar`. It is pure JS, so asar is not a problem for it (unlike `voice-listen.ps1`, which had to be lifted out).
+
+**#57 REVIEW-001 M3 — approved, no findings.** Probed the load path with eleven hostile store files. `microphoneEnabled: "true"` (string) and `: 1` both resolve to **false**, and the confirmation flags cannot be turned off from disk by any malformed value — the disk fallback deliberately inverts `microphoneEnabled` away from the fresh-install default, which is the right asymmetry. Unknown keys dropped, `__proto__` payload leaves `Object.prototype` clean, junk provider falls back to `mock`, and corrupt/array/null shapes all restore safe settings with an activity entry. `safeSettingLabel()` also stops a hostile key name from injecting text into the log.
+
+**#58 ADR-009 fence tolerance — approved, no findings.** Exactly one fence, anchored at both ends. Accepted: tag/no-tag/uppercase/CRLF/surrounding whitespace. Still rejected: unterminated fence, two fences, prose before or after, and every schema violation (arbitrary tool, extra keys, paths). The 512-character envelope cap still applies to the raw string, so the fence cannot be used to smuggle a larger payload.
+
+**#59 critical thinking — approved, no findings, but the description overstates the change.** It reads as though the skill had no live path and returned a mock stub. The diff shows otherwise: `answerSkillWithProvider()` already loaded the prompt and called the chain on `main`, and this PR *consolidates* it into `ask()`. Most likely the description was written before the rebase and never updated. The refactor itself is sound — the skill prompt is still a second system message beneath `SYSTEM_PROMPT`, so ADR-003 holds and skills still carry no authority. `ask()` now accepts `skillId`, which widens the surface, but `loadPrompt()` resolves through `registry.get()` and throws on an unknown id, so no arbitrary path can be reached through it.
+
+**#60 overlay minimize/close — BLOCKED, opened for visibility.** The branch forked at `398dd6b`, before #54, and adds `tray.on('click', () => overlayWindow?.show())` — exactly the FIX-003 bug #54 removed. Because this PR's purpose is to let the user close the overlay to the tray, it makes that dead path much easier to reach. Needs a rebase and `showOverlay()`. Detail on the PR.
+
+**Process note.** `merge=union` on this file caused GitHub to report phantom conflicts on #53, #57 and #58; each needed `main` merged in locally and pushed before it could go. That is now four occurrences. It should be fixed rather than absorbed — per-agent workbook files, or drop the union driver.
+
 ### 2026-08-16 — RATA-002 / FIX-003 — Review of both open drafts, plus Lane H tests for ADR-009
 
 **Status:** DONE. Branch `claude/RATA-002-lane-h-system-actions` into `codex/RATA-002-structured-system-actions` (#53). #54 reviewed separately.
