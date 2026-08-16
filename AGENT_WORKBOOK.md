@@ -68,6 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
+| Cursor | FIX voice permission gate | `cursor/FIX-voice-permission-gate` | IN PROGRESS |
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, merged as #2 |
 | Codex | P0-1 modular IPC | `codex/P0-1-modular-ipc-boundary` | DRAFT PR #4 |
 | Cursor | RATA-003 character animation | `cursor/rata-003-character-animation-9241` | DONE, PR #5 |
@@ -371,6 +372,17 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 ---
 
 ## Cursor
+
+### 2026-08-16 — FIX — Voice permission gate and recognizer restart race
+
+**Status:** IN PROGRESS
+**Branch:** `cursor/FIX-voice-permission-gate`
+
+**Scope:** RATA-004 review findings. Route Chromium `getUserMedia` and the Windows PowerShell recognizer through one `isMicrophoneEnabled` check. Re-evaluate the gate for the lifetime of a listen session (disable mid-session stops the child). Fix `voice-win.cjs` so `start()` during a pending `stop()` cannot spawn a second powershell, and an old child's `exit` cannot clear a newer child's reference.
+
+**Files currently touching:** `AGENT_WORKBOOK.md` (claim only; implementation follows).
+
+---
 
 ### 2026-08-16 — TRIVIA-001 — Align Trivia prompt with Serper-first routing
 
