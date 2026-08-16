@@ -8,8 +8,6 @@ using System.Speech.Recognition;
 using System.Threading;
 
 public static class RataListen {
-  const float MinConfidence = 0.4f;
-
   public static int Run() {
     var info = PickRecognizer();
     if (info == null) {
@@ -45,15 +43,13 @@ public static class RataListen {
         } catch {
           continue;
         }
-        // Dictation returns a best guess for almost any audio, including an
-        // empty room. Measured on this hardware: ambient noise produced
-        // "And if we're" at 0.225 and "Three" at 0.323, while a clean spoken
-        // phrase scored 0.681. Anything below the gate is discarded, and the
-        // renderer already tells the user "I didn't catch that" when a session
-        // produces no transcript, so a dropped guess degrades to a retry
-        // prompt rather than nonsense in the input box.
-        if (result != null && result.Confidence >= MinConfidence && !string.IsNullOrWhiteSpace(result.Text)) {
-          Console.WriteLine(result.Text.Trim());
+        // Every result is emitted as "confidence|text". The decision to keep
+        // or discard belongs in voice-win.cjs, not here, so that a discarded
+        // result can still be audited. A gate applied inside this script is
+        // invisible: the app cannot tell "heard nothing" from "heard something
+        // and threw it away", which is exactly the failure this replaced.
+        if (result != null && !string.IsNullOrWhiteSpace(result.Text)) {
+          Console.WriteLine(result.Confidence.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) + "|" + result.Text.Trim());
           Console.Out.Flush();
         }
       }

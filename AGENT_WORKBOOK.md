@@ -100,6 +100,22 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ## Claude
 
+### 2026-08-17 — FIX-006 — My confidence gate swallowed real speech
+
+**Status:** DONE, awaiting review. Branch `claude/FIX-006-voice-confidence-visibility`.
+
+FIX-005 stopped the recognizer dying, and the user reported voice still not working. The audit trail showed eight "Voice listening started" events with **no transcript and no unexpected-exit error**, which proves the child was alive and producing nothing the app would accept. That points at the gate I added in FIX-005, not at the recogniser.
+
+**My error.** I set `MinConfidence` to 0.4 from three data points, one of which was *synthesised* audio scoring 0.681. Synthesised speech fed straight to the engine is far cleaner than a real microphone in a real room, so 0.4 was tuned against an unrealistically easy sample and swallowed genuine speech. I turned "the recogniser dies" into "the recogniser works and the app throws the result away", which looks identical from the outside.
+
+**The structural fix, not just a smaller number.** The keep-or-discard decision was inside the PowerShell script, where a discarded result leaves no trace. "Heard nothing" and "heard something and discarded it" were indistinguishable from outside, which is precisely what made this hard to see. The script now emits `confidence|text` for every result and `voice-win.cjs` decides, logging every discard with its score. `MIN_CONFIDENCE` drops to 0.2, and the number can now be set from real measurements instead of a guess.
+
+Measured noise so far: 0.085, 0.225, 0.323. It varies enough that some noise will pass 0.2 occasionally. That is the right trade against silently eating speech.
+
+Parsing is backwards compatible: a line with no confidence prefix is still delivered as plain text, so an older or hand-edited script cannot cause silence.
+
+**Validation.** `npm run verify` 312/312. Five new tests including one asserting `MIN_CONFIDENCE <= 0.25`, so a future tightening has to argue with a test rather than quietly regress this.
+
 ### 2026-08-17 — FIX-005 — Speech recognition never actually ran
 
 **Status:** DONE, awaiting review. Branch `claude/FIX-005-voice-recognizer-never-ran`.

@@ -3,7 +3,7 @@ const assert = require('node:assert/strict')
 const { EventEmitter } = require('node:events')
 const fs = require('node:fs')
 const path = require('node:path')
-const { createWindowsVoice } = require('../electron/voice-win.cjs')
+const { createWindowsVoice, parseResultLine, MIN_CONFIDENCE } = require('../electron/voice-win.cjs')
 const { registerIpcHandlers } = require('../electron/ipc/index.cjs')
 const { composeBridge } = require('../electron/bridge/compose.cjs')
 const { IPC } = require('../packages/contracts/ipc-channels.cjs')
@@ -314,4 +314,67 @@ test('a requested stop is not reported as an unexpected death', async () => {
     false,
     'an ordinary stop reported an error'
   )
+})
+
+// --- FIX-006: the confidence decision belongs where it can be audited ---
+
+test('a result line is parsed into confidence and transcript', () => {
+  assert.deepEqual(parseResultLine('0.412|hello there'), { confidence: 0.412, transcript: 'hello there' })
+  assert.deepEqual(parseResultLine('1.000|yes'), { confidence: 1, transcript: 'yes' })
+  // No prefix: an older or hand-edited script must not fall silent.
+  assert.deepEqual(parseResultLine('plain text'), { confidence: null, transcript: 'plain text' })
+  assert.deepEqual(parseResultLine('abc|def'), { confidence: null, transcript: 'abc|def' })
+  for (const empty of ['', '   ', '0.5|', '0.5|   ']) {
+    assert.equal(parseResultLine(empty), null, `${JSON.stringify(empty)} should produce nothing`)
+  }
+})
+
+test('a confident result is delivered to the renderer', async () => {
+  const transcripts = []
+  const child = fakeChild()
+  const voice = createWindowsVoice({
+    spawnProcess: () => child,
+    sendTranscript: payload => transcripts.push(payload),
+    logActivity: () => {}
+  })
+  await voice.start()
+  child.stdout.emit('data', '0.680|open notepad\n')
+  assert.deepEqual(transcripts, [{ transcript: 'open notepad' }])
+})
+
+test('a low-confidence result is audited rather than discarded in silence', async () => {
+  // "Heard nothing" and "heard something and threw it away" are different
+  // problems. They used to be indistinguishable from outside the recognizer,
+  // which is what made an over-tight gate look identical to a dead process.
+  const transcripts = []
+  const events = []
+  const child = fakeChild()
+  const voice = createWindowsVoice({
+    spawnProcess: () => child,
+    sendTranscript: payload => transcripts.push(payload),
+    logActivity: (action, detail, status) => events.push({ action, detail, status })
+  })
+  await voice.start()
+  events.length = 0
+  child.stdout.emit('data', '0.120|and if were\n')
+
+  assert.equal(transcripts.length, 0, 'a low-confidence guess reached the input box')
+  assert.equal(events.length, 1, 'the discard was not audited')
+  assert.match(events[0].detail, /0\.120/)
+  assert.match(events[0].detail, /and if were/)
+})
+
+test('the gate is low enough not to swallow ordinary speech', () => {
+  // A first attempt at 0.4 was tuned partly on synthesised audio scoring
+  // 0.681, which is far cleaner than a real microphone in a real room, and it
+  // silently swallowed genuine speech.
+  assert.ok(MIN_CONFIDENCE <= 0.25, `MIN_CONFIDENCE ${MIN_CONFIDENCE} is high enough to drop real speech`)
+})
+
+test('the recognizer script emits confidence with every result', () => {
+  const script = fs.readFileSync(path.join(__dirname, '..', 'electron', 'voice-listen.ps1'), 'utf8')
+  assert.match(script, /result\.Confidence\.ToString/, 'confidence is not reported')
+  assert.match(script, /InvariantCulture/, 'a comma decimal separator would break parsing')
+  // The keep/discard decision must not live in the script, where it cannot be audited.
+  assert.doesNotMatch(script, /MinConfidence/, 'the gate is back inside the script')
 })
