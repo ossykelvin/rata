@@ -4,6 +4,7 @@ const dns = require('node:dns').promises
 const http = require('node:http')
 const https = require('node:https')
 const net = require('node:net')
+const { parse } = require('parse5')
 
 const MAX_URL_LENGTH = 2048
 const MAX_RESPONSE_BYTES = 128 * 1024
@@ -11,6 +12,9 @@ const MAX_CONTENT_CHARS = 50000
 const MAX_REDIRECTS = 3
 const DEFAULT_TIMEOUT_MS = 15000
 const ALLOWED_CONTENT_TYPES = Object.freeze(['text/html', 'application/xhtml+xml', 'text/plain', 'application/json'])
+const ALLOWED_PORTS = Object.freeze(['80', '443'])
+const BLOCKED_HTML_ELEMENTS = new Set(['script', 'style', 'noscript', 'svg', 'template', 'iframe', 'object'])
+const BREAK_HTML_ELEMENTS = new Set(['br', 'p', 'div', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'tr'])
 
 const blockedIpv4 = new net.BlockList()
 for (const [network, prefix] of [
@@ -64,6 +68,10 @@ function validatePublicUrlSyntax(input) {
   }
   if (target.username || target.password) throw new TypeError('URLs containing credentials are not allowed.')
   if (!target.hostname) throw new TypeError('URL must include a hostname.')
+  const effectivePort = target.port || (target.protocol === 'https:' ? '443' : '80')
+  if (!ALLOWED_PORTS.includes(effectivePort)) {
+    throw new TypeError('Only public web ports 80 and 443 may be fetched.')
+  }
 
   // Fragments never travel to the server and have no place in the audited
   // destination. Canonicalising here also keeps redirect comparisons stable.
@@ -154,15 +162,32 @@ function readBoundedBody(response, maxBytes) {
   })
 }
 
-function decodeEntities(text) {
-  const named = Object.freeze({ amp: '&', apos: "'", gt: '>', lt: '<', nbsp: ' ', quot: '"' })
-  return String(text).replace(/&(#\d+|#x[\da-f]+|amp|apos|gt|lt|nbsp|quot);/gi, (_match, entity) => {
-    if (entity[0] !== '#') return named[entity.toLowerCase()] || ' '
-    const radix = entity[1].toLowerCase() === 'x' ? 16 : 10
-    const digits = radix === 16 ? entity.slice(2) : entity.slice(1)
-    const point = Number.parseInt(digits, radix)
-    return Number.isSafeInteger(point) && point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : ' '
-  })
+function findElement(node, tagName) {
+  if (node?.tagName === tagName) return node
+  for (const child of node?.childNodes || []) {
+    const found = findElement(child, tagName)
+    if (found) return found
+  }
+  return null
+}
+
+function collectReadableText(node, output) {
+  if (node?.nodeName === '#text') {
+    output.push(node.value)
+    return
+  }
+  if (BLOCKED_HTML_ELEMENTS.has(node?.tagName)) return
+
+  const createsBreak = BREAK_HTML_ELEMENTS.has(node?.tagName)
+  if (createsBreak) output.push('\n')
+  for (const child of node?.childNodes || []) collectReadableText(child, output)
+  if (createsBreak) output.push('\n')
+}
+
+function readableText(node) {
+  const output = []
+  collectReadableText(node, output)
+  return output.join('')
 }
 
 function extractReadableContent(body, contentType) {
@@ -171,18 +196,13 @@ function extractReadableContent(body, contentType) {
     return { title: '', content: source.replace(/\0/g, '').trim().slice(0, MAX_CONTENT_CHARS) }
   }
 
-  const titleMatch = source.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)
-  const title = decodeEntities(titleMatch?.[1] || '')
+  const document = parse(source, { scriptingEnabled: true })
+  const title = readableText(findElement(document, 'title'))
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 300)
-  const content = decodeEntities(
-    source
-      .replace(/<!--[\s\S]*?-->/g, ' ')
-      .replace(/<(script|style|noscript|svg|template)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ')
-      .replace(/<(br|\/p|\/div|\/li|\/h[1-6]|\/tr)>/gi, '\n')
-      .replace(/<[^>]+>/g, ' ')
-  )
+  const contentRoot = findElement(document, 'body') || document
+  const content = readableText(contentRoot)
     .replace(/[\t\r ]+/g, ' ')
     .replace(/\n\s*\n+/g, '\n\n')
     .trim()
@@ -226,7 +246,11 @@ function createPublicWebFetch({
         response.resume()
         if (!location) throw new Error('Web fetch returned a redirect without a destination.')
         if (redirectCount === maxRedirects) throw new Error('Web fetch exceeded the redirect limit.')
-        target = validatePublicUrlSyntax(new URL(location, target).toString())
+        const nextTarget = validatePublicUrlSyntax(new URL(location, target).toString())
+        if (target.protocol === 'https:' && nextTarget.protocol === 'http:') {
+          throw new Error('Web fetch refused an HTTPS-to-HTTP redirect downgrade.')
+        }
+        target = nextTarget
         continue
       }
       if (status < 200 || status >= 300) {
@@ -272,5 +296,6 @@ module.exports = {
   MAX_RESPONSE_BYTES,
   MAX_CONTENT_CHARS,
   MAX_REDIRECTS,
-  ALLOWED_CONTENT_TYPES
+  ALLOWED_CONTENT_TYPES,
+  ALLOWED_PORTS
 }

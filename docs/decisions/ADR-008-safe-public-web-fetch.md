@@ -24,7 +24,8 @@ content reaches Gemini only through the provider abstraction and its existing
 **Public destinations only.** The fetch client accepts absolute HTTP(S) URLs
 without embedded credentials. It rejects non-public IPv4 and IPv6 ranges,
 including loopback, private, link-local, multicast, documentation and reserved
-ranges. Every redirect is parsed and resolved again.
+ranges. Only ports 80 and 443 are reachable. Every redirect is parsed and
+resolved again, and an HTTPS request may not redirect down to plaintext HTTP.
 
 **DNS answers are pinned.** Resolving a hostname and then handing the hostname
 to a generic fetch implementation would leave a DNS-rebinding gap. Rata instead
@@ -33,8 +34,9 @@ TLS server name. A mixed DNS response containing any non-public address fails
 closed.
 
 **Responses are bounded.** Fetches have a timeout, three-redirect ceiling,
-128-KiB byte limit, and allow-list of readable text content types. Script,
-style, template, SVG and markup content is removed when extracting HTML text.
+128-KiB byte limit, and allow-list of readable text content types. HTML and
+XHTML are parsed into a document tree; script, style, noscript, template, SVG,
+iframe and object subtrees are discarded before visible text is collected.
 The provider context is clamped further to 50,000 characters.
 
 **External text remains data.** Tool results carry

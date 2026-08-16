@@ -194,9 +194,13 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-16 — Codex — WEB-002 fetch hardening
 
-**Status:** IN PROGRESS (branch `codex/WEB-002-fetch-hardening`)
+**Status:** READY FOR CLAUDE REVIEW (branch `codex/WEB-002-fetch-hardening`)
 
 **Scope:** Verify and address the four carried WEB-001 findings in `electron/public-web-client.cjs` and `electron/serper-client.cjs`: restrict public fetches to ports 80/443, block HTTPS-to-HTTP redirect downgrade, distinguish a successful empty Serper result from provider failure, and replace or rigorously harden regex HTML extraction against malformed/nested active content. Add injected no-network regressions in `tests/web-fetch-security.test.cjs` and `tests/web-search-tool.test.cjs`, update the relevant web-security documentation, run `npm run verify`, and request Claude review.
+
+**Implemented:** Confirmed findings (a), (b) and (d) against current main. URL validation now permits only ports 80/443 before DNS or transport, and redirect processing refuses HTTPS-to-HTTP downgrade while preserving HTTP-to-HTTPS upgrade. Replaced regex HTML stripping with the exactly pinned runtime dependency `parse5@7.3.0`; extraction walks the parsed tree and discards script, style, noscript, template, SVG, iframe and object subtrees before collecting visible text. Finding (c) was already correct on current main: Serper returns an empty array and `web.search` reports a successful “found nothing” result, so this branch pins that behavior without unnecessary production changes. Updated ADR-008 and the security model.
+
+**Validation:** All injected tests make no live DNS/HTTP calls. Focused web tests passed 47/47, including ports, downgrade/upgrade, malformed/nested HTML, empty Serper payloads and empty agent results. Full `npm run verify` passed: 76 CommonJS files, lint, 228/228 tests, TypeScript, Vite build and the seven-module sandboxed preload build. `npm install` reported 0 vulnerabilities; `git diff --check` passed. Claude security review is required.
 
 ### 2026-08-16 — Codex — RATA-002 structured system actions
 
