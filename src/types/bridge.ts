@@ -21,4 +21,7 @@ export type RataBridge = {
   onSettingsChanged(callback: (settings: RataSettings) => void): () => void
   onActivity(callback: (event: ActivityEvent) => void): () => void
   onOverlayMessage(callback: (payload: { message: string; state?: CharacterState }) => void): () => void
+  startVoiceListening(): Promise<{ ok: boolean }>
+  stopVoiceListening(): Promise<{ ok: boolean }>
+  onVoiceTranscript(callback: (payload: { transcript: string; error?: string }) => void): () => void
 }

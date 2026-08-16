@@ -21,7 +21,8 @@ src/views (React UI)
 | Path | Owns | Must not |
 |---|---|---|
 | `src/` | Overlay, Control Center, character presentation | Node, Electron, OS, tools |
-| `src/hooks/useVoice.ts` | Browser speech recognition, push-to-talk, permission state | Audio capture, Node, IPC |
+| `src/hooks/useVoice.ts` | Push-to-talk UI and transcript display | Audio capture, Node, OS speech |
+| `electron/voice-win.cjs` | Windows speech recognition adapter | Generic shell, model-generated commands |
 | `src/types/` | Renderer domain types and barrel | Privileged contracts or Electron APIs |
 | `src/styles/` | `base.css`, `overlay.css`, `control.css`, plus per-component sheets | Privileged styling or Node imports |
 | `src/views/control/` | Self-registered Control Center pages (`controlPage` + `import.meta.glob`) | Editing `ControlCenter.tsx` or `model.ts` to add a page |

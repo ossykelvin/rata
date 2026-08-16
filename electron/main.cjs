@@ -18,6 +18,7 @@ const {
 } = require('../packages/agent-core/providers/index.cjs')
 const { registerIpcHandlers } = require('./ipc/index.cjs')
 const { createSecurityPolicy, applySessionPermissionHandler } = require('./security.cjs')
+const { createWindowsVoice } = require('./voice-win.cjs')
 const { IPC } = require('../packages/contracts/ipc-channels.cjs')
 const { createSkillRegistry, createSkillRouter, createSkillLoader } = require('../packages/skills/index.cjs')
 
@@ -247,6 +248,12 @@ if (!hasSingleInstanceLock) {
     // REVIEW-001 M4 / Codex b1d9c52: renderer `microphoneEnabled` is not a
     // boundary. Deny media unless the setting is on; deny every other permission.
     applySessionPermissionHandler(session.defaultSession, () => store.getSettings())
+    const voice = createWindowsVoice({
+      sendTranscript: payload => {
+        for (const win of BrowserWindow.getAllWindows()) win.webContents.send(IPC.voiceTranscript, payload)
+      },
+      logActivity
+    })
     const registry = createToolRegistry({
       dependencies: {
         spawnProcess: spawn,
@@ -284,7 +291,8 @@ if (!hasSingleInstanceLock) {
         showControl,
         broadcastSettings,
         logActivity,
-        Notification
+        Notification,
+        getVoice: () => voice
       }
     })
     createOverlay()

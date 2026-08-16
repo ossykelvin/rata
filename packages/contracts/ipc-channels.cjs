@@ -18,7 +18,10 @@ const IPC = Object.freeze({
   testNotification: 'rata:test-notification',
   settingsChanged: 'rata:settings-changed',
   activity: 'rata:activity',
-  overlayMessage: 'rata:overlay-message'
+  overlayMessage: 'rata:overlay-message',
+  startVoiceListening: 'rata:voice-start',
+  stopVoiceListening: 'rata:voice-stop',
+  voiceTranscript: 'rata:voice-transcript'
 })
 
 module.exports = { IPC }
