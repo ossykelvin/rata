@@ -468,6 +468,17 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Cursor
 
+### 2026-08-17 — RATA-008 — Communicator (understanding + voice)
+
+**Status:** IN PROGRESS
+**Branch:** `cursor/RATA-008-communicator`
+
+**Scope:** Always-on communicator that is not a routed skill. Understanding stage sits last after deterministic routes, skill router, and ADR-009 planner; it may only map a fixed intent enum onto existing tools. Voice stage rewrites conversational replies through one `presentReply` seam. Default `communicatorEnabled` is false.
+
+**Files currently touching:** `packages/agent-core/communicator.cjs`, `packages/agent-core/mock-agent.cjs`, `packages/skills/{registry,router,loader,contracts}.cjs`, `skills/communicator/`, `packages/contracts/ipc-validation.cjs`, `electron/store.cjs`, `src/types/settings.ts`, `src/views/control/PermissionsPage.tsx`, `tests/communicator.test.cjs`, `tests/skill-fragments.test.cjs`, `docs/decisions/ADR-012-communicator.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`.
+
+---
+
 ### 2026-08-16 — FIX — Overlay Hide and compact drag (follow-up after #60)
 
 **Status:** IN PROGRESS
