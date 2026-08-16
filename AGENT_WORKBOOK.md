@@ -504,12 +504,14 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-17 — RATA-008 — Communicator (understanding + voice)
 
-**Status:** IN PROGRESS
+**Status:** DONE, PR #70
 **Branch:** `cursor/RATA-008-communicator`
 
-**Scope:** Always-on communicator that is not a routed skill. Understanding stage sits last after deterministic routes, skill router, and ADR-009 planner; it may only map a fixed intent enum onto existing tools. Voice stage rewrites conversational replies through one `presentReply` seam. Default `communicatorEnabled` is false.
+**Done:** Always-on communicator, not a routed skill (`selectable: false`). Understanding sits last after deterministic routes, the skill router and ADR-009; it maps a fixed intent enum onto existing tools. Voice rewrites conversational replies through one `presentReply` seam. `communicatorEnabled` defaults to false. Claude review requested on `packages/agent-core/`.
 
-**Files currently touching:** `packages/agent-core/communicator.cjs`, `packages/agent-core/mock-agent.cjs`, `packages/skills/{registry,router,loader,contracts}.cjs`, `skills/communicator/`, `packages/contracts/ipc-validation.cjs`, `electron/store.cjs`, `src/types/settings.ts`, `src/views/control/PermissionsPage.tsx`, `tests/communicator.test.cjs`, `tests/skill-fragments.test.cjs`, `docs/decisions/ADR-012-communicator.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`.
+**Files touched:** `packages/agent-core/communicator.cjs`, `packages/agent-core/mock-agent.cjs`, `packages/skills/{router,loader,contracts,index}.cjs`, `skills/communicator/`, `packages/contracts/ipc-validation.cjs`, `electron/store.cjs`, `src/types/settings.ts`, `src/views/control/PermissionsPage.tsx`, `tests/communicator.test.cjs`, `tests/skill-fragments.test.cjs`, `docs/decisions/ADR-012-communicator.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`.
+
+**Validation:** `npm run verify` 337/337 after merging current `origin/main`.
 
 ---
 
