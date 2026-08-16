@@ -163,6 +163,20 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Codex
 
+### 2026-08-16 — Codex — RATA-002 Critical Thinking OpenRouter routing
+
+**Status:** DONE — draft PR #49 awaiting Lane H issue #48 and Claude review (branch `codex/RATA-002-critical-thinking-openrouter`)
+
+**Scope:** Route the existing declarative `critical-thinking` skill through the provider abstraction with OpenRouter preferred in auto mode and Gemini retained as fallback. Load the skill prompt only after selection; never expose `OPENROUTER_API_KEY` to the skill, renderer, or audit trail. Respect explicit provider modes, update behavior tests and provider-routing documentation, run `npm run verify`, and request Claude review because this changes `packages/agent-core/`.
+
+**Implemented:** `MockAgent` now continues a selected, tool-complete `critical-thinking` route through a provider-only helper. It loads only that selected prompt, supplies it beside Rata's global system prompt, and passes `preferredProvider: 'openrouter'` to the existing chain. The preference applies only in `auto`; pinned Gemini/OpenRouter/mock modes remain authoritative and the existing OpenRouter → Gemini → mock fallback is preserved. The API key remains closed inside the OpenRouter adapter and is never passed to the skill, renderer or activity log. ADR-007 records the routing decision. No skill metadata, contract or renderer path changed.
+
+**Validation:** Injected end-to-end routing confirmed only `critical-thinking` was loaded and OpenRouter was preferred. A redacted live route check in `auto` mode succeeded through OpenRouter (`anthropic/claude-sonnet-5`) with both credentials reported only as booleans. `npm run verify` passed: 67 CommonJS files, lint, 181/181 tests, TypeScript, Vite build and the six-module preload build. `npm ci` reported 0 vulnerabilities. Lane H regression coverage remains delegated to Claude.
+
+**Files touched:** `packages/agent-core/mock-agent.cjs`, `docs/decisions/ADR-007-ai-provider-chain.md`, and this Codex workbook entry.
+
+**Handoff:** Draft PR #49 is open against `main`. Issue #48 requests injected Lane H coverage for selected-prompt loading, OpenRouter-first auto routing, fallback order, pinned-mode precedence, prompt failure and credential isolation. Do not merge until Claude's tests and review land.
+
 ### 2026-08-16 — Codex — WEB-001 Claude review findings 1–3
 
 **Status:** DONE — follow-up PR #47 ready for Claude re-review (branch `codex/WEB-001-implement-safe-fetch`)
