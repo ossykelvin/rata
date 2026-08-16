@@ -8,6 +8,8 @@ using System.Speech.Recognition;
 using System.Threading;
 
 public static class RataListen {
+  const float MinConfidence = 0.4f;
+
   public static int Run() {
     var info = PickRecognizer();
     if (info == null) {
@@ -43,7 +45,14 @@ public static class RataListen {
         } catch {
           continue;
         }
-        if (result != null && !string.IsNullOrWhiteSpace(result.Text)) {
+        // Dictation returns a best guess for almost any audio, including an
+        // empty room. Measured on this hardware: ambient noise produced
+        // "And if we're" at 0.225 and "Three" at 0.323, while a clean spoken
+        // phrase scored 0.681. Anything below the gate is discarded, and the
+        // renderer already tells the user "I didn't catch that" when a session
+        // produces no transcript, so a dropped guess degrades to a retry
+        // prompt rather than nonsense in the input box.
+        if (result != null && result.Confidence >= MinConfidence && !string.IsNullOrWhiteSpace(result.Text)) {
           Console.WriteLine(result.Text.Trim());
           Console.Out.Flush();
         }
@@ -67,7 +76,16 @@ public static class RataListen {
 }
 '@
 
-$thread = [System.Threading.Thread]::new([System.Threading.ThreadStart]{ [void][RataListen]::Run() })
-$thread.SetApartmentState([System.Threading.ApartmentState]::STA)
-$thread.Start()
-$thread.Join()
+# Call Run() directly on the host's own thread.
+#
+# This used to marshal the call onto a new [System.Threading.Thread] built from
+# a PowerShell ScriptBlock, to force an STA apartment. That silently killed the
+# process: a ScriptBlock delegate has no runspace on a raw .NET thread, the
+# failure is not catchable from the script, nothing reaches stderr, and
+# powershell.exe exits with code 2 before Run() is ever entered. Voice
+# recognition therefore never started, and no NO_MIC/NO_ENGINE diagnostic could
+# ever be produced.
+#
+# The thread was also unnecessary: powershell.exe 5.1 already runs its main
+# thread in STA, which is what System.Speech wants.
+exit [RataListen]::Run()
