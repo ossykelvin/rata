@@ -94,6 +94,20 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ## Claude
 
+### 2026-08-16 — RATA-004 fix — Recognizer script escaped `app.asar`; icon unblocked packaging
+
+**Status:** DONE. On `cursor/RATA-004-native-windows-voice` (PR #50), rebased onto `main`.
+
+**The blocking defect.** `voice-win.cjs` spawned `powershell.exe -File <__dirname>/voice-listen.ps1`. In a packaged build `__dirname` is inside `app.asar`, and PowerShell is an external process with no asar awareness — it cannot read that path. Voice therefore worked in dev and did **nothing at all** once installed, with no error surfaced. `resolveScriptPath()` / `isPackagedRuntime()` now point at `process.resourcesPath` when packaged (same shape as `appIconPath()` in `main.cjs`), and `build.extraResources` copies the script to `resources/`.
+
+**A second defect found while proving the first.** `npm run pack:win` could not run at all: `public/24_dialog_avatar_reply.png` was 77×82 and electron-builder rejects anything under 256×256. The fix was to regenerate **that** file at 256×256 — same circular navy badge, rebuilt from the concept art rather than upscaled — not to repoint `build.win.icon` at a new file. Cursor's `tests/app-icon.test.cjs` pins that path deliberately; their product decision stands.
+
+**Invisible asset load.** A failed character image rendered the silhouette and said nothing, so a dead Vite dev server looked like a design choice. `RataCharacter.tsx` now logs the failing URL, exposes it as `data-asset-failed`, and puts it in `title` / the fallback's `aria-label`.
+
+**Validation.** `npm run verify` **211/211, exit 0**. Packaging verified by execution, not inference: `release/win-unpacked/resources/` contains `voice-listen.ps1` (2,369 bytes) as a real file on disk alongside `app.asar`. `tests/voice-packaging.test.cjs` (6 tests) pins dev/packaged resolution, asar detection, the `extraResources` entry, the ≥256×256 icon, and the asset-failure reporting.
+
+**Still open on this feature** (from my earlier review, not fixed here): the second microphone path sits outside the permission handler and the gate is only checked at start; and there is a restart race in `stop()`/`start()`.
+
 ### 2026-08-15 — P0-2 — Privilege-boundary review and Lane H tests
 
 **Status:** DONE. PR #22 (tests) merged into the Codex branch; PR #20 merged to `main` as `9dde9f9`.
