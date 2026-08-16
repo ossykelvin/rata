@@ -1,5 +1,6 @@
 const fs = require('node:fs')
 const path = require('node:path')
+const crypto = require('node:crypto')
 const { validateSettingValue, isKnownSetting } = require('../packages/contracts/ipc-validation.cjs')
 
 const defaults = {
@@ -19,6 +20,25 @@ const defaults = {
   activity: []
 }
 
+// These are used only when a value read from an existing file is invalid.
+// Microphone access fails closed, while every configurable confirmation falls
+// back to enabled. Fresh-install product defaults remain unchanged above.
+const safeDiskFallbackSettings = Object.freeze({
+  ...defaults.settings,
+  microphoneEnabled: false,
+  clipboardConfirm: true,
+  webSearchConfirm: true,
+  webFetchConfirm: true
+})
+
+function isRecord(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function safeSettingLabel(key) {
+  return /^[a-z][a-zA-Z0-9]{0,63}$/.test(key) ? key : '[unrecognized]'
+}
+
 class JsonStore {
   constructor(app) {
     this.file = path.join(app.getPath('userData'), 'rata-store.json')
@@ -27,19 +47,54 @@ class JsonStore {
   }
 
   load() {
+    if (!fs.existsSync(this.file)) return
+
     try {
-      if (fs.existsSync(this.file)) {
-        const parsed = JSON.parse(fs.readFileSync(this.file, 'utf8'))
-        this.data = {
-          ...structuredClone(defaults),
-          ...parsed,
-          settings: { ...defaults.settings, ...(parsed.settings || {}) },
-          activity: Array.isArray(parsed.activity) ? parsed.activity : []
+      const parsed = JSON.parse(fs.readFileSync(this.file, 'utf8'))
+      if (!isRecord(parsed)) throw new TypeError('invalid-store-shape')
+
+      this.data = {
+        settings: { ...defaults.settings },
+        activity: Array.isArray(parsed.activity) ? parsed.activity.slice(0, 250) : []
+      }
+
+      if (!isRecord(parsed.settings)) {
+        if (parsed.settings !== undefined) {
+          this.data.settings = { ...safeDiskFallbackSettings }
+          this.recordLoadFallback('Stored settings had an invalid shape; safe settings were restored.')
+        }
+        return
+      }
+
+      for (const key of Object.keys(parsed.settings)) {
+        if (!isKnownSetting(key)) {
+          this.recordLoadFallback(`Unknown stored setting was dropped: ${safeSettingLabel(key)}.`)
+          continue
+        }
+        try {
+          this.data.settings[key] = validateSettingValue(key, parsed.settings[key])
+        } catch {
+          this.data.settings[key] = safeDiskFallbackSettings[key]
+          this.recordLoadFallback(`Invalid stored setting was replaced safely: ${key}.`)
         }
       }
-    } catch (error) {
-      console.error('Rata store load failed:', error)
+    } catch {
+      this.data = { settings: { ...safeDiskFallbackSettings }, activity: [] }
+      this.recordLoadFallback('The stored data was unreadable; safe settings were restored.')
+      // Do not include parser text or the local file path in logs.
+      console.error('Rata store load failed; safe settings were restored.')
     }
+  }
+
+  recordLoadFallback(detail) {
+    this.data.activity.unshift({
+      id: crypto.randomUUID(),
+      at: new Date().toISOString(),
+      action: 'Store recovery',
+      detail,
+      status: 'warning'
+    })
+    this.data.activity = this.data.activity.slice(0, 250)
   }
 
   save() {

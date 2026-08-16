@@ -34,6 +34,13 @@ function freshStore() {
   return new JsonStore({ getPath: () => dir })
 }
 
+function storeFromDisk(contents) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rata-settings-disk-test-'))
+  const serialized = typeof contents === 'string' ? contents : JSON.stringify(contents)
+  fs.writeFileSync(path.join(dir, 'rata-store.json'), serialized, 'utf8')
+  return new JsonStore({ getPath: () => dir })
+}
+
 test('inherited prototype keys are rejected as settings', () => {
   for (const key of INHERITED_KEYS) {
     assert.throws(
@@ -94,4 +101,55 @@ test('SETTING_KEYS is the complete declared surface', () => {
   assert.equal(SETTING_KEYS.includes('constructor'), false)
   assert.equal(Object.isFrozen(SETTING_KEYS), true)
   for (const key of SETTING_KEYS) assert.equal(isKnownSetting(key), true)
+})
+
+test('unknown settings loaded from disk are dropped and audited', () => {
+  const store = storeFromDisk({ settings: { opacity: 0.8, adminMode: true } })
+  const settings = store.getSettings()
+  assert.equal(settings.opacity, 0.8)
+  assert.equal(Object.hasOwn(settings, 'adminMode'), false)
+  assert.match(store.getActivity()[0].detail, /Unknown stored setting.*adminMode/)
+})
+
+test('wrong-type settings loaded from disk fall back without logging their values', () => {
+  const secretValue = 'not-a-provider-secret-value'
+  const store = storeFromDisk({ settings: { provider: secretValue } })
+  assert.equal(store.getSettings().provider, 'mock')
+  const event = store.getActivity()[0]
+  assert.match(event.detail, /provider/)
+  assert.equal(event.detail.includes(secretValue), false)
+  assert.equal(event.status, 'warning')
+})
+
+test('out-of-range settings loaded from disk use their safe default', () => {
+  const store = storeFromDisk({ settings: { opacity: 99 } })
+  assert.equal(store.getSettings().opacity, 1)
+  assert.match(store.getActivity()[0].detail, /opacity/)
+})
+
+test('corrupt JSON restores fail-closed security settings and records recovery', () => {
+  const store = storeFromDisk('{"settings":{"microphoneEnabled":true')
+  const settings = store.getSettings()
+  assert.equal(settings.microphoneEnabled, false)
+  assert.equal(settings.clipboardConfirm, true)
+  assert.equal(settings.webSearchConfirm, true)
+  assert.equal(settings.webFetchConfirm, true)
+  assert.match(store.getActivity()[0].detail, /unreadable/)
+})
+
+test('invalid microphone and confirmation settings cannot loosen policy from disk', () => {
+  const store = storeFromDisk({
+    settings: {
+      microphoneEnabled: 'true',
+      clipboardConfirm: 'false',
+      webSearchConfirm: 0,
+      webFetchConfirm: null
+    }
+  })
+  const settings = store.getSettings()
+  assert.equal(settings.microphoneEnabled, false)
+  assert.equal(settings.clipboardConfirm, true)
+  assert.equal(settings.webSearchConfirm, true)
+  assert.equal(settings.webFetchConfirm, true)
+  assert.equal(store.getActivity().length, 4)
 })
