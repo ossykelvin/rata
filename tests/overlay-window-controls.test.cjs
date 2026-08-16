@@ -40,7 +40,13 @@ test('close hides the overlay and keeps the process in the tray', () => {
   assert.match(main, /skipTaskbar:\s*true/)
   assert.match(main, /label: 'Show Rata'/)
   assert.match(main, /label: 'Hide Rata'/)
-  assert.match(main, /tray\.on\('click',\s*\(\) => overlayWindow\?\.show\(\)\)/)
+  // Was pinned as `overlayWindow?.show()`, which is the FIX-003 bug: once the
+  // overlay has been closed the reference is undefined and the optional chain
+  // silently does nothing. Since this feature is what lets the user reach that
+  // state from the tray, the click must go through the lifecycle service that
+  // recreates a missing overlay.
+  assert.match(main, /tray\.on\('click',\s*\(\) => showOverlay\(\)\)/)
+  assert.doesNotMatch(main, /tray\.on\('click',\s*\(\) => overlayWindow\?\.show\(\)\)/)
   assert.match(main, /window-all-closed[\s\S]*preventDefault/)
   assert.match(main, /setSkipTaskbar\(true\)/)
 })

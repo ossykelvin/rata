@@ -180,7 +180,11 @@ function createTray() {
     { type: 'separator' },
     { label: 'Quit Rata', click: () => { app.isQuitting = true; app.quit() } }
   ]))
-  tray.on('click', () => overlayWindow?.show())
+  // Must go through showOverlay(), not overlayWindow?.show(). This branch was
+  // written before the FIX-003 lifecycle service landed, and the optional chain
+  // silently does nothing once the overlay has been closed — which is exactly
+  // the state this feature now lets the user reach from the tray.
+  tray.on('click', () => showOverlay())
   tray.on('double-click', showControl)
 }
 
