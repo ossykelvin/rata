@@ -42,6 +42,9 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
 - Preload exposes named functions only.
 - Never expose raw `ipcRenderer`, `fs`, `child_process`, shell execution or generic file APIs.
 - Validate settings, messages and approval identifiers in the main process before use. Preload and TypeScript types are developer ergonomics, not a trust boundary.
+- Settings loaded from disk pass through the same runtime validators as IPC
+  writes. Unknown and invalid values are rejected and audited; invalid
+  microphone access falls back off, while confirmation settings fall back on.
 
 ## Tool contracts
 
