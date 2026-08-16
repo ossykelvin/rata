@@ -68,6 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
+| Cursor | FIX critical-thinking provider | `cursor/FIX-critical-thinking-provider` | IN PROGRESS |
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, merged as #2 |
 | Codex | P0-1 modular IPC | `codex/P0-1-modular-ipc-boundary` | DRAFT PR #4 |
 | Cursor | RATA-003 character animation | `cursor/rata-003-character-animation-9241` | DONE, PR #5 |
@@ -371,6 +372,17 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 ---
 
 ## Cursor
+
+### 2026-08-16 — FIX — Critical Thinking uses the live provider
+
+**Status:** IN PROGRESS
+**Branch:** `cursor/FIX-critical-thinking-provider`
+
+**Scope:** Lane S. When the router selects Critical Thinking, load `skills/critical-thinking/SKILL.md` beneath the global system prompt and call the provider chain. Do not leave the skill on the hardcoded “mock agent has no live provider” stub. Skills still cannot invoke tools.
+
+**Files currently touching:** `AGENT_WORKBOOK.md` (claim only; implementation follows).
+
+---
 
 ### 2026-08-16 — TRIVIA-001 — Align Trivia prompt with Serper-first routing
 
