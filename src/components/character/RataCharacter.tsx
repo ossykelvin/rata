@@ -1,15 +1,23 @@
 import { useEffect, useState } from 'react'
 import type { CharacterState } from '../../types'
 import '../../styles/character.css'
-import { resolveCharacterPresentation, type CharacterSize } from './characterStates'
+import { normalizeCharacterState, resolveCharacterPresentation, type CharacterSize } from './characterStates'
+import { useIdlePresence } from './idlePresence'
 
 export type RataCharacterProps = {
   state?: CharacterState | string
   size?: CharacterSize
+  /**
+   * Idle presence drifts to bored/peeking/sleepy after a quiet minute and
+   * wakes excited. Turn it off for a static preview that should hold a pose.
+   */
+  idlePresence?: boolean
 }
 
-export function RataCharacter({ state = 'idle', size = 'large' }: RataCharacterProps) {
-  const presentation = resolveCharacterPresentation(state)
+export function RataCharacter({ state = 'idle', size = 'large', idlePresence = true }: RataCharacterProps) {
+  // The hook only ever overrides 'idle'; any real agent state passes through.
+  const presented = useIdlePresence(normalizeCharacterState(state), { enabled: idlePresence })
+  const presentation = resolveCharacterPresentation(presented)
   const [assetFailed, setAssetFailed] = useState(false)
 
   useEffect(() => {
