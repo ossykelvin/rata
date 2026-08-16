@@ -347,7 +347,9 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 **Validation:** `npm run verify` passed (152 tests).
 
-**Still open:** configurable cloud STT/TTS adapters (`packages/agent-core/voice/`, Lane G voice channels).
+**Still open:** configurable cloud STT/TTS adapters and TTS.
+
+**2026-08-16 — STT fix:** Chromium `SpeechRecognition` always fails in Electron (`network` / no Google speech service). Push-to-talk now uses Windows speech recognition from `electron/voice-win.cjs` through `rata:voice-*`. The renderer only receives the transcript. `microphoneEnabled` is enforced in the voice IPC handler. Lane G should review the three new contract channels.
 
 **2026-08-16 — Codex b1d9c52:** The WEB-001 workbook restated REVIEW-001 M4 after probing a checkout that did not include this branch. This PR already registers `setPermissionRequestHandler` and `setPermissionCheckHandler` on `session.defaultSession` before windows are created. `media`/`microphone` are allowed only when `microphoneEnabled === true` and requested types are audio-only. Every other renderer permission is denied. The renderer checkbox remains a UI affordance only.
 
