@@ -33,7 +33,7 @@ Then verify:
 
 1. Control Center opens.
 2. Transparent Rata overlay appears.
-3. Overlay can be dragged by grabbing the character or the speech-bubble header. Use the Ask chip to open input; clicks on fully transparent pixels still pass through to the desktop.
+3. Overlay can be dragged by grabbing the character or the speech-bubble header. Use the Ask chip to open input; clicks on fully transparent pixels still pass through to the desktop. Minimize (−) collapses to a small icon you can drag; click the icon to restore. Close (×) removes the overlay from the screen without quitting. Rata stays in the notification area (Show hidden icons). Left-click the tray icon or choose Show Rata to bring the overlay back. Quit Rata from the tray to exit.
 4. `open notepad` opens Notepad.
 5. `open calculator` opens Calculator.
 6. `copy Hello Rata to clipboard` requests approval.

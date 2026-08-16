@@ -109,6 +109,7 @@ function createControlCenter() {
     minWidth: 940,
     minHeight: 650,
     show: false,
+    skipTaskbar: true,
     backgroundColor: '#07142f',
     autoHideMenuBar: true,
     icon: loadAppIcon(),
@@ -117,6 +118,8 @@ function createControlCenter() {
   security.applyWindowGuards(controlWindow)
   controlWindow.loadURL(rendererTarget('control'))
   controlWindow.once('ready-to-show', () => controlWindow.show())
+  controlWindow.on('show', () => controlWindow.setSkipTaskbar(false))
+  controlWindow.on('hide', () => controlWindow.setSkipTaskbar(true))
   controlWindow.on('close', event => {
     if (!app.isQuitting) {
       event.preventDefault()
@@ -153,6 +156,7 @@ function createTray() {
     { type: 'separator' },
     { label: 'Quit Rata', click: () => { app.isQuitting = true; app.quit() } }
   ]))
+  tray.on('click', () => overlayWindow?.show())
   tray.on('double-click', showControl)
 }
 

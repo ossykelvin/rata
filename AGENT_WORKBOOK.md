@@ -68,7 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
-| Cursor | FIX overlay min/close | `cursor/FIX-overlay-min-close` | IN PROGRESS |
+| Cursor | FIX overlay min/close | `cursor/FIX-overlay-min-close` | DONE, PR pending |
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, merged as #2 |
 | Codex | P0-1 modular IPC | `codex/P0-1-modular-ipc-boundary` | DRAFT PR #4 |
 | Cursor | RATA-003 character animation | `cursor/rata-003-character-animation-9241` | DONE, PR #5 |
@@ -313,12 +313,14 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-16 — FIX — Overlay minimize and close
 
-**Status:** IN PROGRESS
+**Status:** DONE, PR pending
 **Branch:** `cursor/FIX-overlay-min-close`
 
-**Scope:** Lane B / renderer. Add minimize (−) and close (×) to the overlay Ask bar, to the right of Open Control Center. Minimize collapses to a small draggable icon. Close hides the overlay without quitting; the process stays in the notification-area tray. No new IPC channels.
+**Done:** Overlay Ask bar now has minimize (−) and close (×) to the right of Open Control Center. Minimize collapses to a small draggable icon; click restores. Close calls `hideOverlay()` and does not quit. Overlay stays `skipTaskbar`; Control Center leaves the taskbar when hidden; tray left-click shows the overlay again.
 
-**Files currently touching:** `AGENT_WORKBOOK.md` (claim only; implementation follows).
+**Files touched:** `src/views/Overlay.tsx`, `src/styles/overlay.css`, `electron/main.cjs`, `tests/overlay-window-controls.test.cjs`, `docs/VALIDATION.md`, `docs/ARCHITECTURE.md`.
+
+**Validation:** `npm run verify` passed (184 tests).
 
 ---
 
