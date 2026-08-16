@@ -50,6 +50,14 @@ Tool execution is centralized in `ToolRegistry.execute()`. A registered tool mus
 
 Web research keeps service authority separated: Serper supplies search results through `web.search`; `web.fetch` retrieves a validated public result without credentials; only then may provider-independent orchestration pass the text to the configured provider as fenced `context` data.
 
+Explicit application-launch requests have one narrower provider-assisted path.
+After deterministic intent gating, the provider may return a versioned JSON
+proposal for `system.openApp`; a strict parser accepts only Notepad or
+Calculator and rejects every other tool, field, argument, path or command. The
+proposal then enters the normal policy and Tool Registry path. Ordinary chat
+output and retrieved content never enter this planner. See
+`docs/decisions/ADR-009-structured-system-actions.md`.
+
 Adding a tool domain means adding one trusted module under `electron/tools/`; it does not require editing the composition index or Electron lifecycle. Tool modules are application code packaged with Rata, never user- or model-supplied plugins.
 
 Adding an IPC-backed capability extends the trusted boundary with a handler module and a preload bridge fragment instead of editing the shared main/preload hubs. `npm run build:preload` discovers and statically bundles new bridge fragments. Contract channel fragments are owned separately under `packages/contracts/`.

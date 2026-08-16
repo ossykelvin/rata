@@ -49,6 +49,12 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
 - External-write tools cannot opt out of confirmation.
 - Destructive tools remain denied by the MVP policy even if their metadata requests confirmation.
 - Native adapters receive validated inputs through `ToolRegistry.execute()`; callers must not invoke tool executors directly.
+- Model output is never a shell command. A model-assisted action must use a
+  versioned, exact-key schema that maps only to an existing registered tool and
+  allow-listed input. Invalid JSON, extra fields and unsupported values fail
+  closed before policy evaluation. The initial system-action schema permits
+  only `system.openApp` for Notepad or Calculator, with no paths, arguments,
+  elevation or command text.
 
 ## Secrets
 

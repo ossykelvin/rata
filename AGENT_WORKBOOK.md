@@ -165,9 +165,13 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-16 — Codex — RATA-002 structured system actions
 
-**Status:** IN PROGRESS (branch `codex/RATA-002-structured-system-actions`)
+**Status:** READY FOR CLAUDE REVIEW (branch `codex/RATA-002-structured-system-actions`)
 
 **Scope:** Implement the safe alternative to model-generated PowerShell. For explicit application-launch language not handled by the deterministic parser, Gemini/OpenRouter may return a small structured proposal constrained to the existing `system.openApp` tool and its Notepad/Calculator allow-list. Validate model output fail-closed, run accepted proposals only through `PolicyEngine` and `ToolRegistry`, preserve background spawn/audit behavior, and never accept shell text, executable paths, arguments, elevation, or arbitrary commands. Add an ADR and request Claude security/Lane H review.
+
+**Implemented:** Added a deterministic launch-intent gate and a versioned, exact-key provider proposal parser. The only accepted proposal is `system.openApp` with `notepad` or `calculator`; `none` is the only alternative. Ordinary chat and retrieved context cannot enter the planner. Accepted proposals still pass through registry validation, policy evaluation and registry execution. Invalid JSON, prose, Markdown, extra fields, paths, arguments, arbitrary tools/apps, shell text and elevation fail closed without execution. Added ADR-009 and aligned ADR-007, architecture and security documentation. No PowerShell or generic shell capability was added.
+
+**Validation:** Injected checks proved deterministic launches do not call a provider, a valid proposal launches only the fixed executable with an empty argument list and detached background options, and malicious/expanded proposals spawn nothing. Full `npm run verify` passed: 68 CommonJS files, lint, 181/181 tests, TypeScript, Vite build and the six-module sandboxed preload build. `git diff --check` passed. Claude privilege-boundary review and Lane H focused contract tests remain required before merge.
 
 ### 2026-08-16 — Codex — WEB-001 Claude review findings 1–3
 

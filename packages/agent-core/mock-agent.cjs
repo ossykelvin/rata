@@ -1,5 +1,9 @@
 const crypto = require('node:crypto')
 const { extractCalculation } = require('./calculator.cjs')
+const {
+  looksLikeSystemActionRequest,
+  planSystemAction
+} = require('./orchestrator/system-action-planner.cjs')
 
 /**
  * How long a requested approval stays valid. An approval is a snapshot of user
@@ -17,7 +21,9 @@ const MAX_PENDING_APPROVALS = 20
 /**
  * Sent as the system message on every provider call. States the authority
  * boundary in-band so the model is less likely to claim it performed an action
- * it cannot perform — the model has no tools.
+ * it cannot perform. Ordinary answer calls have no tool authority; the
+ * dedicated system-action planner may only propose a strictly validated,
+ * allow-listed registered tool input.
  */
 const SYSTEM_PROMPT = [
   'You are Rata, a Windows desktop assistant.',
@@ -101,6 +107,17 @@ class MockAgent {
       return this.runTool('system.openApp', { appName }, `Open ${appName}`)
     }
 
+    // Provider output is accepted here only as a versioned data proposal. The
+    // parser permits one existing registered tool and two fixed app names;
+    // ToolRegistry validation and policy evaluation still happen afterwards.
+    if (
+      this.provider &&
+      this.registry.has?.('system.openApp') &&
+      looksLikeSystemActionRequest(text)
+    ) {
+      return this.handleSystemAction(text)
+    }
+
     const copyMatch = text.match(/^copy\s+(.+?)(?:\s+to\s+(?:the\s+)?clipboard)?$/i)
     if (copyMatch) {
       const value = copyMatch[1].replace(/\s+to\s+(?:the\s+)?clipboard$/i, '').trim()
@@ -146,10 +163,10 @@ class MockAgent {
   /**
    * Falls through to the AI provider chain.
    *
-   * The provider only ever returns text. It cannot invoke a tool, and nothing
-   * here interprets its output as a command — that is what keeps model output
-   * (and anything a model was fed, such as web results) outside the authority
-   * boundary. AGENTS.md rules 10, 11.
+   * Ordinary provider output is displayed as text and is never interpreted as
+   * a command or tool request. The separate structured-action path has its own
+   * narrow schema and still passes through policy and ToolRegistry validation.
+   * AGENTS.md rules 10, 11.
    */
   async ask(text) {
     if (!this.provider) {
@@ -176,6 +193,31 @@ class MockAgent {
       const reason = error instanceof Error ? error.message : 'Unknown provider failure.'
       this.activity('Provider failed', reason, 'error')
       return { message: `I couldn't reach an AI provider: ${reason}`, state: 'error' }
+    }
+  }
+
+  async handleSystemAction(text) {
+    try {
+      const { proposal, providerResult } = await planSystemAction({ provider: this.provider, request: text })
+      for (const attempt of providerResult.attempts || []) {
+        this.activity('Provider fallback', `${attempt.provider} did not answer: ${attempt.error}`, 'warning')
+      }
+      if (!proposal) {
+        this.activity('System action declined', 'The request did not match an allow-listed application.', 'info')
+        return {
+          message: 'I can only safely launch Notepad or Calculator right now. I did not run a command.',
+          state: 'idle'
+        }
+      }
+      this.activity('System action proposed', `${proposal.toolId}: ${proposal.input.appName}`, 'info')
+      return this.runTool(proposal.toolId, proposal.input, proposal.title)
+    } catch (error) {
+      const code = typeof error?.code === 'string' ? error.code : 'provider-or-plan-failure'
+      this.activity('System action rejected', code, 'warning')
+      return {
+        message: 'I could not safely interpret that application-launch request. No command was run.',
+        state: 'error'
+      }
     }
   }
 
