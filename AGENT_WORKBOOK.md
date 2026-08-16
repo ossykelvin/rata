@@ -78,6 +78,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Codex | FIX-002 sandboxed preload bundle | `codex/FIX-002-bundle-sandboxed-preload` | READY FOR REVIEW, PR #16 |
 | Codex | P0-2 modular tool registration | `codex/P0-2-modular-tool-registration` | DRAFT PR #20 — awaiting Lane H tests + Claude review |
 | Codex | P0-3 skill manifest fragments | `codex/P0-3-skill-manifest-fragments` | DRAFT PR #25 — awaiting Lane H tests + Claude review |
+| Cursor | TRIVIA-001 Serper-first prompt | `cursor/TRIVIA-001-serper-first` | DONE, PR pending |
 | Cursor | RATA-004 speech recognition | `cursor/RATA-004-speech-recognition` | DONE, PR #44 |
 | Cursor | FIX overlay drag overflow | `cursor/FIX-overlay-drag-overflow` | IN PROGRESS |
 | Cursor | FIX app icon and taskbar | `cursor/FIX-app-icon` | DONE, PR #41 |
@@ -301,6 +302,18 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Cursor
 
+### 2026-08-16 — TRIVIA-001 — Align Trivia prompt with Serper-first routing
+
+**Status:** DONE, PR pending
+**Branch:** `cursor/TRIVIA-001-serper-first`
+
+**Done:** Issue #42. Trivia prompt and fragment now require Serper-first `web.search` verification, treat search evidence as untrusted, prefer Gemini with OpenRouter fallback in auto mode, and state that `webSearchConfirm` stays authoritative. Confirmation metadata is `respect_web_search_policy`. Id, order, category and tool list unchanged.
+
+**Files touched:** `skills/trivia/skill.json`, `skills/trivia/SKILL.md`.
+
+**Validation:** `npm run verify` passed (144 tests).
+
+**Coordination:** No edits to PR #40 or Lane H issue #39.
 ### 2026-08-15 — RATA-004 — Speech recognition
 
 **Status:** DONE, PR #44
