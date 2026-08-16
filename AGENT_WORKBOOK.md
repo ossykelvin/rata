@@ -163,6 +163,12 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Codex
 
+### 2026-08-16 — Codex — FIX-003 recreate closed overlay
+
+**Status:** IN PROGRESS (branch `codex/FIX-003-recreate-overlay`)
+
+**Scope:** Repair the main-process window lifecycle behind the Control Center and tray “Show Rata” actions. A closed/destroyed overlay currently clears `overlayWindow`, while callers use optional chaining and silently do nothing. Add a single safe show/recreate service, preserve the existing narrow IPC channel and renderer boundary, avoid all Cursor-owned UI paths and Claude-owned contracts/tests, run injected lifecycle checks plus `npm run verify`, and request Claude review for the Electron change.
+
 ### 2026-08-16 — Codex — RATA-002 Critical Thinking OpenRouter routing
 
 **Status:** DONE — draft PR #49 awaiting Lane H issue #48 and Claude review (branch `codex/RATA-002-critical-thinking-openrouter`)
