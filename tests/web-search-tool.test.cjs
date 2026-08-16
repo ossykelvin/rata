@@ -112,6 +112,28 @@ test('an unconfigured search key fails closed', async () => {
   await assert.rejects(() => registry.execute('web.search', { query: 'test' }), /not configured/)
 })
 
+test('a successful Serper search with no results is a successful empty result', async () => {
+  for (const payload of [{ organic: [] }, {}]) {
+    const registry = harness({
+      fetchImpl: async () => ({ ok: true, status: 200, json: async () => payload })
+    })
+    const result = await registry.execute('web.search', { query: 'deliberately absent result' })
+    assert.deepEqual(result.results, [])
+    assert.match(result.message, /found nothing usable/)
+  }
+
+  const registry = harness({ fetchImpl: serperResponse([]) })
+  const agent = new MockAgent({
+    registry,
+    policy: new PolicyEngine(),
+    settings: () => ({ webSearchConfirm: false }),
+    activity: () => {}
+  })
+  const reply = await agent.handle('search the web for deliberately absent result')
+  assert.equal(reply.state, 'success')
+  assert.match(reply.message, /found nothing usable/)
+})
+
 // --- config loading -----------------------------------------------------
 
 test('env parsing handles comments, quotes and blank lines', () => {
