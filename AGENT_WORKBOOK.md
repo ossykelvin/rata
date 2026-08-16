@@ -194,7 +194,7 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-16 — Codex — ADR-009 single-fence tolerance
 
-**Status:** READY FOR CLAUDE REVIEW (branch `codex/ADR-009-fence-tolerance`)
+**Status:** READY FOR CLAUDE REVIEW — draft PR #58 (branch `codex/ADR-009-fence-tolerance`)
 
 **Scope:** Update `packages/agent-core/orchestrator/system-action-planner.cjs` to strip at most one complete leading/trailing Markdown code fence (with or without the `json` tag) before parsing. Preserve the 512-character raw envelope limit and exact action schema; continue rejecting surrounding prose, unterminated fences, nested/double fences and every existing hostile shape. Deliberately update and extend `tests/system-action-planner.test.cjs`, align ADR-009, run `npm run verify`, and request Claude review.
 
