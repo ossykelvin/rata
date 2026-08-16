@@ -165,9 +165,13 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-16 — Codex — FIX-003 recreate closed overlay
 
-**Status:** IN PROGRESS (branch `codex/FIX-003-recreate-overlay`)
+**Status:** READY FOR CLAUDE REVIEW (branch `codex/FIX-003-recreate-overlay`)
 
 **Scope:** Repair the main-process window lifecycle behind the Control Center and tray “Show Rata” actions. A closed/destroyed overlay currently clears `overlayWindow`, while callers use optional chaining and silently do nothing. Add a single safe show/recreate service, preserve the existing narrow IPC channel and renderer boundary, avoid all Cursor-owned UI paths and Claude-owned contracts/tests, run injected lifecycle checks plus `npm run verify`, and request Claude review for the Electron change.
+
+**Implemented:** Added a centralized main-process `showOverlay` lifecycle service. It recreates a missing/destroyed overlay, lets the replacement renderer reach `ready-to-show` before revealing it, restores a minimized live window, and supports inactive display for the second-instance path. The Control Center IPC handler, tray action and second-instance handler now use that service. Overlay callbacks capture their own BrowserWindow and clear the shared reference only when it still points to that instance, preventing stale callbacks from acting on a replacement. No renderer, preload or shared contract path changed.
+
+**Validation:** Injected IPC wiring proved `showOverlay` calls the lifecycle service rather than the stale optional-window path. Full `npm run verify` passed: 69 CommonJS files, lint, 202/202 tests, TypeScript, Vite build and the six-module sandboxed preload build. `git diff --check` passed. GUI smoke remains BLOCKED-ON-HUMAN; Claude review is required because this touches `electron/`.
 
 ### 2026-08-16 — Codex — RATA-002 Critical Thinking OpenRouter routing
 
