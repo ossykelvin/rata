@@ -4,6 +4,20 @@ const { spawn } = require('node:child_process')
 const path = require('node:path')
 
 const MAX_TRANSCRIPT_LENGTH = 2_000
+
+/**
+ * Results at or above this confidence are delivered; below it they are audited
+ * and discarded.
+ *
+ * Deliberately low. Dictation returns a guess for almost any audio, and an
+ * empty room measured 0.225 and 0.323 on this hardware, so some gate is
+ * needed. But a first attempt at 0.4 was tuned partly on synthesised audio
+ * scoring 0.681, which is far cleaner than a real microphone in a real room,
+ * and it silently swallowed genuine speech. Discarded results are now logged
+ * with their score, so this number can be set from real measurements instead
+ * of from a guess.
+ */
+const MIN_CONFIDENCE = 0.2
 const SCRIPT_NAME = 'voice-listen.ps1'
 
 /**
@@ -29,6 +43,24 @@ function isPackagedRuntime(dir = __dirname) {
 
 const SCRIPT = resolveScriptPath()
 
+/**
+ * Parses one stdout line from the recognizer.
+ *
+ * The script emits "0.412|some text". A line with no confidence prefix is
+ * still accepted as plain text with a null score, so an older or hand-edited
+ * script keeps working rather than falling silent.
+ */
+function parseResultLine(line) {
+  const raw = String(line).trim()
+  if (!raw) return null
+  const match = raw.match(/^(\d+(?:\.\d+)?)\|([\s\S]*)$/)
+  if (!match) return { confidence: null, transcript: raw.slice(0, MAX_TRANSCRIPT_LENGTH) }
+  const transcript = match[2].trim().slice(0, MAX_TRANSCRIPT_LENGTH)
+  if (!transcript) return null
+  const confidence = Number(match[1])
+  return { confidence: Number.isFinite(confidence) ? confidence : null, transcript }
+}
+
 function createWindowsVoice({
   spawnProcess = spawn,
   sendTranscript,
@@ -42,11 +74,15 @@ function createWindowsVoice({
   let child = null
   let stopping = null
   let startChain = Promise.resolve()
+  // Children we asked to stop. An exit that is not in here was not requested,
+  // which means the recognizer died on its own and the user is still waiting.
+  const intentionalStops = new WeakSet()
 
   function stop() {
     if (!child) return { ok: true }
     const current = child
     child = null
+    intentionalStops.add(current)
     const done = new Promise(resolve => {
       let settled = false
       const finish = () => {
@@ -100,8 +136,20 @@ function createWindowsVoice({
       const lines = buffer.split(/\r?\n/)
       buffer = lines.pop()
       for (const line of lines) {
-        const transcript = line.trim().slice(0, MAX_TRANSCRIPT_LENGTH)
-        if (transcript) sendTranscript({ transcript })
+        const parsed = parseResultLine(line)
+        if (!parsed) continue
+        if (parsed.confidence !== null && parsed.confidence < MIN_CONFIDENCE) {
+          // Audited rather than dropped in silence. "Heard nothing" and "heard
+          // something and discarded it" are different problems and used to be
+          // indistinguishable from outside.
+          logActivity(
+            'Voice result discarded',
+            `Heard “${parsed.transcript.slice(0, 80)}” at confidence ${parsed.confidence.toFixed(3)}, below ${MIN_CONFIDENCE}.`,
+            'info'
+          )
+          continue
+        }
+        sendTranscript({ transcript: parsed.transcript })
       }
     })
     spawned.stderr.setEncoding('utf8')
@@ -115,18 +163,30 @@ function createWindowsVoice({
         sendTranscript({ transcript: '', error: 'Windows speech recognition is not installed.' })
       }
     })
-    spawned.on('exit', () => {
+    spawned.on('exit', code => {
       // Deliberate: stop() (including microphone disable) still delivers a
       // leftover partial line. Push-to-talk release uses the same stop(), so
       // dropping the buffer would lose the last utterance. Complete lines
       // already emitted stay emitted. New stdout after child is nulled is
       // still delivered until the process actually exits.
       if (buffer.trim()) sendTranscript({ transcript: buffer.trim().slice(0, MAX_TRANSCRIPT_LENGTH) })
+      // A recognizer that dies on its own must say so. Without this the
+      // renderer stays in its listening state for ever: the UI is waiting for
+      // a transcript from a process that no longer exists, and the user sees
+      // nothing at all. FIX-005.
+      if (!intentionalStops.has(spawned)) {
+        logActivity('Voice listening stopped', `The speech recognizer exited unexpectedly (code ${code}).`, 'error')
+        sendTranscript({ transcript: '', error: 'Speech recognition stopped unexpectedly.' })
+      }
       // Same shape as overlayWindow === window in main.cjs: an old child's
       // exit must not clear a newer child's reference.
       if (child === spawned) child = null
     })
     spawned.on('error', () => {
+      if (!intentionalStops.has(spawned)) {
+        logActivity('Voice listening failed', 'The speech recognizer could not be started.', 'error')
+        sendTranscript({ transcript: '', error: 'Speech recognition could not be started.' })
+      }
       if (child === spawned) child = null
     })
     logActivity('Voice listening started', 'Windows speech recognition is listening.', 'info')
@@ -136,4 +196,4 @@ function createWindowsVoice({
   return { start, stop }
 }
 
-module.exports = { createWindowsVoice, resolveScriptPath, isPackagedRuntime, MAX_TRANSCRIPT_LENGTH, SCRIPT_NAME }
+module.exports = { createWindowsVoice, resolveScriptPath, isPackagedRuntime, parseResultLine, MAX_TRANSCRIPT_LENGTH, MIN_CONFIDENCE, SCRIPT_NAME }

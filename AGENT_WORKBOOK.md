@@ -100,6 +100,40 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ## Claude
 
+### 2026-08-17 — FIX-006 — My confidence gate swallowed real speech
+
+**Status:** DONE, awaiting review. Branch `claude/FIX-006-voice-confidence-visibility`.
+
+FIX-005 stopped the recognizer dying, and the user reported voice still not working. The audit trail showed eight "Voice listening started" events with **no transcript and no unexpected-exit error**, which proves the child was alive and producing nothing the app would accept. That points at the gate I added in FIX-005, not at the recogniser.
+
+**My error.** I set `MinConfidence` to 0.4 from three data points, one of which was *synthesised* audio scoring 0.681. Synthesised speech fed straight to the engine is far cleaner than a real microphone in a real room, so 0.4 was tuned against an unrealistically easy sample and swallowed genuine speech. I turned "the recogniser dies" into "the recogniser works and the app throws the result away", which looks identical from the outside.
+
+**The structural fix, not just a smaller number.** The keep-or-discard decision was inside the PowerShell script, where a discarded result leaves no trace. "Heard nothing" and "heard something and discarded it" were indistinguishable from outside, which is precisely what made this hard to see. The script now emits `confidence|text` for every result and `voice-win.cjs` decides, logging every discard with its score. `MIN_CONFIDENCE` drops to 0.2, and the number can now be set from real measurements instead of a guess.
+
+Measured noise so far: 0.085, 0.225, 0.323. It varies enough that some noise will pass 0.2 occasionally. That is the right trade against silently eating speech.
+
+Parsing is backwards compatible: a line with no confidence prefix is still delivered as plain text, so an older or hand-edited script cannot cause silence.
+
+**Validation.** `npm run verify` 312/312. Five new tests including one asserting `MIN_CONFIDENCE <= 0.25`, so a future tightening has to argue with a test rather than quietly regress this.
+
+### 2026-08-17 — FIX-005 — Speech recognition never actually ran
+
+**Status:** DONE, awaiting review. Branch `claude/FIX-005-voice-recognizer-never-ran`.
+
+**Root cause.** `electron/voice-listen.ps1` marshalled the recognizer onto a raw `[System.Threading.Thread]` built from a PowerShell **ScriptBlock**, to force an STA apartment. A ScriptBlock delegate has no runspace on a raw .NET thread, so powershell.exe died **before `Run()` was ever entered**. The failure is not catchable from the script, nothing reaches stderr, and the process exits with code 2. Speech recognition had therefore never worked once, and `NO_MIC` / `NO_ENGINE` could never be produced either, because the code that writes them never executed.
+
+The thread was also unnecessary: powershell.exe 5.1 already runs its main thread in **STA**, which is what System.Speech wants. Fixed by calling `exit [RataListen]::Run()` directly.
+
+**How it was found.** Not by reading. The engine and grammar were proved healthy first by synthesising a WAV with `SpeechSynthesizer` and feeding it to the same recogniser and `DictationGrammar` the script uses: it returned "Open notepad" at 0.681 confidence. That ruled out the engine, the mic and the grammar. A spawn probe with an open stdin pipe then showed the child exiting with code 2 after ~6s and no output, and a trace written to a **file** (not stderr) showed execution stopping immediately after `Add-Type` compiled, with `Run()` never entered.
+
+**Second defect, found because of the first.** `voice-win.cjs` swallowed an unexpected child exit. When the recognizer died the renderer was never told, so the overlay stayed in its listening state for ever, waiting for a transcript from a process that no longer existed. That is why the symptom was silence rather than an error. Unrequested exits and spawn errors now log an audit error and send `{ transcript: '', error }`, which `useVoice` already handles by resetting the button.
+
+**Third issue, measured not guessed.** Dictation returns a best guess for almost any audio. Ambient noise in an empty room produced "Bolivia or rue band and I cannot believe this wrath", then "And if we're" at **0.225** and "Three" at **0.323**, against **0.681** for clean speech. Added a `MinConfidence` gate of 0.4, documented with those measurements. A dropped guess degrades to the existing "I didn't catch that" prompt rather than nonsense in the input box.
+
+**Validation.** `npm run verify` 307/307. Proved end to end through the real `createWindowsVoice` path: before the fix, zero transcript events ever; after it, transcript events arrive from the microphone. Three regression tests: the script must call `Run()` directly and must not reintroduce the ScriptBlock thread or `SetApartmentState`; an unrequested exit reports an error; a requested stop does not.
+
+**For Cursor:** this was not a wiring problem in `useVoice.ts` or the IPC layer, which is where the previous attempts looked. Both were correct throughout. The failure was entirely inside the PowerShell host, and it was invisible because the only diagnostic channel the script had was the one it could never reach.
+
 ### 2026-08-16 — RATA-007 — Weatherman skill and weather.current
 
 **Status:** DONE, awaiting review. Branch `claude/RATA-007-weatherman-skill`.

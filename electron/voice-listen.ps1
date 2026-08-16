@@ -43,8 +43,13 @@ public static class RataListen {
         } catch {
           continue;
         }
+        // Every result is emitted as "confidence|text". The decision to keep
+        // or discard belongs in voice-win.cjs, not here, so that a discarded
+        // result can still be audited. A gate applied inside this script is
+        // invisible: the app cannot tell "heard nothing" from "heard something
+        // and threw it away", which is exactly the failure this replaced.
         if (result != null && !string.IsNullOrWhiteSpace(result.Text)) {
-          Console.WriteLine(result.Text.Trim());
+          Console.WriteLine(result.Confidence.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) + "|" + result.Text.Trim());
           Console.Out.Flush();
         }
       }
@@ -67,7 +72,16 @@ public static class RataListen {
 }
 '@
 
-$thread = [System.Threading.Thread]::new([System.Threading.ThreadStart]{ [void][RataListen]::Run() })
-$thread.SetApartmentState([System.Threading.ApartmentState]::STA)
-$thread.Start()
-$thread.Join()
+# Call Run() directly on the host's own thread.
+#
+# This used to marshal the call onto a new [System.Threading.Thread] built from
+# a PowerShell ScriptBlock, to force an STA apartment. That silently killed the
+# process: a ScriptBlock delegate has no runspace on a raw .NET thread, the
+# failure is not catchable from the script, nothing reaches stderr, and
+# powershell.exe exits with code 2 before Run() is ever entered. Voice
+# recognition therefore never started, and no NO_MIC/NO_ENGINE diagnostic could
+# ever be produced.
+#
+# The thread was also unnecessary: powershell.exe 5.1 already runs its main
+# thread in STA, which is what System.Speech wants.
+exit [RataListen]::Run()
