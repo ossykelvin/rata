@@ -1,6 +1,8 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
 const { EventEmitter } = require('node:events')
+const fs = require('node:fs')
+const path = require('node:path')
 const { createWindowsVoice } = require('../electron/voice-win.cjs')
 const { registerIpcHandlers } = require('../electron/ipc/index.cjs')
 const { composeBridge } = require('../electron/bridge/compose.cjs')
@@ -251,4 +253,65 @@ test('preload startVoiceListening returns the invoke promise', async () => {
   const result = bridge.startVoiceListening()
   assert.equal(typeof result.then, 'function')
   await assert.rejects(() => result, /Microphone is disabled/)
+})
+
+// --- FIX-005: the recognizer never actually ran -------------------------
+
+test('the recognizer script calls Run() directly, not via a ScriptBlock thread', () => {
+  const script = fs.readFileSync(path.join(__dirname, '..', 'electron', 'voice-listen.ps1'), 'utf8')
+
+  // The original script marshalled the call onto a raw [System.Threading.Thread]
+  // built from a PowerShell ScriptBlock. A ScriptBlock delegate has no runspace
+  // on such a thread: powershell.exe died with exit code 2 before Run() was
+  // entered, nothing reached stderr, and speech recognition never started once.
+  assert.doesNotMatch(script, /System\.Threading\.Thread\]::new/, 'the ScriptBlock thread is back')
+  assert.doesNotMatch(script, /SetApartmentState/, 'powershell.exe 5.1 is already STA; this is not needed')
+  assert.match(script, /exit \[RataListen\]::Run\(\)/, 'Run() must be called directly')
+
+  // The diagnostics only reach the app if Run() actually executes.
+  assert.match(script, /NO_MIC/)
+  assert.match(script, /NO_ENGINE/)
+})
+
+test('a recognizer that dies on its own is reported, not swallowed', async () => {
+  const events = []
+  const transcripts = []
+  const child = fakeChild()
+  const voice = createWindowsVoice({
+    spawnProcess: () => child,
+    sendTranscript: payload => transcripts.push(payload),
+    logActivity: (action, detail, status) => events.push({ action, detail, status })
+  })
+
+  await voice.start()
+  transcripts.length = 0
+  events.length = 0
+  // Nobody called stop(): the process exited by itself.
+  child.emit('exit', 2)
+
+  assert.equal(transcripts.length, 1, 'the renderer was never told the recognizer died')
+  assert.equal(transcripts[0].transcript, '')
+  assert.match(transcripts[0].error, /unexpectedly/i)
+  assert.equal(events.some(event => event.status === 'error'), true, 'no error was audited')
+})
+
+test('a requested stop is not reported as an unexpected death', async () => {
+  const transcripts = []
+  const child = fakeChild()
+  const voice = createWindowsVoice({
+    spawnProcess: () => child,
+    sendTranscript: payload => transcripts.push(payload),
+    logActivity: () => {}
+  })
+
+  await voice.start()
+  transcripts.length = 0
+  voice.stop()
+  child.emit('exit', 0)
+
+  assert.equal(
+    transcripts.some(payload => payload.error),
+    false,
+    'an ordinary stop reported an error'
+  )
 })

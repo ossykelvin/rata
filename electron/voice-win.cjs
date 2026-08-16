@@ -42,11 +42,15 @@ function createWindowsVoice({
   let child = null
   let stopping = null
   let startChain = Promise.resolve()
+  // Children we asked to stop. An exit that is not in here was not requested,
+  // which means the recognizer died on its own and the user is still waiting.
+  const intentionalStops = new WeakSet()
 
   function stop() {
     if (!child) return { ok: true }
     const current = child
     child = null
+    intentionalStops.add(current)
     const done = new Promise(resolve => {
       let settled = false
       const finish = () => {
@@ -115,18 +119,30 @@ function createWindowsVoice({
         sendTranscript({ transcript: '', error: 'Windows speech recognition is not installed.' })
       }
     })
-    spawned.on('exit', () => {
+    spawned.on('exit', code => {
       // Deliberate: stop() (including microphone disable) still delivers a
       // leftover partial line. Push-to-talk release uses the same stop(), so
       // dropping the buffer would lose the last utterance. Complete lines
       // already emitted stay emitted. New stdout after child is nulled is
       // still delivered until the process actually exits.
       if (buffer.trim()) sendTranscript({ transcript: buffer.trim().slice(0, MAX_TRANSCRIPT_LENGTH) })
+      // A recognizer that dies on its own must say so. Without this the
+      // renderer stays in its listening state for ever: the UI is waiting for
+      // a transcript from a process that no longer exists, and the user sees
+      // nothing at all. FIX-005.
+      if (!intentionalStops.has(spawned)) {
+        logActivity('Voice listening stopped', `The speech recognizer exited unexpectedly (code ${code}).`, 'error')
+        sendTranscript({ transcript: '', error: 'Speech recognition stopped unexpectedly.' })
+      }
       // Same shape as overlayWindow === window in main.cjs: an old child's
       // exit must not clear a newer child's reference.
       if (child === spawned) child = null
     })
     spawned.on('error', () => {
+      if (!intentionalStops.has(spawned)) {
+        logActivity('Voice listening failed', 'The speech recognizer could not be started.', 'error')
+        sendTranscript({ transcript: '', error: 'Speech recognition could not be started.' })
+      }
       if (child === spawned) child = null
     })
     logActivity('Voice listening started', 'Windows speech recognition is listening.', 'info')
