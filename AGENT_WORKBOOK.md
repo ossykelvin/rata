@@ -68,7 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
-| Cursor | FIX critical-thinking provider | `cursor/FIX-critical-thinking-provider` | IN PROGRESS |
+| Cursor | FIX critical-thinking provider | `cursor/FIX-critical-thinking-provider` | DONE, PR pending |
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, merged as #2 |
 | Codex | P0-1 modular IPC | `codex/P0-1-modular-ipc-boundary` | DRAFT PR #4 |
 | Cursor | RATA-003 character animation | `cursor/rata-003-character-animation-9241` | DONE, PR #5 |
@@ -375,12 +375,14 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-16 — FIX — Critical Thinking uses the live provider
 
-**Status:** IN PROGRESS
+**Status:** DONE, PR pending
 **Branch:** `cursor/FIX-critical-thinking-provider`
 
-**Scope:** Lane S. When the router selects Critical Thinking, load `skills/critical-thinking/SKILL.md` beneath the global system prompt and call the provider chain. Do not leave the skill on the hardcoded “mock agent has no live provider” stub. Skills still cannot invoke tools.
+**Done:** Critical Thinking loads its `SKILL.md` prompt beneath the global system prompt and calls the provider chain with OpenRouter preferred in `auto` mode. The old “mock agent has no live provider” stub is no longer used for this skill. The model still cannot invoke tools. Missing declared tools still fail closed.
 
-**Files currently touching:** `AGENT_WORKBOOK.md` (claim only; implementation follows).
+**Files touched:** `packages/agent-core/mock-agent.cjs`, `tests/critical-thinking-provider.test.cjs`, `docs/ARCHITECTURE.md`, `docs/VALIDATION.md`.
+
+**Validation:** `npm run verify` passed (204 tests).
 
 ---
 
