@@ -68,7 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
-| Cursor | FIX voice mid-transcript disable | `cursor/FIX-voice-mid-transcript-disable` | DONE, PR pending |
+| Cursor | FIX voice mid-transcript disable | `cursor/FIX-voice-mid-transcript-disable` | DONE, PR #65 |
 | Cursor | FIX overlay min/close | `cursor/FIX-overlay-min-close` | DONE, PR pending |
 | Cursor | FIX voice permission gate | `cursor/FIX-voice-permission-gate` | DONE, PR #62 |
 | Cursor | FIX critical-thinking provider | `cursor/FIX-critical-thinking-provider` | DONE, PR pending |
@@ -448,7 +448,7 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-16 — FIX — Voice mid-transcript disable contract
 
-**Status:** DONE, PR pending
+**Status:** DONE, PR #65
 **Branch:** `cursor/FIX-voice-mid-transcript-disable`
 
 **Done:** Follow-up after #62. `start()` is a Promise through IPC and preload; rejections are clean errors (renderer `try/catch` already awaits). Disabling the mic mid-transcript **delivers** leftover buffered speech on process exit — same `stop()` path as push-to-talk release. Complete lines already emitted stay emitted.
