@@ -162,26 +162,49 @@ function readBoundedBody(response, maxBytes) {
   })
 }
 
-function findElement(node, tagName) {
-  if (node?.tagName === tagName) return node
-  for (const child of node?.childNodes || []) {
-    const found = findElement(child, tagName)
-    if (found) return found
+// Both walkers are iterative on purpose. A response is capped at
+// MAX_RESPONSE_BYTES, but that still allows roughly 5,000 levels of nesting
+// inside the cap — enough for `<div>` repeated to overflow the call stack on a
+// recursive walk, which a hostile page can do deliberately and cheaply. The
+// failure was safe (the fetch threw and returned nothing) but it let any page
+// disable the feature at will.
+function findElement(root, tagName) {
+  const stack = [root]
+  while (stack.length) {
+    const node = stack.pop()
+    if (!node) continue
+    if (node.tagName === tagName) return node
+    const children = node.childNodes || []
+    for (let index = children.length - 1; index >= 0; index -= 1) stack.push(children[index])
   }
   return null
 }
 
-function collectReadableText(node, output) {
-  if (node?.nodeName === '#text') {
-    output.push(node.value)
-    return
-  }
-  if (BLOCKED_HTML_ELEMENTS.has(node?.tagName)) return
+function collectReadableText(root, output) {
+  // Entries are either a node to visit or a literal string to emit. The string
+  // markers are how the closing break of an element survives the flattening.
+  const stack = [root]
+  while (stack.length) {
+    const node = stack.pop()
+    if (typeof node === 'string') {
+      output.push(node)
+      continue
+    }
+    if (!node) continue
+    if (node.nodeName === '#text') {
+      output.push(node.value)
+      continue
+    }
+    if (BLOCKED_HTML_ELEMENTS.has(node.tagName)) continue
 
-  const createsBreak = BREAK_HTML_ELEMENTS.has(node?.tagName)
-  if (createsBreak) output.push('\n')
-  for (const child of node?.childNodes || []) collectReadableText(child, output)
-  if (createsBreak) output.push('\n')
+    const createsBreak = BREAK_HTML_ELEMENTS.has(node.tagName)
+    if (createsBreak) {
+      output.push('\n')
+      stack.push('\n')
+    }
+    const children = node.childNodes || []
+    for (let index = children.length - 1; index >= 0; index -= 1) stack.push(children[index])
+  }
 }
 
 function readableText(node) {

@@ -9,7 +9,8 @@ const {
   resolvePublicAddress,
   extractReadableContent,
   MAX_URL_LENGTH,
-  MAX_CONTENT_CHARS
+  MAX_CONTENT_CHARS,
+  MAX_RESPONSE_BYTES
 } = require('../electron/public-web-client.cjs')
 
 // Lane H coverage for WEB-001 (issue #39).
@@ -383,4 +384,18 @@ test('a successful fetch labels its own result untrusted', async () => {
   assert.equal(result.trust, 'untrusted-external')
   assert.equal(result.contentType, 'text/html')
   assert.match(result.content, /Body text/)
+})
+
+test('deeply nested markup inside the size cap does not overflow the stack', () => {
+  // MAX_RESPONSE_BYTES still permits several thousand levels of nesting, which
+  // a hostile page can produce cheaply. A recursive tree walk overflowed at
+  // roughly 5,000 levels, so any page could disable web fetch at will. The
+  // failure was safe but it was still a denial of service on the feature.
+  // 11 bytes per level, so ~11,000 levels is the most that fits in the cap.
+  for (const depth of [5_000, 11_000]) {
+    const html = `<body>${'<div>'.repeat(depth)}deep${'</div>'.repeat(depth)}</body>`
+    assert.ok(Buffer.byteLength(html) <= MAX_RESPONSE_BYTES, 'the probe must stay inside the size cap')
+    const { content } = extractReadableContent(Buffer.from(html), 'text/html')
+    assert.match(content, /deep/)
+  }
 })
