@@ -22,8 +22,9 @@ const TOOLS_DIR = path.join(__dirname, '..', 'electron', 'tools')
 
 /** The tools the MVP ships. Changing this list is a security decision. */
 // WEB-001 added web.fetch. RATA-006 added the five read-only file tools.
-// Updated deliberately: this list is the privileged tool surface, and it must
-// only change when a tool is consciously added.
+// RATA-007 added weather.current. Updated deliberately: this list is the
+// privileged tool surface, and it must only change when a tool is
+// consciously added.
 const EXPECTED_TOOL_IDS = [
   'calculator.evaluate',
   'clipboard.write',
@@ -34,6 +35,7 @@ const EXPECTED_TOOL_IDS = [
   'file.searchContent',
   'file.stat',
   'system.openApp',
+  'weather.current',
   'web.fetch',
   'web.search'
 ]

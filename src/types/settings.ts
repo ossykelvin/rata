@@ -15,4 +15,6 @@ export type RataSettings = {
   webFetchConfirm: boolean
   /** File contents flow on to a provider, so reading one is an egress decision. Confirmed by default. */
   fileReadConfirm: boolean
+  /** A weather lookup sends the named location to a third party. Confirmed by default. */
+  weatherConfirm: boolean
 }

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "order": 20,
+  "id": "weatherman",
+  "name": "Weatherman",
+  "path": "skills/weatherman/SKILL.md",
+  "category": "internet",
+  "risk": "external-read",
+  "background_capable": false,
+  "permissions": [
+    "weather.read"
+  ],
+  "tools": [
+    "weather.current"
+  ],
+  "confirmation": "respect_weather_policy",
+  "triggers": [
+    "What's the weather in London?",
+    "Is it raining in Manchester?",
+    "How hot is it outside?",
+    "What's the air quality today?",
+    "Do I need an umbrella in Leeds?"
+  ]
+}
