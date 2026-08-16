@@ -95,6 +95,26 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ## Claude
 
+### 2026-08-16 — RATA-006 — Read-only local file tools
+
+**Status:** DONE, awaiting review. Branch `claude/RATA-006-readonly-file-tools`.
+
+**Why this first.** 15 of 20 installed skills were blocked on tools that did not exist. `file.search` was declared by four skills and `file.readText` by three — the most-demanded missing tools in the whole manifest. Blocked skills are now **12**, with `file-finder`, `local-content-search` and `ai-research` newly available, and `task-planner`, `file-organizer`, `document-assistant` and `presentation-builder` moved closer.
+
+**What shipped.** `file.search`, `file.stat`, `file.readText`, `file.searchContent`, `file.reveal`. Security core in `electron/file-access.cjs` (the counterpart to `public-web-client.cjs`); contract layer in `electron/tools/file.cjs`, which keeps sole ownership of the `file.` domain. ADR-010.
+
+**The design point worth recording.** Containment and sensitivity are *separate* defences and both are needed. Containment alone — resolve, realpath, compare with `path.relative` against realpath'd roots — stops `..`, symlinks, junctions and lookalike siblings like `docs-private`. It does nothing about `~/Documents/.env`, which is perfectly contained and catastrophic, so credential-shaped names are refused **inside** allowed roots and credential/VCS directories are never descended into. A design that only solved escape would hand a provider an API key.
+
+**Deliberate policy choices**, all in ADR-010: reads are `confirmation: 'configurable'` behind a new `fileReadConfirm` setting defaulting to **on**, because reading a file is an egress decision (the text goes to a provider), not a plain local read — searching by *name* stays automatic or the feature is unusable. Content carries `trust: 'untrusted-external'` so it reaches a provider fenced, exactly like `web.fetch`; a document can carry an injection like a web page can. Missing and forbidden paths report the identical error so the tools cannot probe for files they may not read. `file.reveal` is `safe-write`, not `read`, because it opens a window.
+
+**Write verbs are deliberately absent.** `file.move`, `file.rename`, `folder.create` and `file.save` are a separate ADR and ticket. `file-organizer` stays blocked on purpose.
+
+**Validation.** `npm run verify` 266/266, exit 0. `tests/file-access-security.test.cjs` adds 28 tests against a real temporary filesystem rather than a mock — realpath, symlink escape and traversal are precisely what a mock would paper over. Symlink assertions skip themselves with a message if the platform refuses to create links without elevation.
+
+I updated `EXPECTED_TOOL_IDS` in `tests/tool-composition.test.cjs` from 6 to 11 entries. That list is the privileged tool surface and the failure was the guardrail working; it should only ever move in a commit that says why.
+
+**Reviewer note for whoever takes this:** the two things I would attack are the denied-name list (is it complete enough, and does shape-matching miss anything obvious?) and `walkRoots` skipping symlinks — that trades a rare legitimate linked folder for removing a bug class, and it is worth a second opinion.
+
 ### 2026-08-16 — Review pass over #56–#60 (WEB-002, M3, ADR-009 fence, critical thinking, overlay controls)
 
 **Status:** DONE. #56, #57, #58, #59 merged. #60 opened on Cursor's behalf and **blocked** pending a rebase.
