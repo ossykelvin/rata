@@ -16,8 +16,10 @@ that sends user content off the machine.
 **Providers return text and nothing else.** A provider cannot invoke a tool,
 reach the policy engine, or see another provider's credential. Model output is
 untrusted input to the rest of the runtime. The model is told in its system
-prompt that it has no ability to act, but that is a UX measure — the guarantee
-is that no code path lets provider output select or execute a tool.
+prompt that it has no ability to act, but that is a UX measure. Ordinary answer
+text remains display-only. ADR-009 adds one strict parser through which a
+provider may propose a fixed registered tool and allow-listed input; it cannot
+execute that tool or bypass validation and policy.
 
 **Chain order.** `auto` mode tries Gemini, then OpenRouter, then mock. Requests
 that look complex — long, or matching an analysis/design/debug vocabulary — go

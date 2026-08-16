@@ -94,6 +94,21 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ## Claude
 
+### 2026-08-16 — RATA-002 / FIX-003 — Review of both open drafts, plus Lane H tests for ADR-009
+
+**Status:** DONE. Branch `claude/RATA-002-lane-h-system-actions` into `codex/RATA-002-structured-system-actions` (#53). #54 reviewed separately.
+
+**#53 structured system actions — APPROVED on the security boundary.** This is the first path where provider output influences whether a registered tool runs, so I probed the parser by executing it rather than reading it. Nine hostile shapes — a different tool, an executable path, extra top-level and extra input keys, an arguments array, a case variant, a non-string app name, a bumped version, a `__proto__` payload — all fail closed, and `Object.prototype` stays clean. The property that carries the design is that **`toolId` is a literal in the parser and is never read from provider output**: the model chooses between two enum values and nothing else. Arguments stay an empty array in the native executor. `ToolRegistry.validate()` and the policy engine still run afterwards, and `system.openApp` re-checks its own allow-list at execute time.
+
+Worth recording rather than burying: `system.openApp` is `risk: safe-write, confirmation: never`, so a provider-influenced launch runs without a confirmation prompt. I accepted that here because the blast radius is Notepad or Calculator with no arguments, and the request text is user-typed rather than retrieved content. **If this pattern is ever extended to a second tool, the confirmation policy has to be revisited first** — that is the point where a model would start steering something that matters.
+
+**One blocking behavioural finding, fixed on this branch.** The planner gate was placed *above* the clipboard, `web.fetch` and `web.search` routes. `SYSTEM_ACTION_HINT` is broad, so I verified by execution that it also matched `search the web for how to run a program on Windows`, `find online how to start a program in python`, `summarize https://…/launch-an-application-guide` and plain `how do I run a program?`. Each was captured by the launch path and answered with *"I can only safely launch Notepad or Calculator"* — explicit search and fetch intent was silently swallowed and ordinary questions were refused. Moved the gate below every explicit route, and a declined or unparseable plan now returns `undefined` and falls through to `ask()` instead of returning a canned refusal. **The action still fails closed; only the reply changed.**
+
+**Lane H:** `tests/system-action-planner.test.cjs`, 12 tests — accepted, declined, malformed, extra-field, arbitrary-tool, arbitrary-app and path, prototype pollution, oversized payload, no-spawn on every rejected plan, the deterministic path not consulting a provider, and the routing precedence above.
+
+**Non-blocking, not fixed:** the parser rejects markdown-fenced JSON, and most models fence by default. Fail-closed is the right default, but it means the feature will decline more often than the ADR implies. Stripping exactly one fence before `JSON.parse` would fix it without widening the schema.
+
+**#54 recreate the overlay — APPROVED, no findings.** `security.applyWindowGuards()` and `windowPreferences()` are both reapplied to the recreated window, so `contextIsolation`/`sandbox` survive the rebuild — that was the thing worth checking. Each `BrowserWindow` is captured in its own callbacks and `closed` only clears the reference when it still points at that window, so a stale callback cannot clear a replacement. `getOverlayWindow()` now filters destroyed windows, which incidentally hardens `hideOverlay` too. `second-instance` still ignores argv.
 ### 2026-08-16 — RATA-004 fix — Recognizer script escaped `app.asar`; icon unblocked packaging
 
 **Status:** DONE. On `cursor/RATA-004-native-windows-voice` (PR #50), rebased onto `main`.
@@ -177,6 +192,15 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Codex
 
+### 2026-08-16 — Codex — RATA-002 structured system actions
+
+**Status:** READY FOR CLAUDE REVIEW — draft PR #53 (branch `codex/RATA-002-structured-system-actions`)
+
+**Scope:** Implement the safe alternative to model-generated PowerShell. For explicit application-launch language not handled by the deterministic parser, Gemini/OpenRouter may return a small structured proposal constrained to the existing `system.openApp` tool and its Notepad/Calculator allow-list. Validate model output fail-closed, run accepted proposals only through `PolicyEngine` and `ToolRegistry`, preserve background spawn/audit behavior, and never accept shell text, executable paths, arguments, elevation, or arbitrary commands. Add an ADR and request Claude security/Lane H review.
+
+**Implemented:** Added a deterministic launch-intent gate and a versioned, exact-key provider proposal parser. The only accepted proposal is `system.openApp` with `notepad` or `calculator`; `none` is the only alternative. Ordinary chat and retrieved context cannot enter the planner. Accepted proposals still pass through registry validation, policy evaluation and registry execution. Invalid JSON, prose, Markdown, extra fields, paths, arguments, arbitrary tools/apps, shell text and elevation fail closed without execution. Added ADR-009 and aligned ADR-007, architecture and security documentation. No PowerShell or generic shell capability was added.
+
+**Validation:** Injected checks proved deterministic launches do not call a provider, a valid proposal launches only the fixed executable with an empty argument list and detached background options, and malicious/expanded proposals spawn nothing. Full `npm run verify` passed: 68 CommonJS files, lint, 181/181 tests, TypeScript, Vite build and the six-module sandboxed preload build. `git diff --check` passed. Claude privilege-boundary review and Lane H focused contract tests remain required before merge.
 ### 2026-08-16 — Codex — FIX-003 recreate closed overlay
 
 **Status:** READY FOR CLAUDE REVIEW — draft PR #54 (branch `codex/FIX-003-recreate-overlay`)
