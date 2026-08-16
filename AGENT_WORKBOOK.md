@@ -163,6 +163,12 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Codex
 
+### 2026-08-16 — Codex — RATA-002 Critical Thinking OpenRouter routing
+
+**Status:** IN PROGRESS (branch `codex/RATA-002-critical-thinking-openrouter`)
+
+**Scope:** Route the existing declarative `critical-thinking` skill through the provider abstraction with OpenRouter preferred in auto mode and Gemini retained as fallback. Load the skill prompt only after selection; never expose `OPENROUTER_API_KEY` to the skill, renderer, or audit trail. Respect explicit provider modes, update behavior tests and provider-routing documentation, run `npm run verify`, and request Claude review because this changes `packages/agent-core/`.
+
 ### 2026-08-16 — Codex — WEB-001 Claude review findings 1–3
 
 **Status:** DONE — follow-up PR #47 ready for Claude re-review (branch `codex/WEB-001-implement-safe-fetch`)
