@@ -132,4 +132,4 @@ Use UI Automation first. Vision/coordinate automation is a fallback.
 - Microsoft Graph: delegated user permissions for Outlook Mail, Calendar, Contacts.
 - Browser: Playwright behind tool contracts.
 - AI: provider adapters for OpenAI, Anthropic, Gemini and local models.
-- Voice: dedicated STT and TTS adapters. Push-to-talk STT uses Windows speech recognition from `electron/voice-win.cjs` through `rata:voice-*` channels. The renderer only receives the transcript string. Main denies renderer `media` permission when `microphoneEnabled` is false (REVIEW-001 M4). Cloud STT/TTS adapters still belong behind `packages/agent-core/voice/`.
+- Voice: dedicated STT and TTS adapters. Push-to-talk STT uses Windows speech recognition from `electron/voice-win.cjs` through `rata:voice-*` channels. The renderer only receives the transcript string. Chromium `media` permission and the Windows recognizer both consult `isMicrophoneEnabled()`; turning the setting off stops an in-flight child process. Cloud STT/TTS adapters still belong behind `packages/agent-core/voice/`.

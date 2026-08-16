@@ -69,6 +69,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
 | Cursor | FIX overlay min/close | `cursor/FIX-overlay-min-close` | DONE, PR pending |
+| Cursor | FIX voice permission gate | `cursor/FIX-voice-permission-gate` | DONE, PR #62 |
 | Cursor | FIX critical-thinking provider | `cursor/FIX-critical-thinking-provider` | DONE, PR pending |
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, merged as #2 |
 | Codex | P0-1 modular IPC | `codex/P0-1-modular-ipc-boundary` | DRAFT PR #4 |
@@ -454,6 +455,18 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 **Files touched:** `src/views/Overlay.tsx`, `src/styles/overlay.css`, `electron/main.cjs`, `tests/overlay-window-controls.test.cjs`, `docs/VALIDATION.md`, `docs/ARCHITECTURE.md`.
 
 **Validation:** `npm run verify` passed (184 tests).
+### 2026-08-16 — FIX — Voice permission gate and recognizer restart race
+
+**Status:** DONE, PR #62
+**Branch:** `cursor/FIX-voice-permission-gate`
+
+**Done:** RATA-004 review findings. Chromium `getUserMedia` and the Windows PowerShell recognizer both consult `isMicrophoneEnabled()` in `electron/security.cjs`. Disabling the microphone while a session is listening stops the child. `start()` during a pending `stop()` waits for the old child; an exiting child never clears a newer child's reference (same shape as `overlayWindow === window` in PR #54).
+
+**Files touched:** `electron/security.cjs`, `electron/ipc/voice.cjs`, `electron/ipc/settings.cjs`, `electron/voice-win.cjs`, `tests/voice-win.test.cjs`, `tests/electron-security.test.cjs`, `docs/SECURITY.md`, `docs/VALIDATION.md`, `docs/ARCHITECTURE.md`, `docs/CODEMAP.md`.
+
+**Validation:** `npm run verify` passed (226 tests). Injected-spawn tests cover mid-session disable, start-during-stop, and old-exit identity. No real microphone or powershell.exe.
+
+**Coordination:** Separate from PR #59 (Critical Thinking provider). Claude review required — this touches `electron/`.
 ### 2026-08-16 — FIX — Critical Thinking uses the live provider
 
 **Status:** DONE, PR pending

@@ -1,7 +1,7 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const { createSecurityPolicy, decideRendererPermission, applySessionPermissionHandler } = require('../electron/security.cjs')
+const { createSecurityPolicy, isMicrophoneEnabled, decideRendererPermission, applySessionPermissionHandler } = require('../electron/security.cjs')
 const { registerIpcHandlers } = require('../electron/ipc/index.cjs')
 
 // Regression cover for REVIEW-001 findings H3 and H4.
@@ -201,6 +201,10 @@ test('H4: the trusted renderer still works', async () => {
 test('M4: media is allowed only when the microphone setting is on', () => {
   const on = { microphoneEnabled: true }
   const off = { microphoneEnabled: false }
+  assert.equal(isMicrophoneEnabled(on), true)
+  assert.equal(isMicrophoneEnabled(off), false)
+  assert.equal(isMicrophoneEnabled({}), false)
+  assert.equal(isMicrophoneEnabled(null), false)
   assert.equal(decideRendererPermission('media', { mediaTypes: ['audio'] }, on), true)
   assert.equal(decideRendererPermission('microphone', {}, on), true)
   assert.equal(decideRendererPermission('media', { mediaTypes: ['audio'] }, off), false)
