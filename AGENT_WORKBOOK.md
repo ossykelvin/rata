@@ -68,6 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
+| Cursor | FIX overlay min/close | `cursor/FIX-overlay-min-close` | DONE, PR #60 |
 | Cursor | FIX overlay min/close | `cursor/FIX-overlay-min-close` | DONE, PR pending |
 | Cursor | FIX voice permission gate | `cursor/FIX-voice-permission-gate` | DONE, PR #62 |
 | Cursor | FIX critical-thinking provider | `cursor/FIX-critical-thinking-provider` | DONE, PR pending |
@@ -444,6 +445,21 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 ---
 
 ## Cursor
+
+### 2026-08-16 — FIX — Overlay tray click must recreate via showOverlay
+
+**Status:** DONE, PR #60
+**Branch:** `cursor/FIX-overlay-min-close`
+
+**Done:** Merged current main. Tray click and Show Rata go through `showOverlay()`, not `overlayWindow?.show()`. Hide collapses min/close with the Ask bar. Compact widget is a native `-webkit-app-region: drag` surface; restore stays `no-drag` on the inner icon. Close calls `hideOverlay()` once and does not quit.
+
+**Files touched:** `electron/main.cjs`, `src/views/Overlay.tsx`, `src/styles/overlay.css`, `tests/overlay-window-controls.test.cjs`, `tests/overlay-drag.test.cjs`.
+
+**Validation:** `npm run verify` passed (274 tests).
+
+**Coordination:** Claude review required — this touches `electron/`.
+
+---
 
 ### 2026-08-16 — FIX — Overlay minimize and close
 

@@ -122,12 +122,6 @@ export function Overlay() {
             </div>
           </div>
 
-          {!expanded && (
-            <div className="overlay-window-controls no-drag">
-              {windowControls}
-            </div>
-          )}
-
           {expanded && (
             <form className="quick-input no-drag" onSubmit={conversation.sendForm}>
               <input
