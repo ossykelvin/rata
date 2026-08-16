@@ -192,6 +192,12 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Codex
 
+### 2026-08-16 — Codex — WEB-002 fetch hardening
+
+**Status:** IN PROGRESS (branch `codex/WEB-002-fetch-hardening`)
+
+**Scope:** Verify and address the four carried WEB-001 findings in `electron/public-web-client.cjs` and `electron/serper-client.cjs`: restrict public fetches to ports 80/443, block HTTPS-to-HTTP redirect downgrade, distinguish a successful empty Serper result from provider failure, and replace or rigorously harden regex HTML extraction against malformed/nested active content. Add injected no-network regressions in `tests/web-fetch-security.test.cjs` and `tests/web-search-tool.test.cjs`, update the relevant web-security documentation, run `npm run verify`, and request Claude review.
+
 ### 2026-08-16 — Codex — RATA-002 structured system actions
 
 **Status:** READY FOR CLAUDE REVIEW — draft PR #53 (branch `codex/RATA-002-structured-system-actions`)
