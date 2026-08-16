@@ -16,7 +16,8 @@ const defaults = {
     clipboardConfirm: true,
     webSearchConfirm: true,
     webFetchConfirm: true,
-    fileReadConfirm: true
+    fileReadConfirm: true,
+    weatherConfirm: true
   },
   activity: []
 }
@@ -30,7 +31,8 @@ const safeDiskFallbackSettings = Object.freeze({
   clipboardConfirm: true,
   webSearchConfirm: true,
   webFetchConfirm: true,
-  fileReadConfirm: true
+  fileReadConfirm: true,
+  weatherConfirm: true
 })
 
 function isRecord(value) {

@@ -98,6 +98,10 @@ function loadRuntimeConfig({ rootDir = path.join(__dirname, '..'), processEnv = 
       baseUrl: trimmed(env.OPENROUTER_BASE_URL) || undefined,
       model: trimmed(env.OPENROUTER_MODEL) || undefined
     },
+    weather: {
+      apiKey: trimmed(env.WEATHER_API_KEY),
+      baseUrl: trimmed(env.WEATHER_API_BASE_URL)
+    },
     serper: {
       apiKey: trimmed(env.RATA_SERPER_API_KEY)
     }
@@ -111,7 +115,8 @@ function describeConfig(config) {
     providerModeRejected: config.providerModeRejected,
     gemini: Boolean(config.gemini.apiKey),
     openrouter: Boolean(config.openrouter.apiKey),
-    serper: Boolean(config.serper.apiKey)
+    serper: Boolean(config.serper.apiKey),
+    weather: Boolean(config.weather.apiKey)
   }
 }
 
