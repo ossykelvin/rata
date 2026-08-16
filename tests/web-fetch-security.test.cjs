@@ -9,7 +9,8 @@ const {
   resolvePublicAddress,
   extractReadableContent,
   MAX_URL_LENGTH,
-  MAX_CONTENT_CHARS
+  MAX_CONTENT_CHARS,
+  MAX_RESPONSE_BYTES
 } = require('../electron/public-web-client.cjs')
 
 // Lane H coverage for WEB-001 (issue #39).
@@ -84,6 +85,25 @@ test('fragments are stripped so the audited destination is what is sent', () => 
   const target = validatePublicUrlSyntax('https://example.com/page#secret-anchor')
   assert.equal(target.hash, '')
   assert.equal(target.toString().includes('#'), false)
+})
+
+test('only public web ports 80 and 443 are accepted', async () => {
+  for (const good of ['http://example.com:80/a', 'https://example.com:443/a']) {
+    assert.ok(validatePublicUrlSyntax(good))
+  }
+  for (const bad of ['http://example.com:22/', 'https://example.com:8080/', 'http://example.com:3000/']) {
+    assert.throws(() => validatePublicUrlSyntax(bad), /ports 80 and 443/, `accepted: ${bad}`)
+  }
+
+  let lookupCalls = 0
+  let requestCalls = 0
+  const fetchPublic = createPublicWebFetch({
+    lookup: async () => { lookupCalls += 1; return publicAnswer },
+    requestImpl: async () => { requestCalls += 1; return fakeResponse({ body: 'unexpected' }) }
+  })
+  await assert.rejects(() => fetchPublic('http://example.com:22/'), /ports 80 and 443/)
+  assert.equal(lookupCalls, 0)
+  assert.equal(requestCalls, 0)
 })
 
 // --- address classification --------------------------------------------
@@ -188,11 +208,31 @@ test('every redirect hop is re-resolved and re-validated', async () => {
   assert.equal(result.url, 'https://second.example/b')
 })
 
+test('HTTPS redirects cannot downgrade to plaintext HTTP', async () => {
+  const { calls, requestImpl } = recordingRequest([
+    fakeResponse({ statusCode: 302, headers: { location: 'http://second.example/plaintext' } })
+  ])
+  const fetchPublic = createPublicWebFetch({ lookup: lookupPublic, requestImpl })
+  await assert.rejects(() => fetchPublic('https://first.example/secure'), /redirect downgrade/)
+  assert.equal(calls.length, 1, 'the downgraded destination was contacted')
+})
+
+test('HTTP redirects may upgrade to HTTPS', async () => {
+  const { calls, requestImpl } = recordingRequest([
+    fakeResponse({ statusCode: 302, headers: { location: 'https://second.example/secure' } }),
+    fakeResponse({ body: '<html><body>secure</body></html>' })
+  ])
+  const fetchPublic = createPublicWebFetch({ lookup: lookupPublic, requestImpl })
+  const result = await fetchPublic('http://first.example/plaintext')
+  assert.equal(calls.length, 2)
+  assert.equal(result.url, 'https://second.example/secure')
+})
+
 test('a redirect to a private destination is refused', async () => {
   const lookup = async hostname =>
     hostname === 'internal.example' ? [{ address: '10.0.0.5', family: 4 }] : publicAnswer
   const { requestImpl } = recordingRequest([
-    fakeResponse({ statusCode: 302, headers: { location: 'http://internal.example/admin' } })
+    fakeResponse({ statusCode: 302, headers: { location: 'https://internal.example/admin' } })
   ])
   const fetchPublic = createPublicWebFetch({ lookup, requestImpl })
   await assert.rejects(() => fetchPublic('https://public.example/a'), /non-public address/)
@@ -310,6 +350,20 @@ test('markup, scripts and styles are stripped from extracted text', () => {
   }
 })
 
+test('malformed and nested active-content elements cannot leak their text', () => {
+  const cases = [
+    '<body>before<script>secret-one<p>also-secret',
+    '<body>before<template><script>secret-two</script>template-secret</template>after',
+    '<body>before<svg><script>secret-three</script><text>vector-secret</text></svg>after',
+    '<body>before<iframe><script>secret-four</script>fallback-secret</iframe>after',
+    '<body>before<script><script>secret-five</script><p>after</p></body>'
+  ]
+  for (const html of cases) {
+    const { content } = extractReadableContent(Buffer.from(html), 'text/html')
+    assert.equal(/secret|<script/i.test(content), false, `active content leaked from: ${html}`)
+  }
+})
+
 test('extracted content is clamped', () => {
   const html = `<html><body><p>${'a'.repeat(MAX_CONTENT_CHARS * 2)}</p></body></html>`
   const { content } = extractReadableContent(Buffer.from(html), 'text/html')
@@ -330,4 +384,18 @@ test('a successful fetch labels its own result untrusted', async () => {
   assert.equal(result.trust, 'untrusted-external')
   assert.equal(result.contentType, 'text/html')
   assert.match(result.content, /Body text/)
+})
+
+test('deeply nested markup inside the size cap does not overflow the stack', () => {
+  // MAX_RESPONSE_BYTES still permits several thousand levels of nesting, which
+  // a hostile page can produce cheaply. A recursive tree walk overflowed at
+  // roughly 5,000 levels, so any page could disable web fetch at will. The
+  // failure was safe but it was still a denial of service on the feature.
+  // 11 bytes per level, so ~11,000 levels is the most that fits in the cap.
+  for (const depth of [5_000, 11_000]) {
+    const html = `<body>${'<div>'.repeat(depth)}deep${'</div>'.repeat(depth)}</body>`
+    assert.ok(Buffer.byteLength(html) <= MAX_RESPONSE_BYTES, 'the probe must stay inside the size cap')
+    const { content } = extractReadableContent(Buffer.from(html), 'text/html')
+    assert.match(content, /deep/)
+  }
 })
