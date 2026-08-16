@@ -3,8 +3,10 @@ const assert = require('node:assert/strict')
 const { EventEmitter } = require('node:events')
 const { createWindowsVoice } = require('../electron/voice-win.cjs')
 const { registerIpcHandlers } = require('../electron/ipc/index.cjs')
+const { composeBridge } = require('../electron/bridge/compose.cjs')
 const { IPC } = require('../packages/contracts/ipc-channels.cjs')
 const voiceHandler = require('../electron/ipc/voice.cjs')
+const voiceBridge = require('../electron/bridge/voice.cjs')
 const settingsHandler = require('../electron/ipc/settings.cjs')
 
 function fakeIpcMain() {
@@ -144,4 +146,109 @@ test('voice channels are declared on the shared contract', () => {
   assert.equal(IPC.startVoiceListening, 'rata:voice-start')
   assert.equal(IPC.stopVoiceListening, 'rata:voice-stop')
   assert.equal(IPC.voiceTranscript, 'rata:voice-transcript')
+})
+
+test('a leftover partial transcript is delivered when the microphone is disabled', async () => {
+  const transcripts = []
+  const child = fakeChild()
+  const voice = createWindowsVoice({
+    spawnProcess: () => child,
+    sendTranscript: payload => transcripts.push(payload)
+  })
+
+  await voice.start()
+  child.stdout.emit('data', 'hello without newline')
+  assert.deepEqual(transcripts, [])
+  voice.stop()
+  child.emit('exit', 0)
+  assert.deepEqual(transcripts, [{ transcript: 'hello without newline' }])
+})
+
+test('complete lines already emitted stay emitted after disable', async () => {
+  const transcripts = []
+  const child = fakeChild()
+  const voice = createWindowsVoice({
+    spawnProcess: () => child,
+    sendTranscript: payload => transcripts.push(payload)
+  })
+
+  await voice.start()
+  child.stdout.emit('data', 'Done line\npartial')
+  assert.deepEqual(transcripts, [{ transcript: 'Done line' }])
+  voice.stop()
+  child.emit('exit', 0)
+  assert.deepEqual(transcripts, [{ transcript: 'Done line' }, { transcript: 'partial' }])
+})
+
+test('voice IPC awaits the start() promise and surfaces rejection as a clean error', async () => {
+  const ipcMain = fakeIpcMain()
+  registerIpcHandlers({
+    ipcMain,
+    IPC,
+    isTrustedSender: () => true,
+    services: {
+      getStore: () => ({ getSettings: () => ({ microphoneEnabled: true }) }),
+      getVoice: () => ({
+        start: () => Promise.reject(new Error('recognizer failed')),
+        stop: () => ({ ok: true })
+      })
+    },
+    modules: [voiceHandler]
+  })
+
+  const unhandled = []
+  const onUnhandled = error => unhandled.push(error)
+  process.on('unhandledRejection', onUnhandled)
+  try {
+    await assert.rejects(
+      () => ipcMain.handlers.get(IPC.startVoiceListening)({}),
+      /recognizer failed/
+    )
+    await new Promise(resolve => setImmediate(resolve))
+    assert.equal(unhandled.length, 0)
+  } finally {
+    process.off('unhandledRejection', onUnhandled)
+  }
+})
+
+test('voice IPC waits for a pending start() promise before returning', async () => {
+  let resolveStart
+  const started = new Promise(resolve => { resolveStart = resolve })
+  const ipcMain = fakeIpcMain()
+  registerIpcHandlers({
+    ipcMain,
+    IPC,
+    isTrustedSender: () => true,
+    services: {
+      getStore: () => ({ getSettings: () => ({ microphoneEnabled: true }) }),
+      getVoice: () => ({
+        start: () => started.then(() => ({ ok: true })),
+        stop: () => ({ ok: true })
+      })
+    },
+    modules: [voiceHandler]
+  })
+
+  const pending = ipcMain.handlers.get(IPC.startVoiceListening)({})
+  let settled = false
+  pending.then(() => { settled = true })
+  await Promise.resolve()
+  assert.equal(settled, false)
+  resolveStart()
+  assert.deepEqual(await pending, { ok: true })
+})
+
+test('preload startVoiceListening returns the invoke promise', async () => {
+  const bridge = composeBridge({
+    ipcRenderer: {
+      invoke: async () => { throw new Error('Microphone is disabled.') },
+      on() {},
+      removeListener() {}
+    },
+    IPC,
+    modules: [voiceBridge]
+  })
+  const result = bridge.startVoiceListening()
+  assert.equal(typeof result.then, 'function')
+  await assert.rejects(() => result, /Microphone is disabled/)
 })

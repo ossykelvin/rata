@@ -28,6 +28,8 @@ test('push-to-talk starts on press, stops on release, and can be cancelled', () 
   assert.match(button, /Escape/)
   assert.match(hook, /startVoiceListening/)
   assert.match(hook, /stopVoiceListening/)
+  assert.match(hook, /await window\.rata\.startVoiceListening\(\)/)
+  assert.match(hook, /try \{[\s\S]*await window\.rata\.startVoiceListening\(\)[\s\S]*\} catch \{/)
 })
 
 test('the voice hook keeps only the transcript string', () => {
