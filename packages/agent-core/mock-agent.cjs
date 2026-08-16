@@ -4,6 +4,13 @@ const {
   looksLikeSystemActionRequest,
   planSystemAction
 } = require('./orchestrator/system-action-planner.cjs')
+const {
+  continuationFor,
+  COMMUNICATOR_TIMEOUT_MS,
+  interpretRequest,
+  presentReply: applyVoice,
+  toolTitle
+} = require('./communicator.cjs')
 
 /**
  * How long a requested approval stays valid. An approval is a snapshot of user
@@ -45,6 +52,7 @@ class MockAgent {
     provider = null,
     approvalTtlMs = APPROVAL_TTL_MS,
     maxPendingApprovals = MAX_PENDING_APPROVALS,
+    communicatorTimeoutMs = COMMUNICATOR_TIMEOUT_MS,
     now = () => Date.now()
   }) {
     this.registry = registry
@@ -56,6 +64,7 @@ class MockAgent {
     this.provider = provider
     this.approvalTtlMs = approvalTtlMs
     this.maxPendingApprovals = maxPendingApprovals
+    this.communicatorTimeoutMs = communicatorTimeoutMs
     // Injectable so expiry is testable without sleeping.
     this.now = now
     this.pending = new Map()
@@ -98,6 +107,10 @@ class MockAgent {
   }
 
   async handle(message) {
+    return this.presentReply(await this.dispatchRequest(message))
+  }
+
+  async dispatchRequest(message) {
     const text = message.trim()
     const lower = text.toLowerCase()
     this.activity('User request', `Request received (${text.length} characters).`, 'info')
@@ -182,7 +195,82 @@ class MockAgent {
       if (launched) return launched
     }
 
+    const interpreted = await this.handleCommunicatorIntent(text)
+    if (interpreted) return interpreted
+
     return this.ask(text)
+  }
+
+  communicatorEnabled() {
+    return this.settings()?.communicatorEnabled === true
+  }
+
+  loadCommunicatorPrompt(heading) {
+    try {
+      return this.skills?.loader?.loadNamedPrompt?.('communicator', heading) || ''
+    } catch {
+      return ''
+    }
+  }
+
+  async presentReply(reply) {
+    return applyVoice(reply, {
+      enabled: this.communicatorEnabled(),
+      provider: this.provider,
+      activity: (action, detail, status) => this.activity(action, detail, status),
+      voicePrompt: this.loadCommunicatorPrompt('Voice prompt'),
+      timeoutMs: this.communicatorTimeoutMs
+    })
+  }
+
+  /**
+   * Last-chance intent stage. Runs only when every deterministic route, the
+   * skill router and the system-action planner declined. The user's request
+   * text is never rewritten. Fail quiet: any error falls through to ask().
+   */
+  async handleCommunicatorIntent(text) {
+    if (!this.communicatorEnabled() || !this.provider) return undefined
+    const prompt = this.loadCommunicatorPrompt('Understanding prompt')
+    if (!prompt) return undefined
+
+    try {
+      const { interpretation, providerResult } = await interpretRequest({
+        provider: this.provider,
+        request: text,
+        prompt,
+        timeoutMs: this.communicatorTimeoutMs
+      })
+      for (const attempt of providerResult.attempts || []) {
+        this.activity('Provider fallback', `${attempt.provider} did not answer: ${attempt.error}`, 'warning')
+      }
+      if (!interpretation) {
+        this.activity('Communicator intent', 'none', 'info')
+        return undefined
+      }
+
+      const parameter = Object.values(interpretation.input)[0]
+      this.activity(
+        'Communicator intent',
+        `${interpretation.intent} -> ${interpretation.toolId} (${parameter})`,
+        'info'
+      )
+
+      try {
+        this.registry.validate(interpretation.toolId, interpretation.input)
+      } catch {
+        this.activity('Communicator intent', `${interpretation.toolId}: extracted parameter rejected`, 'warning')
+        return undefined
+      }
+
+      return this.runTool(
+        interpretation.toolId,
+        interpretation.input,
+        toolTitle(interpretation),
+        continuationFor(interpretation, text)
+      )
+    } catch {
+      return undefined
+    }
   }
 
   /**
@@ -359,10 +447,12 @@ class MockAgent {
 
   async approve(id) {
     const pending = this.takePending(id)
-    if (!pending) return { message: 'That approval has expired or was already handled.', state: 'error' }
+    if (!pending) {
+      return this.presentReply({ message: 'That approval has expired or was already handled.', state: 'error' })
+    }
     this.activity('Approval granted', pending.title, 'success')
     const continuation = pending.continuation ? { ...pending.continuation, approved: true } : null
-    return this.execute(pending.id, pending.input, continuation)
+    return this.presentReply(await this.execute(pending.id, pending.input, continuation))
   }
 
   async reject(id) {

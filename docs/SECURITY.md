@@ -51,6 +51,18 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
 - Reading content is confirmed by default (`fileReadConfirm`) because the text leaves the machine for a provider; searching by *name* is automatic.
 - See `docs/decisions/ADR-010-readonly-local-file-access.md`.
 
+### Communicator (understanding and voice)
+
+- Communicator is not a routed skill. It cannot grant tools, change policy or approve actions. See `docs/decisions/ADR-012-communicator.md` and ADR-003.
+- The user's request text is never rewritten. Understanding produces a validated interpretation; voice rewrites only conversational replies.
+- Understanding sits last, after every deterministic route, the skill router and the ADR-009 planner. It cannot override a match those stages already made.
+- The model returns a fixed intent enum (`weather`, `webSearch`, `fileSearch`, `none`). It never names a tool. `intent → toolId` is a literal in trusted code. Extracted parameters are untrusted and still pass `ToolRegistry.validate()` and the tool's own validator.
+- The stage cannot reach destructive or external-write tools. Confirmation policy is unchanged.
+- Invalid JSON, an unknown intent, a missing parameter, a provider error or a timeout fall through to ordinary `ask()`. The user never sees an error that exists only because this stage ran.
+- Voice never rewrites approval cards (including `detail`/`title`), `awaiting_approval` replies, audit/activity text, or refusal reasons (`I blocked that action:`). A rewrite that drops a number, path, URL or quoted string is discarded.
+- Untrusted tool text reaching the voice provider is wrapped with `fenceUntrusted`.
+- Both stages send text to a provider, so `communicatorEnabled` defaults to **false**. When it is off, neither stage calls a provider.
+
 ### Weather lookup
 
 - The key is read from `WEATHER_API_KEY` in the main process and captured in the client closure. The tool layer receives a bound `getCurrentWeather(query)` capability, never the credential, and `describeConfig()` reports presence as a boolean only.
