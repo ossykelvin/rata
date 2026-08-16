@@ -18,6 +18,7 @@ const {
 } = require('../packages/agent-core/providers/index.cjs')
 const { registerIpcHandlers } = require('./ipc/index.cjs')
 const { createSecurityPolicy, applySessionPermissionHandler } = require('./security.cjs')
+const { createWindowsVoice } = require('./voice-win.cjs')
 const { IPC } = require('../packages/contracts/ipc-channels.cjs')
 const { createSkillRegistry, createSkillRouter, createSkillLoader } = require('../packages/skills/index.cjs')
 
@@ -78,7 +79,7 @@ function windowPreferences() {
 function createOverlay() {
   const settings = store.getSettings()
   const display = screen.getPrimaryDisplay().workArea
-  overlayWindow = new BrowserWindow({
+  const window = new BrowserWindow({
     width: 360,
     height: 470,
     x: Math.max(display.x, display.x + display.width - 390),
@@ -95,11 +96,33 @@ function createOverlay() {
     icon: loadAppIcon(),
     webPreferences: windowPreferences()
   })
-  security.applyWindowGuards(overlayWindow)
-  overlayWindow.setAlwaysOnTop(settings.alwaysOnTop, 'floating')
-  overlayWindow.loadURL(rendererTarget('overlay'))
-  overlayWindow.once('ready-to-show', () => overlayWindow.showInactive())
-  overlayWindow.on('closed', () => { overlayWindow = undefined })
+  overlayWindow = window
+  security.applyWindowGuards(window)
+  window.setAlwaysOnTop(settings.alwaysOnTop, 'floating')
+  window.loadURL(rendererTarget('overlay'))
+  window.once('ready-to-show', () => {
+    if (!window.isDestroyed()) window.showInactive()
+  })
+  window.on('closed', () => {
+    if (overlayWindow === window) overlayWindow = undefined
+  })
+}
+
+function getOverlayWindow() {
+  return overlayWindow && !overlayWindow.isDestroyed() ? overlayWindow : undefined
+}
+
+function showOverlay({ inactive = false } = {}) {
+  const window = getOverlayWindow()
+  if (!window) {
+    // createOverlay() reveals the replacement after its renderer is ready,
+    // avoiding a blank transparent window while the page is still loading.
+    createOverlay()
+    return
+  }
+  if (window.isMinimized()) window.restore()
+  if (inactive) window.showInactive()
+  else window.show()
 }
 
 function createControlCenter() {
@@ -148,8 +171,8 @@ function createTray() {
   tray.setToolTip('Rata Office Assistant')
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Open Control Center', click: () => showControl() },
-    { label: 'Show Rata', click: () => overlayWindow?.show() },
-    { label: 'Hide Rata', click: () => overlayWindow?.hide() },
+    { label: 'Show Rata', click: () => showOverlay() },
+    { label: 'Hide Rata', click: () => getOverlayWindow()?.hide() },
     { type: 'separator' },
     { label: 'Quit Rata', click: () => { app.isQuitting = true; app.quit() } }
   ]))
@@ -233,7 +256,7 @@ if (!hasSingleInstanceLock) {
   // from another process are untrusted input and must not steer this one.
   app.on('second-instance', () => {
     showControl()
-    overlayWindow?.showInactive()
+    showOverlay({ inactive: true })
   })
 
   app.whenReady().then(() => {
@@ -247,6 +270,12 @@ if (!hasSingleInstanceLock) {
     // REVIEW-001 M4 / Codex b1d9c52: renderer `microphoneEnabled` is not a
     // boundary. Deny media unless the setting is on; deny every other permission.
     applySessionPermissionHandler(session.defaultSession, () => store.getSettings())
+    const voice = createWindowsVoice({
+      sendTranscript: payload => {
+        for (const win of BrowserWindow.getAllWindows()) win.webContents.send(IPC.voiceTranscript, payload)
+      },
+      logActivity
+    })
     const registry = createToolRegistry({
       dependencies: {
         spawnProcess: spawn,
@@ -280,11 +309,13 @@ if (!hasSingleInstanceLock) {
         getProvider: () => providers,
         // Boolean only. The key itself never leaves this process.
         isSearchConfigured: () => Boolean(runtimeConfig.serper.apiKey),
-        getOverlayWindow: () => overlayWindow,
+        getOverlayWindow,
+        showOverlay,
         showControl,
         broadcastSettings,
         logActivity,
-        Notification
+        Notification,
+        getVoice: () => voice
       }
     })
     createOverlay()

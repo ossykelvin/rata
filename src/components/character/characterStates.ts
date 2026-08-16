@@ -9,7 +9,12 @@ export const CHARACTER_STATES = [
   'working',
   'success',
   'error',
-  'sleeping'
+  'sleeping',
+  // Derived in the renderer by idlePresence.ts, never sent by the agent.
+  'bored',
+  'peeking',
+  'sleepy',
+  'excited'
 ] as const satisfies readonly CharacterState[]
 
 export type CharacterSize = 'small' | 'large'

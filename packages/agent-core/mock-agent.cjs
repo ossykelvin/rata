@@ -269,6 +269,10 @@ class MockAgent {
       })
     }
 
+    if (skillId === 'critical-thinking' && routed.missingTools.length === 0) {
+      return this.answerSkillWithProvider(text, skillId, 'openrouter')
+    }
+
     if (routed.missingTools.length) {
       return {
         message: `${routed.skill?.name || skillId} is installed, but its tools are not registered yet (${routed.missingTools.join(', ')}). Skills cannot bypass the Tool Registry.`,
@@ -460,6 +464,46 @@ class MockAgent {
       const reason = error instanceof Error ? error.message : 'Unknown provider failure.'
       this.activity('Provider failed', reason, 'error')
       return { message: `I searched for evidence, but couldn't answer the trivia question: ${reason}`, state: 'error' }
+    }
+  }
+
+  async answerSkillWithProvider(question, skillId, preferredProvider) {
+    if (!this.provider) {
+      return {
+        message: `${skillId} matched this request, but no AI provider is connected.`,
+        state: 'idle'
+      }
+    }
+
+    let skillPrompt
+    try {
+      skillPrompt = this.skills?.loader?.loadPrompt?.(skillId)
+      if (!skillPrompt) throw new Error('The selected skill prompt is unavailable.')
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Unknown skill prompt failure.'
+      this.activity('Skill prompt failed', `${skillId}: ${reason}`, 'error')
+      return { message: `I couldn't load the ${skillId} skill prompt: ${reason}`, state: 'error' }
+    }
+
+    try {
+      const result = await this.provider.generate({
+        prompt: question,
+        preferredProvider,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'system', content: skillPrompt },
+          { role: 'user', content: question }
+        ]
+      })
+      for (const attempt of result.attempts || []) {
+        this.activity('Provider fallback', `${attempt.provider} did not answer: ${attempt.error}`, 'warning')
+      }
+      this.activity('Skill answered', `${skillId}: ${result.provider} (${result.model})`, 'success')
+      return { message: result.text, state: 'success' }
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Unknown provider failure.'
+      this.activity('Provider failed', `${skillId}: ${reason}`, 'error')
+      return { message: `I couldn't reach an AI provider for ${skillId}: ${reason}`, state: 'error' }
     }
   }
 }

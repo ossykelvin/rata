@@ -109,6 +109,19 @@ Worth recording rather than burying: `system.openApp` is `risk: safe-write, conf
 **Non-blocking, not fixed:** the parser rejects markdown-fenced JSON, and most models fence by default. Fail-closed is the right default, but it means the feature will decline more often than the ADR implies. Stripping exactly one fence before `JSON.parse` would fix it without widening the schema.
 
 **#54 recreate the overlay — APPROVED, no findings.** `security.applyWindowGuards()` and `windowPreferences()` are both reapplied to the recreated window, so `contextIsolation`/`sandbox` survive the rebuild — that was the thing worth checking. Each `BrowserWindow` is captured in its own callbacks and `closed` only clears the reference when it still points at that window, so a stale callback cannot clear a replacement. `getOverlayWindow()` now filters destroyed windows, which incidentally hardens `hideOverlay` too. `second-instance` still ignores argv.
+### 2026-08-16 — RATA-004 fix — Recognizer script escaped `app.asar`; icon unblocked packaging
+
+**Status:** DONE. On `cursor/RATA-004-native-windows-voice` (PR #50), rebased onto `main`.
+
+**The blocking defect.** `voice-win.cjs` spawned `powershell.exe -File <__dirname>/voice-listen.ps1`. In a packaged build `__dirname` is inside `app.asar`, and PowerShell is an external process with no asar awareness — it cannot read that path. Voice therefore worked in dev and did **nothing at all** once installed, with no error surfaced. `resolveScriptPath()` / `isPackagedRuntime()` now point at `process.resourcesPath` when packaged (same shape as `appIconPath()` in `main.cjs`), and `build.extraResources` copies the script to `resources/`.
+
+**A second defect found while proving the first.** `npm run pack:win` could not run at all: `public/24_dialog_avatar_reply.png` was 77×82 and electron-builder rejects anything under 256×256. The fix was to regenerate **that** file at 256×256 — same circular navy badge, rebuilt from the concept art rather than upscaled — not to repoint `build.win.icon` at a new file. Cursor's `tests/app-icon.test.cjs` pins that path deliberately; their product decision stands.
+
+**Invisible asset load.** A failed character image rendered the silhouette and said nothing, so a dead Vite dev server looked like a design choice. `RataCharacter.tsx` now logs the failing URL, exposes it as `data-asset-failed`, and puts it in `title` / the fallback's `aria-label`.
+
+**Validation.** `npm run verify` **211/211, exit 0**. Packaging verified by execution, not inference: `release/win-unpacked/resources/` contains `voice-listen.ps1` (2,369 bytes) as a real file on disk alongside `app.asar`. `tests/voice-packaging.test.cjs` (6 tests) pins dev/packaged resolution, asar detection, the `extraResources` entry, the ≥256×256 icon, and the asset-failure reporting.
+
+**Still open on this feature** (from my earlier review, not fixed here): the second microphone path sits outside the permission handler and the gate is only checked at start; and there is a restart race in `stop()`/`start()`.
 
 ### 2026-08-15 — P0-2 — Privilege-boundary review and Lane H tests
 
@@ -188,6 +201,29 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 **Implemented:** Added a deterministic launch-intent gate and a versioned, exact-key provider proposal parser. The only accepted proposal is `system.openApp` with `notepad` or `calculator`; `none` is the only alternative. Ordinary chat and retrieved context cannot enter the planner. Accepted proposals still pass through registry validation, policy evaluation and registry execution. Invalid JSON, prose, Markdown, extra fields, paths, arguments, arbitrary tools/apps, shell text and elevation fail closed without execution. Added ADR-009 and aligned ADR-007, architecture and security documentation. No PowerShell or generic shell capability was added.
 
 **Validation:** Injected checks proved deterministic launches do not call a provider, a valid proposal launches only the fixed executable with an empty argument list and detached background options, and malicious/expanded proposals spawn nothing. Full `npm run verify` passed: 68 CommonJS files, lint, 181/181 tests, TypeScript, Vite build and the six-module sandboxed preload build. `git diff --check` passed. Claude privilege-boundary review and Lane H focused contract tests remain required before merge.
+### 2026-08-16 — Codex — FIX-003 recreate closed overlay
+
+**Status:** READY FOR CLAUDE REVIEW — draft PR #54 (branch `codex/FIX-003-recreate-overlay`)
+
+**Scope:** Repair the main-process window lifecycle behind the Control Center and tray “Show Rata” actions. A closed/destroyed overlay currently clears `overlayWindow`, while callers use optional chaining and silently do nothing. Add a single safe show/recreate service, preserve the existing narrow IPC channel and renderer boundary, avoid all Cursor-owned UI paths and Claude-owned contracts/tests, run injected lifecycle checks plus `npm run verify`, and request Claude review for the Electron change.
+
+**Implemented:** Added a centralized main-process `showOverlay` lifecycle service. It recreates a missing/destroyed overlay, lets the replacement renderer reach `ready-to-show` before revealing it, restores a minimized live window, and supports inactive display for the second-instance path. The Control Center IPC handler, tray action and second-instance handler now use that service. Overlay callbacks capture their own BrowserWindow and clear the shared reference only when it still points to that instance, preventing stale callbacks from acting on a replacement. No renderer, preload or shared contract path changed.
+
+**Validation:** Injected IPC wiring proved `showOverlay` calls the lifecycle service rather than the stale optional-window path. Full `npm run verify` passed: 69 CommonJS files, lint, 202/202 tests, TypeScript, Vite build and the six-module sandboxed preload build. `git diff --check` passed. GUI smoke remains BLOCKED-ON-HUMAN; Claude review is required because this touches `electron/`.
+
+### 2026-08-16 — Codex — RATA-002 Critical Thinking OpenRouter routing
+
+**Status:** DONE — draft PR #49 awaiting Lane H issue #48 and Claude review (branch `codex/RATA-002-critical-thinking-openrouter`)
+
+**Scope:** Route the existing declarative `critical-thinking` skill through the provider abstraction with OpenRouter preferred in auto mode and Gemini retained as fallback. Load the skill prompt only after selection; never expose `OPENROUTER_API_KEY` to the skill, renderer, or audit trail. Respect explicit provider modes, update behavior tests and provider-routing documentation, run `npm run verify`, and request Claude review because this changes `packages/agent-core/`.
+
+**Implemented:** `MockAgent` now continues a selected, tool-complete `critical-thinking` route through a provider-only helper. It loads only that selected prompt, supplies it beside Rata's global system prompt, and passes `preferredProvider: 'openrouter'` to the existing chain. The preference applies only in `auto`; pinned Gemini/OpenRouter/mock modes remain authoritative and the existing OpenRouter → Gemini → mock fallback is preserved. The API key remains closed inside the OpenRouter adapter and is never passed to the skill, renderer or activity log. ADR-007 records the routing decision. No skill metadata, contract or renderer path changed.
+
+**Validation:** Injected end-to-end routing confirmed only `critical-thinking` was loaded and OpenRouter was preferred. A redacted live route check in `auto` mode succeeded through OpenRouter (`anthropic/claude-sonnet-5`) with both credentials reported only as booleans. `npm run verify` passed: 67 CommonJS files, lint, 181/181 tests, TypeScript, Vite build and the six-module preload build. `npm ci` reported 0 vulnerabilities. Lane H regression coverage remains delegated to Claude.
+
+**Files touched:** `packages/agent-core/mock-agent.cjs`, `docs/decisions/ADR-007-ai-provider-chain.md`, and this Codex workbook entry.
+
+**Handoff:** Draft PR #49 is open against `main`. Issue #48 requests injected Lane H coverage for selected-prompt loading, OpenRouter-first auto routing, fallback order, pinned-mode precedence, prompt failure and credential isolation. Do not merge until Claude's tests and review land.
 
 ### 2026-08-16 — Codex — WEB-001 Claude review findings 1–3
 
@@ -359,7 +395,9 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 **Validation:** `npm run verify` passed (152 tests).
 
-**Still open:** configurable cloud STT/TTS adapters (`packages/agent-core/voice/`, Lane G voice channels).
+**Still open:** configurable cloud STT/TTS adapters and TTS.
+
+**2026-08-16 — STT fix:** Chromium `SpeechRecognition` always fails in Electron (`network` / no Google speech service). Push-to-talk now uses Windows speech recognition from `electron/voice-win.cjs` through `rata:voice-*`. The renderer only receives the transcript. `microphoneEnabled` is enforced in the voice IPC handler. Lane G should review the three new contract channels.
 
 **2026-08-16 — Codex b1d9c52:** The WEB-001 workbook restated REVIEW-001 M4 after probing a checkout that did not include this branch. This PR already registers `setPermissionRequestHandler` and `setPermissionCheckHandler` on `session.defaultSession` before windows are created. `media`/`microphone` are allowed only when `microphoneEnabled === true` and requested types are audio-only. Every other renderer permission is denied. The renderer checkbox remains a UI affordance only.
 

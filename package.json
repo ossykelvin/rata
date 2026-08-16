@@ -61,6 +61,10 @@
       {
         "from": "public/24_dialog_avatar_reply.png",
         "to": "24_dialog_avatar_reply.png"
+      },
+      {
+        "from": "electron/voice-listen.ps1",
+        "to": "voice-listen.ps1"
       }
     ],
     "win": {
