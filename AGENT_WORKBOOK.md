@@ -68,6 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
+| Cursor | FIX overlay min/close | `cursor/FIX-overlay-min-close` | DONE, PR pending |
 | Cursor | FIX voice permission gate | `cursor/FIX-voice-permission-gate` | DONE, PR #62 |
 | Cursor | FIX critical-thinking provider | `cursor/FIX-critical-thinking-provider` | DONE, PR pending |
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, merged as #2 |
@@ -444,6 +445,16 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Cursor
 
+### 2026-08-16 — FIX — Overlay minimize and close
+
+**Status:** DONE, PR pending
+**Branch:** `cursor/FIX-overlay-min-close`
+
+**Done:** Overlay Ask bar now has minimize (−) and close (×) to the right of Open Control Center. Minimize collapses to a small draggable icon; click restores. Close calls `hideOverlay()` and does not quit. Overlay stays `skipTaskbar`; Control Center leaves the taskbar when hidden; tray left-click shows the overlay again.
+
+**Files touched:** `src/views/Overlay.tsx`, `src/styles/overlay.css`, `electron/main.cjs`, `tests/overlay-window-controls.test.cjs`, `docs/VALIDATION.md`, `docs/ARCHITECTURE.md`.
+
+**Validation:** `npm run verify` passed (184 tests).
 ### 2026-08-16 — FIX — Voice permission gate and recognizer restart race
 
 **Status:** DONE, PR #62

@@ -133,6 +133,7 @@ function createControlCenter() {
     minWidth: 940,
     minHeight: 650,
     show: false,
+    skipTaskbar: true,
     backgroundColor: '#07142f',
     autoHideMenuBar: true,
     icon: loadAppIcon(),
@@ -141,6 +142,8 @@ function createControlCenter() {
   security.applyWindowGuards(controlWindow)
   controlWindow.loadURL(rendererTarget('control'))
   controlWindow.once('ready-to-show', () => controlWindow.show())
+  controlWindow.on('show', () => controlWindow.setSkipTaskbar(false))
+  controlWindow.on('hide', () => controlWindow.setSkipTaskbar(true))
   controlWindow.on('close', event => {
     if (!app.isQuitting) {
       event.preventDefault()
@@ -177,6 +180,11 @@ function createTray() {
     { type: 'separator' },
     { label: 'Quit Rata', click: () => { app.isQuitting = true; app.quit() } }
   ]))
+  // Must go through showOverlay(), not overlayWindow?.show(). This branch was
+  // written before the FIX-003 lifecycle service landed, and the optional chain
+  // silently does nothing once the overlay has been closed — which is exactly
+  // the state this feature now lets the user reach from the tray.
+  tray.on('click', () => showOverlay())
   tray.on('double-click', showControl)
 }
 

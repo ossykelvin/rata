@@ -95,8 +95,9 @@ Audit + response + character state
 
 Rata uses separate windows:
 
-- **Overlay**: transparent, frameless, draggable, always-on-top, small attack surface.
-- **Control Center**: normal application window for settings, chat, permissions, integrations, memory and logs.
+- **Overlay**: transparent, frameless, draggable, always-on-top, `skipTaskbar`, small attack surface. Minimize collapses the widget to a small draggable icon; close hides the window without quitting.
+- **Control Center**: normal application window for settings, chat, permissions, integrations, memory and logs. Closing it hides the window (`skipTaskbar`) rather than quitting.
+- **Tray**: notification-area icon for the running process. Show/Hide overlay, Open Control Center, and Quit live here so a closed overlay does not leave a taskbar launch.
 
 The overlay must never gain privileged APIs that the Control Center does not need either. Both use the same restricted preload.
 
