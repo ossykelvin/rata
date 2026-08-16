@@ -95,12 +95,20 @@ function createSecurityPolicy({ allowedPrefixes, onBlocked = () => {} } = {}) {
 
 /**
  * REVIEW-001 M4. Renderer checks of `microphoneEnabled` are not a boundary.
+ * Chromium `getUserMedia` and the Windows speech child process both consult
+ * this function so disabling the mic cannot leave one path open.
+ */
+function isMicrophoneEnabled(settings) {
+  return Boolean(settings && settings.microphoneEnabled === true)
+}
+
+/**
  * Chromium permission names for the mic are `media` and `microphone`.
  * Camera (`video`) and every other renderer permission stay denied.
  */
 function decideRendererPermission(permission, details, settings) {
   if (permission === 'media' || permission === 'microphone') {
-    if (!settings || settings.microphoneEnabled !== true) return false
+    if (!isMicrophoneEnabled(settings)) return false
     const types = details?.mediaTypes
     if (Array.isArray(types) && types.length > 0) {
       return types.every(type => type === 'audio')
@@ -129,4 +137,4 @@ function applySessionPermissionHandler(electronSession, getSettings) {
   }
 }
 
-module.exports = { createSecurityPolicy, decideRendererPermission, applySessionPermissionHandler }
+module.exports = { createSecurityPolicy, isMicrophoneEnabled, decideRendererPermission, applySessionPermissionHandler }

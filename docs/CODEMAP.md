@@ -33,7 +33,7 @@ src/views (React UI)
 | `esbuild.preload.cjs` | Discovers bridge fragments and generates the single sandbox-compatible preload artifact | Runtime authority or renderer code |
 | `electron/main.cjs` | Windows, tray, runtime dependency composition | Per-domain IPC handler implementations |
 | `electron/ipc/` | Per-domain validated IPC handlers | Undeclared channels or renderer APIs |
-| `electron/security.cjs` | Navigation, popup, IPC sender, and renderer permission guards | Business logic or tool execution |
+| `electron/security.cjs` | Navigation, popup, IPC sender, renderer permission guards, and `isMicrophoneEnabled()` | Business logic or tool execution |
 | `electron/tools/index.cjs` | Discovers and composes declared tool-domain modules | User/model-supplied modules, undeclared tool IDs |
 | `electron/tools/*.cjs` | Per-domain allow-listed native tool adapters | Unrestricted shell, policy bypass |
 | `electron/mvp-tools.cjs` | Compatibility export for existing consumers | New tool registration logic |
