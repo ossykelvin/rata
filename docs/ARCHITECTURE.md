@@ -58,6 +58,15 @@ proposal then enters the normal policy and Tool Registry path. Ordinary chat
 output and retrieved content never enter this planner. See
 `docs/decisions/ADR-009-structured-system-actions.md`.
 
+System status tools live in the same `electron/tools/system.cjs` module.
+`system.info`, `system.storage` and `system.processSummary` are read-only.
+`system.processSummary` returns a count and a short memory ranking; it must
+not include command lines, arguments or window titles. Keep-awake uses
+Electron `powerSaveBlocker` through `system.keepAwake.start/stop/status`: one
+blocker, a 4-hour cap, auto-release on expiry, and release on app quit.
+Native `os`, volume/process listers and `powerSaveBlocker` are injected at
+composition in `electron/main.cjs`.
+
 Adding a tool domain means adding one trusted module under `electron/tools/`; it does not require editing the composition index or Electron lifecycle. Tool modules are application code packaged with Rata, never user- or model-supplied plugins.
 
 Adding an IPC-backed capability extends the trusted boundary with a handler module and a preload bridge fragment instead of editing the shared main/preload hubs. `npm run build:preload` discovers and statically bundles new bridge fragments. Contract channel fragments are owned separately under `packages/contracts/`.

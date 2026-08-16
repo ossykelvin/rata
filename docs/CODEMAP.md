@@ -51,6 +51,10 @@ src/views (React UI)
 ## Working MVP tools
 
 - `system.openApp` — Notepad and Calculator only
+- `system.info` — OS name/version/build, architecture, RAM, uptime
+- `system.storage` — per-drive total/free/used
+- `system.processSummary` — process count and top few by memory; never command lines, arguments or window titles
+- `system.keepAwake.start` / `.stop` / `.status` — one bounded Electron `powerSaveBlocker` (max 4 hours, auto-release, released on quit)
 - `clipboard.write` — confirmation configurable
 - `calculator.evaluate` — arithmetic parser, no `eval`
 - `file.delete` — registered and blocked

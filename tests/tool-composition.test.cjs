@@ -22,9 +22,10 @@ const TOOLS_DIR = path.join(__dirname, '..', 'electron', 'tools')
 
 /** The tools the MVP ships. Changing this list is a security decision. */
 // WEB-001 added web.fetch. RATA-006 added the five read-only file tools.
-// RATA-007 added weather.current. Updated deliberately: this list is the
-// privileged tool surface, and it must only change when a tool is
-// consciously added.
+// RATA-007 added weather.current. RATA-005 skill-unblock added
+// system.info/storage/processSummary and keepAwake. Updated deliberately:
+// this list is the privileged tool surface, and it must only change when a
+// tool is consciously added.
 const EXPECTED_TOOL_IDS = [
   'calculator.evaluate',
   'clipboard.write',
@@ -34,7 +35,13 @@ const EXPECTED_TOOL_IDS = [
   'file.search',
   'file.searchContent',
   'file.stat',
+  'system.info',
+  'system.keepAwake.start',
+  'system.keepAwake.status',
+  'system.keepAwake.stop',
   'system.openApp',
+  'system.processSummary',
+  'system.storage',
   'weather.current',
   'web.fetch',
   'web.search'
@@ -43,6 +50,22 @@ const EXPECTED_TOOL_IDS = [
 const DEPENDENCIES = Object.freeze({
   spawnProcess: () => ({ unref() {} }),
   clipboardApi: { writeText() {} },
+  osApi: Object.freeze({
+    type: () => 'Windows_NT',
+    platform: () => 'win32',
+    release: () => '10.0',
+    version: () => 'Windows 10',
+    arch: () => 'x64',
+    totalmem: () => 0,
+    freemem: () => 0,
+    uptime: () => 0
+  }),
+  listStorage: async () => [],
+  listProcesses: async () => [],
+  powerSaveBlocker: Object.freeze({
+    start: () => 1,
+    stop: () => true
+  }),
   // Bound capabilities, never credentials. See electron/serper-client.cjs
   // and electron/public-web-client.cjs.
   webSearch: async () => [],
@@ -290,6 +313,14 @@ test('shipped tools keep their risk and confirmation metadata', () => {
 
   assert.deepEqual(
     { risk: meta('system.openApp').risk, confirmation: meta('system.openApp').confirmation },
+    { risk: 'safe-write', confirmation: 'never' }
+  )
+  assert.deepEqual(
+    { risk: meta('system.info').risk, confirmation: meta('system.info').confirmation },
+    { risk: 'read', confirmation: 'never' }
+  )
+  assert.deepEqual(
+    { risk: meta('system.keepAwake.start').risk, confirmation: meta('system.keepAwake.start').confirmation },
     { risk: 'safe-write', confirmation: 'never' }
   )
   assert.deepEqual(

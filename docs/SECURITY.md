@@ -87,6 +87,20 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
   only `system.openApp` for Notepad or Calculator, with no paths, arguments,
   elevation or command text.
 
+### System status and keep-awake
+
+- `system.info`, `system.storage`, `system.processSummary` and
+  `system.keepAwake.status` are `read` tools with confirmation `never`.
+- `system.processSummary` returns a process count and a capped list of coarse
+  names plus memory. It must not return command lines, arguments or window
+  titles. Production listing uses `tasklist.exe` with a fixed argv
+  (`/FO CSV /NH`) and never `/V`.
+- `system.keepAwake.start` and `system.keepAwake.stop` are `safe-write` with
+  confirmation `never`. Keep-awake holds at most one Electron
+  `powerSaveBlocker`, caps duration at 4 hours, auto-releases on expiry, is
+  safe to stop when nothing is held, and releases on app quit. A second
+  start stops the previous blocker before creating a new one.
+
 ## Secrets
 
 Production credentials should be stored with OS-backed secret storage, not plain JSON. The current JSON store contains only non-secret user preferences and audit metadata.

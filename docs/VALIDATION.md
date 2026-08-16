@@ -48,5 +48,7 @@ Then verify:
 15. Permissions → Microphone off denies Chromium `media` permission in the main process and stops an in-flight Windows speech session. The renderer cannot bypass that setting.
 16. Hold-to-talk uses Windows speech recognition in the main process, not Chromium's Google speech service. Transcripts fill the input. Spoken replies (TTS) are not wired yet.
 17. “Think critically about this…” loads the Critical Thinking skill prompt and answers through the provider chain (OpenRouter first in `auto` mode, then Gemini). It must not reply that the mock agent has no live provider. Mock remains the terminal fallback if live providers are unset or fail; `RATA_AI_PROVIDER=auto` (or a stored non-mock provider) is required for Gemini/OpenRouter.
+18. “How much RAM do I have?” / “How much disk space is free?” use `system.info` and `system.storage`. Process summaries must not show command lines or window titles.
+19. “Keep my PC awake for two hours” holds one sleep blocker and auto-releases. “Stop keeping the computer awake” is safe even if nothing was held. Quit Rata from the tray also releases the blocker.
 
 The Control Center window, Windows taskbar, and system tray use `public/24_dialog_avatar_reply.png`. Packaged Windows builds take the same file as `win.icon`.

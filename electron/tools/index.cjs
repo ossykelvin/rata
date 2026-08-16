@@ -78,8 +78,35 @@ function createToolRegistry(options) {
   return registry
 }
 
-function createMvpRegistry({ spawnProcess, clipboardApi } = {}) {
-  return createToolRegistry({ dependencies: { spawnProcess, clipboardApi } })
+// Inert system adapters so unit tests that only care about other tools do not
+// need Electron or live machine state. Production main.cjs must pass real os,
+// volume/process listers and powerSaveBlocker.
+const INERT_SYSTEM_DEPENDENCIES = Object.freeze({
+  osApi: Object.freeze({
+    type: () => 'Windows_NT',
+    platform: () => 'win32',
+    release: () => '10.0',
+    version: () => 'Windows 10',
+    arch: () => 'x64',
+    totalmem: () => 0,
+    freemem: () => 0,
+    uptime: () => 0
+  }),
+  listStorage: async () => [],
+  listProcesses: async () => [],
+  powerSaveBlocker: Object.freeze({
+    start: () => 1,
+    stop: () => true
+  })
+})
+
+function createMvpRegistry(dependencies = {}) {
+  return createToolRegistry({
+    dependencies: {
+      ...INERT_SYSTEM_DEPENDENCIES,
+      ...dependencies
+    }
+  })
 }
 
 module.exports = {
