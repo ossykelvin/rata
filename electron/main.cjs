@@ -9,6 +9,7 @@ const { PolicyEngine } = require('../packages/agent-core/policy-engine.cjs')
 const { MockAgent } = require('../packages/agent-core/mock-agent.cjs')
 const { createToolRegistry } = require('./tools/index.cjs')
 const { createSerperSearch } = require('./serper-client.cjs')
+const { createWeatherClient } = require('./weather-client.cjs')
 const { loadRuntimeConfig, describeConfig } = require('./config.cjs')
 const {
   createProviderChain,
@@ -304,7 +305,13 @@ if (!hasSingleInstanceLock) {
             }
           })
         }),
-        revealItem: target => shell.showItemInFolder(target)
+        revealItem: target => shell.showItemInFolder(target),
+        // Bound capability again: the WeatherAPI key stays in the client
+        // closure and never enters the dependency bag. RATA-007.
+        weatherCurrent: createWeatherClient({
+          apiKey: runtimeConfig.weather.apiKey,
+          ...(runtimeConfig.weather.baseUrl ? { endpoint: runtimeConfig.weather.baseUrl } : {})
+        })
       }
     })
     providers = createProviders()

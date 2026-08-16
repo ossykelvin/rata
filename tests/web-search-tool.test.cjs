@@ -153,6 +153,9 @@ test('config describes presence without exposing values', () => {
     providerModeRejected: null,
     gemini: true,
     openrouter: false,
+    // RATA-007 added weather. This deepEqual is deliberately exact: it is what
+    // catches a new credential being described by value instead of presence.
+    weather: false,
     serper: true
   })
   assert.equal(JSON.stringify(described).includes('secret'), false)

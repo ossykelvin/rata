@@ -97,6 +97,26 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ## Claude
 
+### 2026-08-16 — RATA-007 — Weatherman skill and weather.current
+
+**Status:** DONE, awaiting review. Branch `claude/RATA-007-weatherman-skill`.
+
+New skill pack `skills/weatherman/` plus the `weather.current` tool backed by WeatherAPI.com. 21 skills installed, 9 available (was 8 of 20).
+
+**The finding that shaped the design.** Serper takes its API key in a request *header*; **WeatherAPI accepts it only as a `key=` query parameter**, so the request URL is itself a credential. Node's network errors routinely embed the URL, which makes the usual "wrap and rethrow" pattern actively unsafe here. Every failure path in `electron/weather-client.cjs` therefore returns a fixed string and deliberately discards the caught error. There is a test asserting that six different failure modes leak neither the key, nor `key=`, nor the endpoint.
+
+**Key handling.** `WEATHER_API_KEY` (optional `WEATHER_API_BASE_URL`) is read once in `config.cjs`, captured in the client closure, and handed to the tool layer as a bound `getCurrentWeather(query)` capability — never the key itself. `describeConfig()` reports presence as a boolean. Nothing is hardcoded: a test asserts neither weather module reads `process.env` directly or embeds a key-shaped literal, and the value lives only in `.env.local`, which is gitignored.
+
+**Other deliberate choices**, argued in ADR-011: the response is mapped onto a fixed shape so unmodelled provider fields never reach the agent; results carry `trust: 'untrusted-external'`; `auto:ip` and the `iata:`/`id:`/`metar:` prefixes are refused because IP geolocation is a different privacy decision from looking up a named place; lookups are confirmed by default via a new `weatherConfirm` setting because the request reveals what place the user is asking about; and the location is extracted **deterministically** before the tool runs, so no provider chooses it.
+
+Forecast phrasing is deliberately not matched by the deterministic route — the tool returns current conditions only, and answering "what's the forecast tomorrow" with today's readings would be wrong.
+
+**Validation.** `npm run verify` 297/297, exit 0. `tests/weather-skill.test.cjs` adds 26 tests, all with injected `fetchImpl` and no live calls. Verified live end to end through the agent: the approval card fires by default, and with confirmation off, London and Lagos both return real readings with audit events.
+
+**Two mistakes of mine worth recording.** First, my config test originally called `loadRuntimeConfig({ env })` — not a real option — so it read the developer's actual `.env.local` and printed a live credential into the assertion output when it failed. Fixed to the `rootDir`/`files`/`processEnv` isolation the Serper tests already use. That pattern exists for exactly this reason and I should have copied it. Second, several regexes were written through Python heredocs that mangled backslash escapes, leaving literal control and backspace bytes in source; `` became U+0008, which silently broke a word boundary and would have turned the place name "Nowra" into "ra". There is now a test for that specific case.
+
+**Pinned surfaces updated deliberately:** `EXPECTED_TOOL_IDS` 11 → 12, `SHIPPED_SKILL_IDS` 20 → 21, and the `describeConfig` deepEqual in `tests/web-search-tool.test.cjs` gained `weather: false` — that exact assertion is what catches a new credential being described by value instead of presence.
+
 ### 2026-08-16 — RATA-006 — Read-only local file tools
 
 **Status:** DONE, awaiting review. Branch `claude/RATA-006-readonly-file-tools`.

@@ -22,7 +22,7 @@ const SHIPPED_SKILL_IDS = [
   'critical-thinking', 'problem-solver', 'presentation-builder',
   'document-assistant', 'clipboard-assistant', 'screenshot-inspector',
   'system-info', 'email-assistant', 'calendar-assistant', 'task-planner',
-  'file-organizer'
+  'file-organizer', 'weatherman'
 ]
 
 function validFragment(id, order, overrides = {}) {
@@ -71,17 +71,17 @@ function withHealthyNeighbours(extra = {}, options = {}) {
 
 // --- shipped pack is unchanged -----------------------------------------
 
-test('all 20 shipped skill ids load with routing order preserved', () => {
+test('all 21 shipped skill ids load with routing order preserved', () => {
   const result = loadSkillFragments(PROJECT_ROOT)
   assert.deepEqual(result.errors, [], 'the shipped pack reported load errors')
   assert.deepEqual(result.skills.map(skill => skill.id), SHIPPED_SKILL_IDS)
-  assert.deepEqual(result.skills.map(skill => skill.order), [...Array(20).keys()])
+  assert.deepEqual(result.skills.map(skill => skill.order), [...Array(21).keys()])
 })
 
 test('shipped public metadata is unchanged', () => {
   const registry = createSkillRegistry({ rootDir: PROJECT_ROOT })
   assert.equal(registry.loaded, true)
-  assert.equal(registry.count(), 20)
+  assert.equal(registry.count(), 21)
   assert.equal(registry.loadError, null)
 
   const calculator = registry.list().find(skill => skill.id === 'calculator')
@@ -211,7 +211,7 @@ test('zero valid fragments reports loaded=false', () => {
 
 test('the fragment loader is used when a skills directory exists', () => {
   const registry = createSkillRegistry({ rootDir: PROJECT_ROOT })
-  assert.equal(registry.count(), 20)
+  assert.equal(registry.count(), 21)
   assert.equal(fs.existsSync(path.join(PROJECT_ROOT, 'skills.manifest.json')), false, 'the legacy root manifest is still present')
 })
 
