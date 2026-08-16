@@ -150,3 +150,43 @@
   45% { transform: scale(1.08) rotate(2deg); }
   100% { transform: scale(1); }
 }
+
+/* Idle-presence states. Derived in the renderer after a quiet minute, and on
+   waking. See src/components/character/idlePresence.ts. */
+.rata-character-bored {
+  animation-duration: 4.6s;
+  opacity: 0.94;
+}
+
+.rata-character-bored .rata-character-dot {
+  background: #8fa2c7;
+  box-shadow: 0 0 0 4px #0a1732, 0 0 10px #8fa2c7;
+}
+
+.rata-character-peeking {
+  animation-duration: 5s;
+}
+
+.rata-character-peeking .rata-character-dot {
+  background: #6f8fc9;
+  box-shadow: 0 0 0 4px #0a1732, 0 0 10px #6f8fc9;
+}
+
+.rata-character-sleepy {
+  animation-duration: 5.6s;
+  opacity: 0.9;
+}
+
+.rata-character-sleepy .rata-character-dot {
+  background: #6f8fc9;
+  box-shadow: 0 0 0 4px #0a1732, 0 0 10px #6f8fc9;
+}
+
+.rata-character-excited {
+  animation: rataCharacterSuccess 0.7s ease both;
+}
+
+.rata-character-excited .rata-character-dot {
+  background: var(--green, #3ddc97);
+  box-shadow: 0 0 0 4px #0a1732, 0 0 16px var(--green, #3ddc97);
+}
