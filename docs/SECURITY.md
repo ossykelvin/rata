@@ -30,8 +30,11 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
 
 - `web.search` alone receives the bound Serper capability; `web.fetch` receives no API key.
 - Fetch accepts only absolute HTTP(S) destinations without URL credentials.
+- Fetch permits only ports 80/443 and refuses HTTPS-to-HTTP redirect downgrade.
 - DNS must resolve exclusively to public addresses, and the connection is pinned to the vetted answer so DNS rebinding cannot redirect it into a private network.
 - Redirects are revalidated; time, redirect, content-type and response-size limits fail closed.
+- HTML is parsed structurally and active-content subtrees are removed before
+  any page text becomes provider context.
 - Retrieved text is marked untrusted and enters an AI provider only through the fenced `context` role. Page content never selects tools, changes policy or supplies approval.
 - See `docs/decisions/ADR-008-safe-public-web-fetch.md`.
 
