@@ -6,18 +6,21 @@ const path = require('node:path')
 const MAX_TRANSCRIPT_LENGTH = 2_000
 
 /**
- * Results at or above this confidence are delivered; below it they are audited
- * and discarded.
+ * Absolute floor. Below this a result is an artefact, not an utterance.
  *
- * Deliberately low. Dictation returns a guess for almost any audio, and an
- * empty room measured 0.225 and 0.323 on this hardware, so some gate is
- * needed. But a first attempt at 0.4 was tuned partly on synthesised audio
- * scoring 0.681, which is far cleaner than a real microphone in a real room,
- * and it silently swallowed genuine speech. Discarded results are now logged
- * with their score, so this number can be set from real measurements instead
- * of from a guess.
+ * Set from measurements of real speech on this hardware, not from a guess.
+ * Ten consecutive spoken results scored 0.003, 0.012, 0.051, 0.060, 0.088,
+ * 0.101, 0.122, 0.125, 0.151 and 0.167. Two earlier attempts at 0.4 and then
+ * 0.2 sat above every one of those, so every word the user spoke was
+ * discarded and the feature looked dead while working perfectly.
+ *
+ * The desktop dictation engine simply reports low confidence on this
+ * microphone. An absolute threshold anywhere in the useful range also
+ * overlaps ambient noise, which measured 0.085 to 0.323, so confidence alone
+ * cannot separate speech from a quiet room. 0.05 only removes the near-zero
+ * artefacts; the real selection is relative, see below.
  */
-const MIN_CONFIDENCE = 0.2
+const MIN_CONFIDENCE = 0.05
 const SCRIPT_NAME = 'voice-listen.ps1'
 
 /**
@@ -130,6 +133,8 @@ function createWindowsVoice({
     child = spawned
 
     let buffer = ''
+    // Highest confidence seen during this listening session.
+    let sessionBest = 0
     spawned.stdout.setEncoding('utf8')
     spawned.stdout.on('data', chunk => {
       buffer += chunk
@@ -138,17 +143,31 @@ function createWindowsVoice({
       for (const line of lines) {
         const parsed = parseResultLine(line)
         if (!parsed) continue
-        if (parsed.confidence !== null && parsed.confidence < MIN_CONFIDENCE) {
-          // Audited rather than dropped in silence. "Heard nothing" and "heard
-          // something and discarded it" are different problems and used to be
-          // indistinguishable from outside.
+        const score = parsed.confidence
+        // Selection is relative to this session, not to a fixed threshold.
+        //
+        // The user held the button and spoke, so the best thing heard while
+        // they were speaking is the answer, whatever it scored. A result is
+        // delivered when it is the best so far in this session, which means
+        // the first usable guess appears immediately and is replaced only by
+        // something better. Later, worse fragments no longer overwrite it.
+        if (score !== null && score < MIN_CONFIDENCE) {
           logActivity(
             'Voice result discarded',
-            `Heard “${parsed.transcript.slice(0, 80)}” at confidence ${parsed.confidence.toFixed(3)}, below ${MIN_CONFIDENCE}.`,
+            `Heard "${parsed.transcript.slice(0, 80)}" at confidence ${score.toFixed(3)}, below the ${MIN_CONFIDENCE} floor.`,
             'info'
           )
           continue
         }
+        if (score !== null && score <= sessionBest) {
+          logActivity(
+            'Voice result skipped',
+            `Heard "${parsed.transcript.slice(0, 80)}" at confidence ${score.toFixed(3)}, not better than ${sessionBest.toFixed(3)}.`,
+            'info'
+          )
+          continue
+        }
+        if (score !== null) sessionBest = score
         sendTranscript({ transcript: parsed.transcript })
       }
     })
