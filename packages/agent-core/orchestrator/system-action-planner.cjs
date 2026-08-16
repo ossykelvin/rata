@@ -37,6 +37,11 @@ function hasExactKeys(value, expected) {
   return keys.length === wanted.length && keys.every((key, index) => key === wanted[index])
 }
 
+function stripSingleJsonFence(value) {
+  const match = value.match(/^```(?:json)?[ \t]*\r?\n([\s\S]*?)\r?\n```$/i)
+  return match ? match[1] : value
+}
+
 function parseSystemActionPlan(raw) {
   if (typeof raw !== 'string' || !raw.trim() || raw.length > 512) {
     throw new SystemActionPlanError('invalid-plan-envelope')
@@ -44,7 +49,7 @@ function parseSystemActionPlan(raw) {
 
   let value
   try {
-    value = JSON.parse(raw)
+    value = JSON.parse(stripSingleJsonFence(raw.trim()))
   } catch {
     throw new SystemActionPlanError('invalid-plan-json')
   }

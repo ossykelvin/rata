@@ -27,12 +27,16 @@ The provider returns text, which is parsed as one exact, versioned JSON shape:
 { "version": 1, "action": "system.openApp", "input": { "appName": "notepad" } }
 ```
 
-The only alternative is `{"version":1,"action":"none"}`. The parser rejects
-invalid JSON, prose, Markdown fences, extra keys, unknown actions, unknown app
-names, paths, URLs, arguments, scripts, shell text and elevation. A valid
-proposal is still passed through `ToolRegistry.validate()`, the policy engine,
-and `ToolRegistry.execute()` in that order. The provider never receives a tool
-executor and never calls a native adapter.
+The only alternative is `{"version":1,"action":"none"}`. The parser tolerates
+at most one complete Markdown code fence, with or without a `json` language
+tag, because providers commonly wrap otherwise exact JSON that way. The raw
+512-character limit is checked before removing that fence. The parser still
+rejects invalid JSON, surrounding prose, unterminated or multiple fences,
+extra keys, unknown actions, unknown app names, paths, URLs, arguments, scripts,
+shell text and elevation. A valid proposal is still passed through
+`ToolRegistry.validate()`, the policy engine, and `ToolRegistry.execute()` in
+that order. The provider never receives a tool executor and never calls a
+native adapter.
 
 The audit trail records whether the proposal was accepted, declined or
 rejected, followed by the existing tool lifecycle events when execution occurs.

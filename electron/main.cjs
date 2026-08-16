@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, Notification, clipboard, session } = require('electron')
+const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, Notification, clipboard, session, shell } = require('electron')
 const { existsSync } = require('node:fs')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
@@ -21,6 +21,7 @@ const { createSecurityPolicy, applySessionPermissionHandler } = require('./secur
 const { createWindowsVoice } = require('./voice-win.cjs')
 const { IPC } = require('../packages/contracts/ipc-channels.cjs')
 const { createSkillRegistry, createSkillRouter, createSkillLoader } = require('../packages/skills/index.cjs')
+const { createFileAccess } = require('./file-access.cjs')
 
 let overlayWindow
 let controlWindow
@@ -282,7 +283,20 @@ if (!hasSingleInstanceLock) {
         clipboardApi: clipboard,
         // A bound capability, not the credential. The key stays inside the
         // client closure, so no discovered module can read it.
-        webSearch: createSerperSearch({ apiKey: runtimeConfig.serper.apiKey })
+        webSearch: createSerperSearch({ apiKey: runtimeConfig.serper.apiKey }),
+        // Read-only local file access, bound to three user folders. The roots
+        // are decided here and closed over, so no discovered tool module can
+        // widen them. RATA-006.
+        fileAccess: createFileAccess({
+          roots: ['documents', 'downloads', 'desktop'].map(name => {
+            try {
+              return app.getPath(name)
+            } catch {
+              return ''
+            }
+          })
+        }),
+        revealItem: target => shell.showItemInFolder(target)
       }
     })
     providers = createProviders()

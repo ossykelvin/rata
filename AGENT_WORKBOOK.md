@@ -69,6 +69,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
 | Cursor | FIX voice permission gate | `cursor/FIX-voice-permission-gate` | DONE, PR #62 |
+| Cursor | FIX critical-thinking provider | `cursor/FIX-critical-thinking-provider` | DONE, PR pending |
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, merged as #2 |
 | Codex | P0-1 modular IPC | `codex/P0-1-modular-ipc-boundary` | DRAFT PR #4 |
 | Cursor | RATA-003 character animation | `cursor/rata-003-character-animation-9241` | DONE, PR #5 |
@@ -94,6 +95,48 @@ One line per agent. Keep it current — this is the first thing another agent re
 ---
 
 ## Claude
+
+### 2026-08-16 — RATA-006 — Read-only local file tools
+
+**Status:** DONE, awaiting review. Branch `claude/RATA-006-readonly-file-tools`.
+
+**Why this first.** 15 of 20 installed skills were blocked on tools that did not exist. `file.search` was declared by four skills and `file.readText` by three — the most-demanded missing tools in the whole manifest. Blocked skills are now **12**, with `file-finder`, `local-content-search` and `ai-research` newly available, and `task-planner`, `file-organizer`, `document-assistant` and `presentation-builder` moved closer.
+
+**What shipped.** `file.search`, `file.stat`, `file.readText`, `file.searchContent`, `file.reveal`. Security core in `electron/file-access.cjs` (the counterpart to `public-web-client.cjs`); contract layer in `electron/tools/file.cjs`, which keeps sole ownership of the `file.` domain. ADR-010.
+
+**The design point worth recording.** Containment and sensitivity are *separate* defences and both are needed. Containment alone — resolve, realpath, compare with `path.relative` against realpath'd roots — stops `..`, symlinks, junctions and lookalike siblings like `docs-private`. It does nothing about `~/Documents/.env`, which is perfectly contained and catastrophic, so credential-shaped names are refused **inside** allowed roots and credential/VCS directories are never descended into. A design that only solved escape would hand a provider an API key.
+
+**Deliberate policy choices**, all in ADR-010: reads are `confirmation: 'configurable'` behind a new `fileReadConfirm` setting defaulting to **on**, because reading a file is an egress decision (the text goes to a provider), not a plain local read — searching by *name* stays automatic or the feature is unusable. Content carries `trust: 'untrusted-external'` so it reaches a provider fenced, exactly like `web.fetch`; a document can carry an injection like a web page can. Missing and forbidden paths report the identical error so the tools cannot probe for files they may not read. `file.reveal` is `safe-write`, not `read`, because it opens a window.
+
+**Write verbs are deliberately absent.** `file.move`, `file.rename`, `folder.create` and `file.save` are a separate ADR and ticket. `file-organizer` stays blocked on purpose.
+
+**Validation.** `npm run verify` 266/266, exit 0. `tests/file-access-security.test.cjs` adds 28 tests against a real temporary filesystem rather than a mock — realpath, symlink escape and traversal are precisely what a mock would paper over. Symlink assertions skip themselves with a message if the platform refuses to create links without elevation.
+
+I updated `EXPECTED_TOOL_IDS` in `tests/tool-composition.test.cjs` from 6 to 11 entries. That list is the privileged tool surface and the failure was the guardrail working; it should only ever move in a commit that says why.
+
+**Reviewer note for whoever takes this:** the two things I would attack are the denied-name list (is it complete enough, and does shape-matching miss anything obvious?) and `walkRoots` skipping symlinks — that trades a rare legitimate linked folder for removing a bug class, and it is worth a second opinion.
+
+### 2026-08-16 — Review pass over #56–#60 (WEB-002, M3, ADR-009 fence, critical thinking, overlay controls)
+
+**Status:** DONE. #56, #57, #58, #59 merged. #60 opened on Cursor's behalf and **blocked** pending a rebase.
+
+**#56 WEB-002 — approved, with one regression fixed on the branch.** Ports, redirect direction and the parse5 switch all verified by execution. `:080` and `:0443` normalise to the defaults so the allow-list has no numeric bypass; `http:443` and `https:80` are allowed and harmless. The HTTPS→HTTP refusal is applied per hop, so http→https→http is still caught at the third hop.
+
+The regression: **both parse5 tree walkers recursed.** A response is capped at `MAX_RESPONSE_BYTES`, but that cap still permits ~11,000 levels of nesting, and `<div>` repeated 5,000 deep is 55KB — comfortably inside the cap and enough to overflow the call stack. The failure was safe (the fetch threw, no content returned) but any page could trigger it cheaply and so disable web fetch at will. The regex implementation being replaced had no recursion, so this was new. Converted both walkers to an explicit stack, output byte-identical on the existing corpus, regression test at 5,000 and 11,000 levels.
+
+I also **withdraw my own finding (c)** from the WEB-001 review. Codex was right: empty Serper results were already represented as `[]` and already returned a successful "found nothing" response. It needed a regression pin, not a rewrite, and that is what they added.
+
+`parse5@7.3.0` packaging verified by execution rather than assumption — `npm run pack:win`, then `asar list` shows 46 parse5 entries inside `app.asar`. It is pure JS, so asar is not a problem for it (unlike `voice-listen.ps1`, which had to be lifted out).
+
+**#57 REVIEW-001 M3 — approved, no findings.** Probed the load path with eleven hostile store files. `microphoneEnabled: "true"` (string) and `: 1` both resolve to **false**, and the confirmation flags cannot be turned off from disk by any malformed value — the disk fallback deliberately inverts `microphoneEnabled` away from the fresh-install default, which is the right asymmetry. Unknown keys dropped, `__proto__` payload leaves `Object.prototype` clean, junk provider falls back to `mock`, and corrupt/array/null shapes all restore safe settings with an activity entry. `safeSettingLabel()` also stops a hostile key name from injecting text into the log.
+
+**#58 ADR-009 fence tolerance — approved, no findings.** Exactly one fence, anchored at both ends. Accepted: tag/no-tag/uppercase/CRLF/surrounding whitespace. Still rejected: unterminated fence, two fences, prose before or after, and every schema violation (arbitrary tool, extra keys, paths). The 512-character envelope cap still applies to the raw string, so the fence cannot be used to smuggle a larger payload.
+
+**#59 critical thinking — approved, no findings, but the description overstates the change.** It reads as though the skill had no live path and returned a mock stub. The diff shows otherwise: `answerSkillWithProvider()` already loaded the prompt and called the chain on `main`, and this PR *consolidates* it into `ask()`. Most likely the description was written before the rebase and never updated. The refactor itself is sound — the skill prompt is still a second system message beneath `SYSTEM_PROMPT`, so ADR-003 holds and skills still carry no authority. `ask()` now accepts `skillId`, which widens the surface, but `loadPrompt()` resolves through `registry.get()` and throws on an unknown id, so no arbitrary path can be reached through it.
+
+**#60 overlay minimize/close — BLOCKED, opened for visibility.** The branch forked at `398dd6b`, before #54, and adds `tray.on('click', () => overlayWindow?.show())` — exactly the FIX-003 bug #54 removed. Because this PR's purpose is to let the user close the overlay to the tray, it makes that dead path much easier to reach. Needs a rebase and `showOverlay()`. Detail on the PR.
+
+**Process note.** `merge=union` on this file caused GitHub to report phantom conflicts on #53, #57 and #58; each needed `main` merged in locally and pushed before it could go. That is now four occurrences. It should be fixed rather than absorbed — per-agent workbook files, or drop the union driver.
 
 ### 2026-08-16 — RATA-002 / FIX-003 — Review of both open drafts, plus Lane H tests for ADR-009
 
@@ -192,6 +235,34 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 ---
 
 ## Codex
+
+### 2026-08-16 — Codex — ADR-009 single-fence tolerance
+
+**Status:** READY FOR CLAUDE REVIEW — draft PR #58 (branch `codex/ADR-009-fence-tolerance`)
+
+**Scope:** Update `packages/agent-core/orchestrator/system-action-planner.cjs` to strip at most one complete leading/trailing Markdown code fence (with or without the `json` tag) before parsing. Preserve the 512-character raw envelope limit and exact action schema; continue rejecting surrounding prose, unterminated fences, nested/double fences and every existing hostile shape. Deliberately update and extend `tests/system-action-planner.test.cjs`, align ADR-009, run `npm run verify`, and request Claude review.
+
+**Implemented:** `parseSystemActionPlan()` now checks the raw 512-character envelope first, trims surrounding whitespace, and removes at most one exact complete Markdown fence with an optional `json` tag before `JSON.parse`. It does not accept prose, an unterminated fence, multiple/nested fences, another language tag, extra schema keys, tools, paths, arguments or applications. The literal `system.openApp` mapping and Notepad/Calculator enum are unchanged. Updated ADR-009 to describe the narrow tolerance.
+
+**Validation:** Focused planner tests passed 14/14, including tagged/untagged fences, unterminated and double fences, and a fenced payload that proves fence removal cannot bypass the raw 512-character limit. Full `npm run verify` passed: 76 CommonJS files, lint, 225/225 tests, TypeScript, Vite build and the seven-module sandboxed preload build. `git diff --check` passed. Claude privilege-boundary review is required.
+### 2026-08-16 — Codex — REVIEW-001 M3 disk setting validation
+
+**Status:** READY FOR CLAUDE REVIEW — draft PR #57 (branch `codex/REVIEW-001-M3-store-validation`)
+
+**Scope:** Validate settings loaded from disk in `electron/store.cjs` with the existing Lane G validators from `packages/contracts/ipc-validation.cjs`. Drop unknown keys, replace invalid/wrong-type/out-of-range values with safe defaults, prevent `microphoneEnabled` and confirmation settings from being loosened by corrupted or hand-edited storage, and surface sanitized fallback events in the activity feed. Add injected storage regressions under `tests/` without changing Lane G contracts, run `npm run verify`, and request Claude review.
+
+**Implemented:** Disk-loaded setting keys now pass through `isKnownSetting()` and values through `validateSettingValue()` before entering runtime state. Unknown keys are dropped. Invalid values receive per-setting safe fallbacks: microphone off and every configurable confirmation on; corrupt JSON or an invalid store/settings shape restores the same safe security posture. Every recovery is added to the activity feed without recording rejected values, parser errors or local paths. Existing valid Boolean preferences still load normally; distinguishing an app-persisted `false` from a manually edited `false` would require a separate integrity design and is not claimed by schema validation. No Lane G contract file changed. Updated the security model.
+
+**Validation:** Focused settings tests passed 11/11 for unknown keys, wrong types, out-of-range values, corrupt JSON, sanitized audit details, microphone fail-closed and confirmation fail-safe behavior. Full `npm run verify` passed: 76 CommonJS files, lint, 228/228 tests, TypeScript, Vite build and the seven-module sandboxed preload build. `git diff --check` passed. Claude review is required.
+### 2026-08-16 — Codex — WEB-002 fetch hardening
+
+**Status:** READY FOR CLAUDE REVIEW — draft PR #56 (branch `codex/WEB-002-fetch-hardening`)
+
+**Scope:** Verify and address the four carried WEB-001 findings in `electron/public-web-client.cjs` and `electron/serper-client.cjs`: restrict public fetches to ports 80/443, block HTTPS-to-HTTP redirect downgrade, distinguish a successful empty Serper result from provider failure, and replace or rigorously harden regex HTML extraction against malformed/nested active content. Add injected no-network regressions in `tests/web-fetch-security.test.cjs` and `tests/web-search-tool.test.cjs`, update the relevant web-security documentation, run `npm run verify`, and request Claude review.
+
+**Implemented:** Confirmed findings (a), (b) and (d) against current main. URL validation now permits only ports 80/443 before DNS or transport, and redirect processing refuses HTTPS-to-HTTP downgrade while preserving HTTP-to-HTTPS upgrade. Replaced regex HTML stripping with the exactly pinned runtime dependency `parse5@7.3.0`; extraction walks the parsed tree and discards script, style, noscript, template, SVG, iframe and object subtrees before collecting visible text. Finding (c) was already correct on current main: Serper returns an empty array and `web.search` reports a successful “found nothing” result, so this branch pins that behavior without unnecessary production changes. Updated ADR-008 and the security model.
+
+**Validation:** All injected tests make no live DNS/HTTP calls. Focused web tests passed 47/47, including ports, downgrade/upgrade, malformed/nested HTML, empty Serper payloads and empty agent results. Full `npm run verify` passed: 76 CommonJS files, lint, 228/228 tests, TypeScript, Vite build and the seven-module sandboxed preload build. `npm install` reported 0 vulnerabilities; `git diff --check` passed. Claude security review is required.
 
 ### 2026-08-16 — Codex — RATA-002 structured system actions
 
@@ -385,6 +456,16 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 **Validation:** `npm run verify` passed (226 tests). Injected-spawn tests cover mid-session disable, start-during-stop, and old-exit identity. No real microphone or powershell.exe.
 
 **Coordination:** Separate from PR #59 (Critical Thinking provider). Claude review required — this touches `electron/`.
+### 2026-08-16 — FIX — Critical Thinking uses the live provider
+
+**Status:** DONE, PR pending
+**Branch:** `cursor/FIX-critical-thinking-provider`
+
+**Done:** Critical Thinking loads its `SKILL.md` prompt beneath the global system prompt and calls the provider chain with OpenRouter preferred in `auto` mode. The old “mock agent has no live provider” stub is no longer used for this skill. The model still cannot invoke tools. Missing declared tools still fail closed.
+
+**Files touched:** `packages/agent-core/mock-agent.cjs`, `tests/critical-thinking-provider.test.cjs`, `docs/ARCHITECTURE.md`, `docs/VALIDATION.md`.
+
+**Validation:** `npm run verify` passed (204 tests).
 
 ---
 

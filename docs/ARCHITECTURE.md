@@ -31,7 +31,7 @@ SkillRegistry  ToolRegistry
          Allow-listed OS / calculator tools
 ```
 
-Skills may be selected and described. Only registered tools may act.
+Skills may be selected and described. Only registered tools may act. When the router selects Critical Thinking, the agent loads that skill prompt beneath the global system prompt and calls the provider chain. The model still cannot invoke tools.
 
 ## Current source boundaries
 
