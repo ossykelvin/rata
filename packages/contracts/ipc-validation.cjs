@@ -26,7 +26,11 @@ const settingValidators = Object.assign(Object.create(null), {
   // Web search sends the query to a third party. Confirmed by default.
   webSearchConfirm: value => typeof value === 'boolean',
   // Fetching a page is a separate outbound action. Confirmed by default.
-  webFetchConfirm: value => typeof value === 'boolean'
+  webFetchConfirm: value => typeof value === 'boolean',
+  // Local file *contents* flow onward to a provider, so reading one is an
+  // egress decision like web.fetch rather than a plain local read. Confirmed
+  // by default. RATA-006.
+  fileReadConfirm: value => typeof value === 'boolean'
 })
 
 /** The complete set of writable settings. Use this rather than `key in obj`. */

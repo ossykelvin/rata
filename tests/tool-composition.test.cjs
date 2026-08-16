@@ -21,9 +21,22 @@ const compatibility = require('../electron/mvp-tools.cjs')
 const TOOLS_DIR = path.join(__dirname, '..', 'electron', 'tools')
 
 /** The tools the MVP ships. Changing this list is a security decision. */
-// WEB-001 added web.fetch. Updated deliberately: this list is the privileged
-// tool surface, and it must only change when a tool is consciously added.
-const EXPECTED_TOOL_IDS = ['calculator.evaluate', 'clipboard.write', 'file.delete', 'system.openApp', 'web.fetch', 'web.search']
+// WEB-001 added web.fetch. RATA-006 added the five read-only file tools.
+// Updated deliberately: this list is the privileged tool surface, and it must
+// only change when a tool is consciously added.
+const EXPECTED_TOOL_IDS = [
+  'calculator.evaluate',
+  'clipboard.write',
+  'file.delete',
+  'file.readText',
+  'file.reveal',
+  'file.search',
+  'file.searchContent',
+  'file.stat',
+  'system.openApp',
+  'web.fetch',
+  'web.search'
+]
 
 const DEPENDENCIES = Object.freeze({
   spawnProcess: () => ({ unref() {} }),
@@ -264,7 +277,7 @@ test('missing native dependencies fail with a clear message', () => {
 
 // --- stability of the shipped surface -----------------------------------
 
-test('the four shipped tool ids are unchanged', () => {
+test('the shipped tool ids are unchanged', () => {
   const registry = createMvpRegistry(DEPENDENCIES)
   assert.deepEqual(registry.list().map(tool => tool.id).sort(), EXPECTED_TOOL_IDS)
 })

@@ -31,7 +31,7 @@ SkillRegistry  ToolRegistry
          Allow-listed OS / calculator tools
 ```
 
-Skills may be selected and described. Only registered tools may act.
+Skills may be selected and described. Only registered tools may act. When the router selects Critical Thinking, the agent loads that skill prompt beneath the global system prompt and calls the provider chain. The model still cannot invoke tools.
 
 ## Current source boundaries
 
@@ -49,6 +49,14 @@ Skills may be selected and described. Only registered tools may act.
 Tool execution is centralized in `ToolRegistry.execute()`. A registered tool must declare its risk, confirmation policy and input validator before it can execute.
 
 Web research keeps service authority separated: Serper supplies search results through `web.search`; `web.fetch` retrieves a validated public result without credentials; only then may provider-independent orchestration pass the text to the configured provider as fenced `context` data.
+
+Explicit application-launch requests have one narrower provider-assisted path.
+After deterministic intent gating, the provider may return a versioned JSON
+proposal for `system.openApp`; a strict parser accepts only Notepad or
+Calculator and rejects every other tool, field, argument, path or command. The
+proposal then enters the normal policy and Tool Registry path. Ordinary chat
+output and retrieved content never enter this planner. See
+`docs/decisions/ADR-009-structured-system-actions.md`.
 
 Adding a tool domain means adding one trusted module under `electron/tools/`; it does not require editing the composition index or Electron lifecycle. Tool modules are application code packaged with Rata, never user- or model-supplied plugins.
 
@@ -124,4 +132,4 @@ Use UI Automation first. Vision/coordinate automation is a fallback.
 - Microsoft Graph: delegated user permissions for Outlook Mail, Calendar, Contacts.
 - Browser: Playwright behind tool contracts.
 - AI: provider adapters for OpenAI, Anthropic, Gemini and local models.
-- Voice: dedicated STT and TTS adapters. The first STT path is Chromium `SpeechRecognition` in `src/hooks/useVoice.ts`. Main denies renderer `media` permission when `microphoneEnabled` is false (REVIEW-001 M4). Cloud STT/TTS adapters still belong behind `packages/agent-core/voice/` and a Lane G contract.
+- Voice: dedicated STT and TTS adapters. Push-to-talk STT uses Windows speech recognition from `electron/voice-win.cjs` through `rata:voice-*` channels. The renderer only receives the transcript string. Main denies renderer `media` permission when `microphoneEnabled` is false (REVIEW-001 M4). Cloud STT/TTS adapters still belong behind `packages/agent-core/voice/`.

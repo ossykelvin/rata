@@ -16,8 +16,10 @@ that sends user content off the machine.
 **Providers return text and nothing else.** A provider cannot invoke a tool,
 reach the policy engine, or see another provider's credential. Model output is
 untrusted input to the rest of the runtime. The model is told in its system
-prompt that it has no ability to act, but that is a UX measure — the guarantee
-is that no code path lets provider output select or execute a tool.
+prompt that it has no ability to act, but that is a UX measure. Ordinary answer
+text remains display-only. ADR-009 adds one strict parser through which a
+provider may propose a fixed registered tool and allow-listed input; it cannot
+execute that tool or bypass validation and policy.
 
 **Chain order.** `auto` mode tries Gemini, then OpenRouter, then mock. Requests
 that look complex — long, or matching an analysis/design/debug vocabulary — go
@@ -29,7 +31,9 @@ the user always receives an answer.
 An orchestrated skill may supply a preferred provider when its product flow
 declares a specific order. The hint applies only in `auto` mode: Trivia uses
 Serper evidence, then prefers Gemini, then OpenRouter, with mock still terminal.
-An explicitly pinned `gemini`, `openrouter` or `mock` mode remains authoritative.
+Critical Thinking loads its selected prompt and prefers OpenRouter, then Gemini,
+with mock still terminal. An explicitly pinned `gemini`, `openrouter` or `mock`
+mode remains authoritative.
 
 **Mock stays the default.** The stored `provider` setting ships as `mock`, so a
 fresh install performs no network egress until the user opts in. The `provider`

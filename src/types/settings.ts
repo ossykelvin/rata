@@ -13,4 +13,6 @@ export type RataSettings = {
   webSearchConfirm: boolean
   /** Fetching a public page is a separate outbound action. Confirmed by default. */
   webFetchConfirm: boolean
+  /** File contents flow on to a provider, so reading one is an egress decision. Confirmed by default. */
+  fileReadConfirm: boolean
 }

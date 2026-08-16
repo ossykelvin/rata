@@ -18,7 +18,7 @@ The application proves:
 
 - AI provider: deterministic `MockAgent` only.
 - Character: concept-sheet crop with CSS animation, plus a letter-mark fallback if the PNG is missing.
-- Voice: browser speech recognition (push-to-talk) when Chromium exposes `SpeechRecognition`. Main denies `media` when the microphone setting is off. TTS is not wired.
+- Voice: push-to-talk uses Windows speech recognition in the main process. Chromium `SpeechRecognition` is not used because Electron cannot reach Google's speech service. Main denies `media` when the microphone setting is off. TTS is not wired.
 - Windows control: safe allow-listed app launch only.
 - Skills: registry/router loaded; only calculator and existing MVP tools can act.
 - Microsoft 365: UI placeholder; no OAuth yet.

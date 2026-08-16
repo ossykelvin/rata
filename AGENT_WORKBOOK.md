@@ -69,6 +69,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
 | Cursor | FIX overlay min/close | `cursor/FIX-overlay-min-close` | DONE, PR pending |
+| Cursor | FIX critical-thinking provider | `cursor/FIX-critical-thinking-provider` | DONE, PR pending |
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, merged as #2 |
 | Codex | P0-1 modular IPC | `codex/P0-1-modular-ipc-boundary` | DRAFT PR #4 |
 | Cursor | RATA-003 character animation | `cursor/rata-003-character-animation-9241` | DONE, PR #5 |
@@ -94,6 +95,77 @@ One line per agent. Keep it current — this is the first thing another agent re
 ---
 
 ## Claude
+
+### 2026-08-16 — RATA-006 — Read-only local file tools
+
+**Status:** DONE, awaiting review. Branch `claude/RATA-006-readonly-file-tools`.
+
+**Why this first.** 15 of 20 installed skills were blocked on tools that did not exist. `file.search` was declared by four skills and `file.readText` by three — the most-demanded missing tools in the whole manifest. Blocked skills are now **12**, with `file-finder`, `local-content-search` and `ai-research` newly available, and `task-planner`, `file-organizer`, `document-assistant` and `presentation-builder` moved closer.
+
+**What shipped.** `file.search`, `file.stat`, `file.readText`, `file.searchContent`, `file.reveal`. Security core in `electron/file-access.cjs` (the counterpart to `public-web-client.cjs`); contract layer in `electron/tools/file.cjs`, which keeps sole ownership of the `file.` domain. ADR-010.
+
+**The design point worth recording.** Containment and sensitivity are *separate* defences and both are needed. Containment alone — resolve, realpath, compare with `path.relative` against realpath'd roots — stops `..`, symlinks, junctions and lookalike siblings like `docs-private`. It does nothing about `~/Documents/.env`, which is perfectly contained and catastrophic, so credential-shaped names are refused **inside** allowed roots and credential/VCS directories are never descended into. A design that only solved escape would hand a provider an API key.
+
+**Deliberate policy choices**, all in ADR-010: reads are `confirmation: 'configurable'` behind a new `fileReadConfirm` setting defaulting to **on**, because reading a file is an egress decision (the text goes to a provider), not a plain local read — searching by *name* stays automatic or the feature is unusable. Content carries `trust: 'untrusted-external'` so it reaches a provider fenced, exactly like `web.fetch`; a document can carry an injection like a web page can. Missing and forbidden paths report the identical error so the tools cannot probe for files they may not read. `file.reveal` is `safe-write`, not `read`, because it opens a window.
+
+**Write verbs are deliberately absent.** `file.move`, `file.rename`, `folder.create` and `file.save` are a separate ADR and ticket. `file-organizer` stays blocked on purpose.
+
+**Validation.** `npm run verify` 266/266, exit 0. `tests/file-access-security.test.cjs` adds 28 tests against a real temporary filesystem rather than a mock — realpath, symlink escape and traversal are precisely what a mock would paper over. Symlink assertions skip themselves with a message if the platform refuses to create links without elevation.
+
+I updated `EXPECTED_TOOL_IDS` in `tests/tool-composition.test.cjs` from 6 to 11 entries. That list is the privileged tool surface and the failure was the guardrail working; it should only ever move in a commit that says why.
+
+**Reviewer note for whoever takes this:** the two things I would attack are the denied-name list (is it complete enough, and does shape-matching miss anything obvious?) and `walkRoots` skipping symlinks — that trades a rare legitimate linked folder for removing a bug class, and it is worth a second opinion.
+
+### 2026-08-16 — Review pass over #56–#60 (WEB-002, M3, ADR-009 fence, critical thinking, overlay controls)
+
+**Status:** DONE. #56, #57, #58, #59 merged. #60 opened on Cursor's behalf and **blocked** pending a rebase.
+
+**#56 WEB-002 — approved, with one regression fixed on the branch.** Ports, redirect direction and the parse5 switch all verified by execution. `:080` and `:0443` normalise to the defaults so the allow-list has no numeric bypass; `http:443` and `https:80` are allowed and harmless. The HTTPS→HTTP refusal is applied per hop, so http→https→http is still caught at the third hop.
+
+The regression: **both parse5 tree walkers recursed.** A response is capped at `MAX_RESPONSE_BYTES`, but that cap still permits ~11,000 levels of nesting, and `<div>` repeated 5,000 deep is 55KB — comfortably inside the cap and enough to overflow the call stack. The failure was safe (the fetch threw, no content returned) but any page could trigger it cheaply and so disable web fetch at will. The regex implementation being replaced had no recursion, so this was new. Converted both walkers to an explicit stack, output byte-identical on the existing corpus, regression test at 5,000 and 11,000 levels.
+
+I also **withdraw my own finding (c)** from the WEB-001 review. Codex was right: empty Serper results were already represented as `[]` and already returned a successful "found nothing" response. It needed a regression pin, not a rewrite, and that is what they added.
+
+`parse5@7.3.0` packaging verified by execution rather than assumption — `npm run pack:win`, then `asar list` shows 46 parse5 entries inside `app.asar`. It is pure JS, so asar is not a problem for it (unlike `voice-listen.ps1`, which had to be lifted out).
+
+**#57 REVIEW-001 M3 — approved, no findings.** Probed the load path with eleven hostile store files. `microphoneEnabled: "true"` (string) and `: 1` both resolve to **false**, and the confirmation flags cannot be turned off from disk by any malformed value — the disk fallback deliberately inverts `microphoneEnabled` away from the fresh-install default, which is the right asymmetry. Unknown keys dropped, `__proto__` payload leaves `Object.prototype` clean, junk provider falls back to `mock`, and corrupt/array/null shapes all restore safe settings with an activity entry. `safeSettingLabel()` also stops a hostile key name from injecting text into the log.
+
+**#58 ADR-009 fence tolerance — approved, no findings.** Exactly one fence, anchored at both ends. Accepted: tag/no-tag/uppercase/CRLF/surrounding whitespace. Still rejected: unterminated fence, two fences, prose before or after, and every schema violation (arbitrary tool, extra keys, paths). The 512-character envelope cap still applies to the raw string, so the fence cannot be used to smuggle a larger payload.
+
+**#59 critical thinking — approved, no findings, but the description overstates the change.** It reads as though the skill had no live path and returned a mock stub. The diff shows otherwise: `answerSkillWithProvider()` already loaded the prompt and called the chain on `main`, and this PR *consolidates* it into `ask()`. Most likely the description was written before the rebase and never updated. The refactor itself is sound — the skill prompt is still a second system message beneath `SYSTEM_PROMPT`, so ADR-003 holds and skills still carry no authority. `ask()` now accepts `skillId`, which widens the surface, but `loadPrompt()` resolves through `registry.get()` and throws on an unknown id, so no arbitrary path can be reached through it.
+
+**#60 overlay minimize/close — BLOCKED, opened for visibility.** The branch forked at `398dd6b`, before #54, and adds `tray.on('click', () => overlayWindow?.show())` — exactly the FIX-003 bug #54 removed. Because this PR's purpose is to let the user close the overlay to the tray, it makes that dead path much easier to reach. Needs a rebase and `showOverlay()`. Detail on the PR.
+
+**Process note.** `merge=union` on this file caused GitHub to report phantom conflicts on #53, #57 and #58; each needed `main` merged in locally and pushed before it could go. That is now four occurrences. It should be fixed rather than absorbed — per-agent workbook files, or drop the union driver.
+
+### 2026-08-16 — RATA-002 / FIX-003 — Review of both open drafts, plus Lane H tests for ADR-009
+
+**Status:** DONE. Branch `claude/RATA-002-lane-h-system-actions` into `codex/RATA-002-structured-system-actions` (#53). #54 reviewed separately.
+
+**#53 structured system actions — APPROVED on the security boundary.** This is the first path where provider output influences whether a registered tool runs, so I probed the parser by executing it rather than reading it. Nine hostile shapes — a different tool, an executable path, extra top-level and extra input keys, an arguments array, a case variant, a non-string app name, a bumped version, a `__proto__` payload — all fail closed, and `Object.prototype` stays clean. The property that carries the design is that **`toolId` is a literal in the parser and is never read from provider output**: the model chooses between two enum values and nothing else. Arguments stay an empty array in the native executor. `ToolRegistry.validate()` and the policy engine still run afterwards, and `system.openApp` re-checks its own allow-list at execute time.
+
+Worth recording rather than burying: `system.openApp` is `risk: safe-write, confirmation: never`, so a provider-influenced launch runs without a confirmation prompt. I accepted that here because the blast radius is Notepad or Calculator with no arguments, and the request text is user-typed rather than retrieved content. **If this pattern is ever extended to a second tool, the confirmation policy has to be revisited first** — that is the point where a model would start steering something that matters.
+
+**One blocking behavioural finding, fixed on this branch.** The planner gate was placed *above* the clipboard, `web.fetch` and `web.search` routes. `SYSTEM_ACTION_HINT` is broad, so I verified by execution that it also matched `search the web for how to run a program on Windows`, `find online how to start a program in python`, `summarize https://…/launch-an-application-guide` and plain `how do I run a program?`. Each was captured by the launch path and answered with *"I can only safely launch Notepad or Calculator"* — explicit search and fetch intent was silently swallowed and ordinary questions were refused. Moved the gate below every explicit route, and a declined or unparseable plan now returns `undefined` and falls through to `ask()` instead of returning a canned refusal. **The action still fails closed; only the reply changed.**
+
+**Lane H:** `tests/system-action-planner.test.cjs`, 12 tests — accepted, declined, malformed, extra-field, arbitrary-tool, arbitrary-app and path, prototype pollution, oversized payload, no-spawn on every rejected plan, the deterministic path not consulting a provider, and the routing precedence above.
+
+**Non-blocking, not fixed:** the parser rejects markdown-fenced JSON, and most models fence by default. Fail-closed is the right default, but it means the feature will decline more often than the ADR implies. Stripping exactly one fence before `JSON.parse` would fix it without widening the schema.
+
+**#54 recreate the overlay — APPROVED, no findings.** `security.applyWindowGuards()` and `windowPreferences()` are both reapplied to the recreated window, so `contextIsolation`/`sandbox` survive the rebuild — that was the thing worth checking. Each `BrowserWindow` is captured in its own callbacks and `closed` only clears the reference when it still points at that window, so a stale callback cannot clear a replacement. `getOverlayWindow()` now filters destroyed windows, which incidentally hardens `hideOverlay` too. `second-instance` still ignores argv.
+### 2026-08-16 — RATA-004 fix — Recognizer script escaped `app.asar`; icon unblocked packaging
+
+**Status:** DONE. On `cursor/RATA-004-native-windows-voice` (PR #50), rebased onto `main`.
+
+**The blocking defect.** `voice-win.cjs` spawned `powershell.exe -File <__dirname>/voice-listen.ps1`. In a packaged build `__dirname` is inside `app.asar`, and PowerShell is an external process with no asar awareness — it cannot read that path. Voice therefore worked in dev and did **nothing at all** once installed, with no error surfaced. `resolveScriptPath()` / `isPackagedRuntime()` now point at `process.resourcesPath` when packaged (same shape as `appIconPath()` in `main.cjs`), and `build.extraResources` copies the script to `resources/`.
+
+**A second defect found while proving the first.** `npm run pack:win` could not run at all: `public/24_dialog_avatar_reply.png` was 77×82 and electron-builder rejects anything under 256×256. The fix was to regenerate **that** file at 256×256 — same circular navy badge, rebuilt from the concept art rather than upscaled — not to repoint `build.win.icon` at a new file. Cursor's `tests/app-icon.test.cjs` pins that path deliberately; their product decision stands.
+
+**Invisible asset load.** A failed character image rendered the silhouette and said nothing, so a dead Vite dev server looked like a design choice. `RataCharacter.tsx` now logs the failing URL, exposes it as `data-asset-failed`, and puts it in `title` / the fallback's `aria-label`.
+
+**Validation.** `npm run verify` **211/211, exit 0**. Packaging verified by execution, not inference: `release/win-unpacked/resources/` contains `voice-listen.ps1` (2,369 bytes) as a real file on disk alongside `app.asar`. `tests/voice-packaging.test.cjs` (6 tests) pins dev/packaged resolution, asar detection, the `extraResources` entry, the ≥256×256 icon, and the asset-failure reporting.
+
+**Still open on this feature** (from my earlier review, not fixed here): the second microphone path sits outside the permission handler and the gate is only checked at start; and there is a restart race in `stop()`/`start()`.
 
 ### 2026-08-15 — P0-2 — Privilege-boundary review and Lane H tests
 
@@ -163,6 +235,67 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 ---
 
 ## Codex
+
+### 2026-08-16 — Codex — ADR-009 single-fence tolerance
+
+**Status:** READY FOR CLAUDE REVIEW — draft PR #58 (branch `codex/ADR-009-fence-tolerance`)
+
+**Scope:** Update `packages/agent-core/orchestrator/system-action-planner.cjs` to strip at most one complete leading/trailing Markdown code fence (with or without the `json` tag) before parsing. Preserve the 512-character raw envelope limit and exact action schema; continue rejecting surrounding prose, unterminated fences, nested/double fences and every existing hostile shape. Deliberately update and extend `tests/system-action-planner.test.cjs`, align ADR-009, run `npm run verify`, and request Claude review.
+
+**Implemented:** `parseSystemActionPlan()` now checks the raw 512-character envelope first, trims surrounding whitespace, and removes at most one exact complete Markdown fence with an optional `json` tag before `JSON.parse`. It does not accept prose, an unterminated fence, multiple/nested fences, another language tag, extra schema keys, tools, paths, arguments or applications. The literal `system.openApp` mapping and Notepad/Calculator enum are unchanged. Updated ADR-009 to describe the narrow tolerance.
+
+**Validation:** Focused planner tests passed 14/14, including tagged/untagged fences, unterminated and double fences, and a fenced payload that proves fence removal cannot bypass the raw 512-character limit. Full `npm run verify` passed: 76 CommonJS files, lint, 225/225 tests, TypeScript, Vite build and the seven-module sandboxed preload build. `git diff --check` passed. Claude privilege-boundary review is required.
+### 2026-08-16 — Codex — REVIEW-001 M3 disk setting validation
+
+**Status:** READY FOR CLAUDE REVIEW — draft PR #57 (branch `codex/REVIEW-001-M3-store-validation`)
+
+**Scope:** Validate settings loaded from disk in `electron/store.cjs` with the existing Lane G validators from `packages/contracts/ipc-validation.cjs`. Drop unknown keys, replace invalid/wrong-type/out-of-range values with safe defaults, prevent `microphoneEnabled` and confirmation settings from being loosened by corrupted or hand-edited storage, and surface sanitized fallback events in the activity feed. Add injected storage regressions under `tests/` without changing Lane G contracts, run `npm run verify`, and request Claude review.
+
+**Implemented:** Disk-loaded setting keys now pass through `isKnownSetting()` and values through `validateSettingValue()` before entering runtime state. Unknown keys are dropped. Invalid values receive per-setting safe fallbacks: microphone off and every configurable confirmation on; corrupt JSON or an invalid store/settings shape restores the same safe security posture. Every recovery is added to the activity feed without recording rejected values, parser errors or local paths. Existing valid Boolean preferences still load normally; distinguishing an app-persisted `false` from a manually edited `false` would require a separate integrity design and is not claimed by schema validation. No Lane G contract file changed. Updated the security model.
+
+**Validation:** Focused settings tests passed 11/11 for unknown keys, wrong types, out-of-range values, corrupt JSON, sanitized audit details, microphone fail-closed and confirmation fail-safe behavior. Full `npm run verify` passed: 76 CommonJS files, lint, 228/228 tests, TypeScript, Vite build and the seven-module sandboxed preload build. `git diff --check` passed. Claude review is required.
+### 2026-08-16 — Codex — WEB-002 fetch hardening
+
+**Status:** READY FOR CLAUDE REVIEW — draft PR #56 (branch `codex/WEB-002-fetch-hardening`)
+
+**Scope:** Verify and address the four carried WEB-001 findings in `electron/public-web-client.cjs` and `electron/serper-client.cjs`: restrict public fetches to ports 80/443, block HTTPS-to-HTTP redirect downgrade, distinguish a successful empty Serper result from provider failure, and replace or rigorously harden regex HTML extraction against malformed/nested active content. Add injected no-network regressions in `tests/web-fetch-security.test.cjs` and `tests/web-search-tool.test.cjs`, update the relevant web-security documentation, run `npm run verify`, and request Claude review.
+
+**Implemented:** Confirmed findings (a), (b) and (d) against current main. URL validation now permits only ports 80/443 before DNS or transport, and redirect processing refuses HTTPS-to-HTTP downgrade while preserving HTTP-to-HTTPS upgrade. Replaced regex HTML stripping with the exactly pinned runtime dependency `parse5@7.3.0`; extraction walks the parsed tree and discards script, style, noscript, template, SVG, iframe and object subtrees before collecting visible text. Finding (c) was already correct on current main: Serper returns an empty array and `web.search` reports a successful “found nothing” result, so this branch pins that behavior without unnecessary production changes. Updated ADR-008 and the security model.
+
+**Validation:** All injected tests make no live DNS/HTTP calls. Focused web tests passed 47/47, including ports, downgrade/upgrade, malformed/nested HTML, empty Serper payloads and empty agent results. Full `npm run verify` passed: 76 CommonJS files, lint, 228/228 tests, TypeScript, Vite build and the seven-module sandboxed preload build. `npm install` reported 0 vulnerabilities; `git diff --check` passed. Claude security review is required.
+
+### 2026-08-16 — Codex — RATA-002 structured system actions
+
+**Status:** READY FOR CLAUDE REVIEW — draft PR #53 (branch `codex/RATA-002-structured-system-actions`)
+
+**Scope:** Implement the safe alternative to model-generated PowerShell. For explicit application-launch language not handled by the deterministic parser, Gemini/OpenRouter may return a small structured proposal constrained to the existing `system.openApp` tool and its Notepad/Calculator allow-list. Validate model output fail-closed, run accepted proposals only through `PolicyEngine` and `ToolRegistry`, preserve background spawn/audit behavior, and never accept shell text, executable paths, arguments, elevation, or arbitrary commands. Add an ADR and request Claude security/Lane H review.
+
+**Implemented:** Added a deterministic launch-intent gate and a versioned, exact-key provider proposal parser. The only accepted proposal is `system.openApp` with `notepad` or `calculator`; `none` is the only alternative. Ordinary chat and retrieved context cannot enter the planner. Accepted proposals still pass through registry validation, policy evaluation and registry execution. Invalid JSON, prose, Markdown, extra fields, paths, arguments, arbitrary tools/apps, shell text and elevation fail closed without execution. Added ADR-009 and aligned ADR-007, architecture and security documentation. No PowerShell or generic shell capability was added.
+
+**Validation:** Injected checks proved deterministic launches do not call a provider, a valid proposal launches only the fixed executable with an empty argument list and detached background options, and malicious/expanded proposals spawn nothing. Full `npm run verify` passed: 68 CommonJS files, lint, 181/181 tests, TypeScript, Vite build and the six-module sandboxed preload build. `git diff --check` passed. Claude privilege-boundary review and Lane H focused contract tests remain required before merge.
+### 2026-08-16 — Codex — FIX-003 recreate closed overlay
+
+**Status:** READY FOR CLAUDE REVIEW — draft PR #54 (branch `codex/FIX-003-recreate-overlay`)
+
+**Scope:** Repair the main-process window lifecycle behind the Control Center and tray “Show Rata” actions. A closed/destroyed overlay currently clears `overlayWindow`, while callers use optional chaining and silently do nothing. Add a single safe show/recreate service, preserve the existing narrow IPC channel and renderer boundary, avoid all Cursor-owned UI paths and Claude-owned contracts/tests, run injected lifecycle checks plus `npm run verify`, and request Claude review for the Electron change.
+
+**Implemented:** Added a centralized main-process `showOverlay` lifecycle service. It recreates a missing/destroyed overlay, lets the replacement renderer reach `ready-to-show` before revealing it, restores a minimized live window, and supports inactive display for the second-instance path. The Control Center IPC handler, tray action and second-instance handler now use that service. Overlay callbacks capture their own BrowserWindow and clear the shared reference only when it still points to that instance, preventing stale callbacks from acting on a replacement. No renderer, preload or shared contract path changed.
+
+**Validation:** Injected IPC wiring proved `showOverlay` calls the lifecycle service rather than the stale optional-window path. Full `npm run verify` passed: 69 CommonJS files, lint, 202/202 tests, TypeScript, Vite build and the six-module sandboxed preload build. `git diff --check` passed. GUI smoke remains BLOCKED-ON-HUMAN; Claude review is required because this touches `electron/`.
+
+### 2026-08-16 — Codex — RATA-002 Critical Thinking OpenRouter routing
+
+**Status:** DONE — draft PR #49 awaiting Lane H issue #48 and Claude review (branch `codex/RATA-002-critical-thinking-openrouter`)
+
+**Scope:** Route the existing declarative `critical-thinking` skill through the provider abstraction with OpenRouter preferred in auto mode and Gemini retained as fallback. Load the skill prompt only after selection; never expose `OPENROUTER_API_KEY` to the skill, renderer, or audit trail. Respect explicit provider modes, update behavior tests and provider-routing documentation, run `npm run verify`, and request Claude review because this changes `packages/agent-core/`.
+
+**Implemented:** `MockAgent` now continues a selected, tool-complete `critical-thinking` route through a provider-only helper. It loads only that selected prompt, supplies it beside Rata's global system prompt, and passes `preferredProvider: 'openrouter'` to the existing chain. The preference applies only in `auto`; pinned Gemini/OpenRouter/mock modes remain authoritative and the existing OpenRouter → Gemini → mock fallback is preserved. The API key remains closed inside the OpenRouter adapter and is never passed to the skill, renderer or activity log. ADR-007 records the routing decision. No skill metadata, contract or renderer path changed.
+
+**Validation:** Injected end-to-end routing confirmed only `critical-thinking` was loaded and OpenRouter was preferred. A redacted live route check in `auto` mode succeeded through OpenRouter (`anthropic/claude-sonnet-5`) with both credentials reported only as booleans. `npm run verify` passed: 67 CommonJS files, lint, 181/181 tests, TypeScript, Vite build and the six-module preload build. `npm ci` reported 0 vulnerabilities. Lane H regression coverage remains delegated to Claude.
+
+**Files touched:** `packages/agent-core/mock-agent.cjs`, `docs/decisions/ADR-007-ai-provider-chain.md`, and this Codex workbook entry.
+
+**Handoff:** Draft PR #49 is open against `main`. Issue #48 requests injected Lane H coverage for selected-prompt loading, OpenRouter-first auto routing, fallback order, pinned-mode precedence, prompt failure and credential isolation. Do not merge until Claude's tests and review land.
 
 ### 2026-08-16 — Codex — WEB-001 Claude review findings 1–3
 
@@ -321,6 +454,16 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 **Files touched:** `src/views/Overlay.tsx`, `src/styles/overlay.css`, `electron/main.cjs`, `tests/overlay-window-controls.test.cjs`, `docs/VALIDATION.md`, `docs/ARCHITECTURE.md`.
 
 **Validation:** `npm run verify` passed (184 tests).
+### 2026-08-16 — FIX — Critical Thinking uses the live provider
+
+**Status:** DONE, PR pending
+**Branch:** `cursor/FIX-critical-thinking-provider`
+
+**Done:** Critical Thinking loads its `SKILL.md` prompt beneath the global system prompt and calls the provider chain with OpenRouter preferred in `auto` mode. The old “mock agent has no live provider” stub is no longer used for this skill. The model still cannot invoke tools. Missing declared tools still fail closed.
+
+**Files touched:** `packages/agent-core/mock-agent.cjs`, `tests/critical-thinking-provider.test.cjs`, `docs/ARCHITECTURE.md`, `docs/VALIDATION.md`.
+
+**Validation:** `npm run verify` passed (204 tests).
 
 ---
 
@@ -347,7 +490,9 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 **Validation:** `npm run verify` passed (152 tests).
 
-**Still open:** configurable cloud STT/TTS adapters (`packages/agent-core/voice/`, Lane G voice channels).
+**Still open:** configurable cloud STT/TTS adapters and TTS.
+
+**2026-08-16 — STT fix:** Chromium `SpeechRecognition` always fails in Electron (`network` / no Google speech service). Push-to-talk now uses Windows speech recognition from `electron/voice-win.cjs` through `rata:voice-*`. The renderer only receives the transcript. `microphoneEnabled` is enforced in the voice IPC handler. Lane G should review the three new contract channels.
 
 **2026-08-16 — Codex b1d9c52:** The WEB-001 workbook restated REVIEW-001 M4 after probing a checkout that did not include this branch. This PR already registers `setPermissionRequestHandler` and `setPermissionCheckHandler` on `session.defaultSession` before windows are created. `media`/`microphone` are allowed only when `microphoneEnabled === true` and requested types are audio-only. Every other renderer permission is denied. The renderer checkbox remains a UI affordance only.
 
