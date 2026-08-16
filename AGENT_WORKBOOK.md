@@ -194,9 +194,13 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-16 — Codex — ADR-009 single-fence tolerance
 
-**Status:** IN PROGRESS (branch `codex/ADR-009-fence-tolerance`)
+**Status:** READY FOR CLAUDE REVIEW (branch `codex/ADR-009-fence-tolerance`)
 
 **Scope:** Update `packages/agent-core/orchestrator/system-action-planner.cjs` to strip at most one complete leading/trailing Markdown code fence (with or without the `json` tag) before parsing. Preserve the 512-character raw envelope limit and exact action schema; continue rejecting surrounding prose, unterminated fences, nested/double fences and every existing hostile shape. Deliberately update and extend `tests/system-action-planner.test.cjs`, align ADR-009, run `npm run verify`, and request Claude review.
+
+**Implemented:** `parseSystemActionPlan()` now checks the raw 512-character envelope first, trims surrounding whitespace, and removes at most one exact complete Markdown fence with an optional `json` tag before `JSON.parse`. It does not accept prose, an unterminated fence, multiple/nested fences, another language tag, extra schema keys, tools, paths, arguments or applications. The literal `system.openApp` mapping and Notepad/Calculator enum are unchanged. Updated ADR-009 to describe the narrow tolerance.
+
+**Validation:** Focused planner tests passed 14/14, including tagged/untagged fences, unterminated and double fences, and a fenced payload that proves fence removal cannot bypass the raw 512-character limit. Full `npm run verify` passed: 76 CommonJS files, lint, 225/225 tests, TypeScript, Vite build and the seven-module sandboxed preload build. `git diff --check` passed. Claude privilege-boundary review is required.
 
 ### 2026-08-16 — Codex — RATA-002 structured system actions
 

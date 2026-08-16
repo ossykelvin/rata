@@ -65,7 +65,6 @@ test('the model cannot name the tool that runs', () => {
 test('every malformed or expanded plan shape fails closed', () => {
   const rejected = [
     ['prose instead of JSON', 'Sure, opening Notepad for you!'],
-    ['markdown fenced JSON', '```json\n{"version":1,"action":"none"}\n```'],
     ['prose wrapped around JSON', 'Sure! {"version":1,"action":"system.openApp","input":{"appName":"notepad"}}'],
     ['an extra top-level key', '{"version":1,"action":"system.openApp","input":{"appName":"notepad"},"elevate":true}'],
     ['an extra input key', '{"version":1,"action":"system.openApp","input":{"appName":"notepad","args":["x"]}}'],
@@ -88,17 +87,46 @@ test('every malformed or expanded plan shape fails closed', () => {
   }
 })
 
+test('one complete Markdown fence is tolerated with or without a JSON tag', () => {
+  for (const raw of [
+    '```json\n{"version":1,"action":"system.openApp","input":{"appName":"notepad"}}\n```',
+    '```\n{"version":1,"action":"system.openApp","input":{"appName":"calculator"}}\n```'
+  ]) {
+    const plan = parseSystemActionPlan(raw)
+    assert.equal(plan.toolId, 'system.openApp')
+    assert.ok(ALLOWED_APP_NAMES.includes(plan.input.appName))
+  }
+})
+
+test('unterminated or multiple Markdown fences still fail closed', () => {
+  const rejected = [
+    '```json\n{"version":1,"action":"none"}',
+    '```json\n```json\n{"version":1,"action":"none"}\n```\n```'
+  ]
+  for (const raw of rejected) {
+    assert.throws(
+      () => parseSystemActionPlan(raw),
+      error => error instanceof SystemActionPlanError && error.code === 'invalid-plan-json'
+    )
+  }
+})
+
 test('a plan cannot pollute Object.prototype', () => {
   assert.throws(() => parseSystemActionPlan('{"version":1,"action":"none","__proto__":{"polluted":true}}'))
   assert.equal({}.polluted, undefined)
 })
 
 test('an oversized payload is refused before JSON parsing', () => {
-  const raw = `{"version":1,"action":"system.openApp","input":{"appName":"notepad","pad":"${'a'.repeat(600)}"}}`
-  assert.throws(
-    () => parseSystemActionPlan(raw),
-    error => error.code === 'invalid-plan-envelope'
-  )
+  const oversized = [
+    `{"version":1,"action":"system.openApp","input":{"appName":"notepad","pad":"${'a'.repeat(600)}"}}`,
+    `\`\`\`json\n${' '.repeat(500)}{"version":1,"action":"none"}\n\`\`\``
+  ]
+  for (const raw of oversized) {
+    assert.throws(
+      () => parseSystemActionPlan(raw),
+      error => error.code === 'invalid-plan-envelope'
+    )
+  }
 })
 
 test('an accepted plan launches the fixed executable with no arguments', async () => {
