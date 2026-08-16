@@ -165,7 +165,7 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-16 — Codex — RATA-002 structured system actions
 
-**Status:** READY FOR CLAUDE REVIEW (branch `codex/RATA-002-structured-system-actions`)
+**Status:** READY FOR CLAUDE REVIEW — draft PR #53 (branch `codex/RATA-002-structured-system-actions`)
 
 **Scope:** Implement the safe alternative to model-generated PowerShell. For explicit application-launch language not handled by the deterministic parser, Gemini/OpenRouter may return a small structured proposal constrained to the existing `system.openApp` tool and its Notepad/Calculator allow-list. Validate model output fail-closed, run accepted proposals only through `PolicyEngine` and `ToolRegistry`, preserve background spawn/audit behavior, and never accept shell text, executable paths, arguments, elevation, or arbitrary commands. Add an ADR and request Claude security/Lane H review.
 
