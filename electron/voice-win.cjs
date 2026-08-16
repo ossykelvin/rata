@@ -4,7 +4,30 @@ const { spawn } = require('node:child_process')
 const path = require('node:path')
 
 const MAX_TRANSCRIPT_LENGTH = 2_000
-const SCRIPT = path.join(__dirname, 'voice-listen.ps1')
+const SCRIPT_NAME = 'voice-listen.ps1'
+
+/**
+ * Where the recognizer script lives at runtime.
+ *
+ * In a packaged build `__dirname` is inside `app.asar`, and `powershell.exe`
+ * is an external process with no asar awareness — it cannot read a path in
+ * there, so voice worked in dev and silently did nothing once installed.
+ * electron-builder copies the script to `resources/` via `extraResources`,
+ * which is a real directory on disk. Same shape as appIconPath() in main.cjs.
+ */
+function resolveScriptPath({ packaged = isPackagedRuntime(), resourcesPath = process.resourcesPath } = {}) {
+  return packaged ? path.join(resourcesPath, SCRIPT_NAME) : path.join(__dirname, SCRIPT_NAME)
+}
+
+/**
+ * True when running from an asar archive. Derived from the path rather than
+ * `app.isPackaged` so this module stays testable without importing Electron.
+ */
+function isPackagedRuntime(dir = __dirname) {
+  return dir.includes(`app.asar${path.sep}`) || dir.endsWith('app.asar') || dir.includes('app.asar')
+}
+
+const SCRIPT = resolveScriptPath()
 
 function createWindowsVoice({
   spawnProcess = spawn,
@@ -80,4 +103,4 @@ function createWindowsVoice({
   return { start, stop }
 }
 
-module.exports = { createWindowsVoice, MAX_TRANSCRIPT_LENGTH }
+module.exports = { createWindowsVoice, resolveScriptPath, isPackagedRuntime, MAX_TRANSCRIPT_LENGTH, SCRIPT_NAME }

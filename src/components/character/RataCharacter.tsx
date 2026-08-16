@@ -26,24 +26,34 @@ export function RataCharacter({ state = 'idle', size = 'large', idlePresence = t
 
   const showFallback = assetFailed
   const label = `Rata is ${presentation.label}`
+  // A failed asset used to be silent: the silhouette rendered and nothing said
+  // why, so a dead dev server or a missing file looked like a design choice.
+  // Name the URL in the console and expose it on the element for inspection.
+  const failureDetail = assetFailed ? `Character artwork failed to load: ${presentation.src}` : undefined
 
   return (
     <div
       className={`rata-character rata-character-${presentation.state}${size === 'small' ? ' rata-character-small' : ''}${presentation.crop ? ' rata-character-crop' : ''}`}
       data-character-state={presentation.state}
+      data-asset-failed={assetFailed ? presentation.src : undefined}
       aria-label={label}
+      title={failureDetail}
     >
       <div className="rata-character-frame">
         {showFallback ? (
-          <div className="rata-character-silhouette" aria-hidden="true">
-            <span>R</span>
+          <div className="rata-character-silhouette" role="img" aria-label={failureDetail}>
+            <span aria-hidden="true">R</span>
           </div>
         ) : (
           <img
             src={presentation.src}
             alt="Rata, the office assistant"
             draggable={false}
-            onError={() => setAssetFailed(true)}
+            onError={() => {
+              // eslint-disable-next-line no-console -- the renderer has no audit channel; this is the only trace
+              console.warn(`[rata] character asset failed to load: ${presentation.src}`)
+              setAssetFailed(true)
+            }}
           />
         )}
       </div>
