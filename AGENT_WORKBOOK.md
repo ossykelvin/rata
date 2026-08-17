@@ -68,7 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
-| Cursor | RATA-014 file organize writes | `cursor/RATA-014-file-organize` | IN PROGRESS |
+| Cursor | RATA-014 file organize writes | `cursor/RATA-014-file-organize` | DONE, PR #80 |
 | Cursor | RATA-013 document create + file.save | `cursor/RATA-013-document-and-save` | DONE, PR #79 |
 | Cursor | RATA-005 system status tools | `cursor/RATA-005-system-status` | DONE, PR #67 |
 | Cursor | RATA-SKILL-007 filesystem scan tools | `cursor/SKILL-007-filesystem-scan-tools` | DONE, PR #75 |
@@ -543,12 +543,16 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-17 — RATA-014 — File organize writes (folder.create, file.move, file.rename)
 
-**Status:** IN PROGRESS
+**Status:** DONE, PR #80
 **Branch:** `cursor/RATA-014-file-organize` (stacked on `cursor/RATA-013-document-and-save` / PR #79)
 
-**Scope:** Register `folder.create`, `file.move` and `file.rename` so File Organizer can become available. Same containment as `file.save` / ADR-010 / ADR-016: Documents, Downloads, Desktop only; parent+basename for destinations that do not exist yet; overwrite always confirms; executable destinations refused. v1 is files-only for move/rename, folders-only for folder.create, same-volume rename, non-recursive mkdir. `file.delete` stays disabled. Skill files and planner/communicator enums are not edited.
+**Done:** Registered `folder.create`, `file.move` and `file.rename`. Same containment as `file.save`: Documents, Downloads, Desktop; parent through existing `resolveWithinRoots`; basename rules; denied names and executable destinations refused. v1 is files-only for move/rename, folders-only for folder.create, non-recursive mkdir, same-volume rename. `file.rename` cannot change directories. Overwrite always confirms. A denied-name source may be renamed to a safe name. `file.delete` stays disabled. Skill files and planner/communicator enums were not edited.
 
-**Files to touch:** `electron/file-access.cjs`, `electron/tools/file.cjs`, `tests/file-organize.test.cjs`, `tests/file-access-security.test.cjs`, `tests/tool-composition.test.cjs`, `docs/decisions/ADR-017-file-organize-writes.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/VALIDATION.md`, `docs/TASKS.md`.
+**Files touched:** `electron/file-access.cjs`, `electron/tools/file.cjs`, `tests/file-organize.test.cjs`, `tests/file-access-security.test.cjs`, `tests/tool-composition.test.cjs`, `docs/decisions/ADR-017-file-organize-writes.md`, `docs/decisions/ADR-016-file-write-boundary.md`, `docs/decisions/ADR-010-readonly-local-file-access.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/VALIDATION.md`, `docs/TASKS.md`.
+
+**Validation:** `npm run verify` exit 0, **476/476**. Registry proof with a composed tool registry: `file-organizer ready available=["file.search","folder.create","file.move","file.rename"] missing=[]`.
+
+**Coordination:** Claude review requested on PR #80 for the `electron/` file-write verbs. Stacked on #79; retarget to `main` after that merges. Did not touch `packages/agent-core/mock-agent.cjs`, communicator intent enum, or ADR-009.
 
 ---
 
