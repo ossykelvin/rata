@@ -6,12 +6,12 @@ const path = require('node:path')
 const crypto = require('node:crypto')
 
 /**
- * Local file access for RATA-006 (reads) and RATA-013 (file.save).
+ * Local file access for RATA-006 (reads), RATA-013 (file.save) and
+ * RATA-014 (folder.create, file.move, file.rename).
  *
  * This module is to the file tools what public-web-client.cjs is to web.fetch:
  * the whole security value is in what it refuses. No caller can reach a path
- * outside the configured roots. Move, rename, folder.create and delete are
- * not implemented here.
+ * outside the configured roots. Delete stays unimplemented.
  *
  * Two boundaries matter and are enforced separately:
  *
@@ -157,7 +157,11 @@ function isWithin(root, candidate) {
  * Resolving before comparing is what makes `..` and symlinks harmless; checking
  * the name last means a denied name inside an allowed root is still refused.
  */
-function resolveWithinRoots(input, roots, fsApi = fs) {
+function sameVolume(left, right) {
+  return path.parse(left).root.toLowerCase() === path.parse(right).root.toLowerCase()
+}
+
+function resolveWithinRoots(input, roots, fsApi = fs, options = {}) {
   if (typeof input !== 'string' || !input.trim()) {
     throw new FileAccessError('A file path is required.', 'invalid-path')
   }
@@ -183,7 +187,10 @@ function resolveWithinRoots(input, roots, fsApi = fs) {
   if (!roots.some(root => isWithin(root, resolved))) {
     throw new FileAccessError('That path is outside the folders Rata may read.', 'outside-roots')
   }
-  if (isDeniedName(path.basename(resolved))) {
+  // Organizer sources may be a denied name so the user can move/rename *out*
+  // of a credential-shaped file. Destinations still go through
+  // assertWritableBasename. Containment and denied directories are unchanged.
+  if (!options?.allowDeniedName && isDeniedName(path.basename(resolved))) {
     throw new FileAccessError('That file type is not readable for safety reasons.', 'denied-name')
   }
   const relativeSegments = roots
@@ -255,6 +262,9 @@ function assertWritableBasename(name) {
   }
   if (isDeniedName(name)) {
     throw new FileAccessError('That file type is not writable for safety reasons.', 'denied-name')
+  }
+  if (isDeniedDirectory(name)) {
+    throw new FileAccessError('That folder name is not writable for safety reasons.', 'denied-directory')
   }
   if (isDeniedWriteExtension(name)) {
     throw new FileAccessError('That file type cannot be created.', 'denied-extension')
@@ -555,6 +565,224 @@ function createFileAccess({ roots }) {
     }
   }
 
+  function requireExistingFile(input) {
+    const source = resolveWithinRoots(input, allowedRoots, fs, { allowDeniedName: true })
+    let info
+    try {
+      info = fs.lstatSync(source)
+    } catch {
+      throw new FileAccessError('That file is not available.', 'not-found')
+    }
+    if (info.isSymbolicLink()) {
+      throw new FileAccessError('That path cannot be moved.', 'is-symlink')
+    }
+    if (info.isDirectory()) {
+      throw new FileAccessError(
+        'Moving or renaming folders is not supported. Create the folder, then move files into it.',
+        'is-directory'
+      )
+    }
+    if (!info.isFile()) {
+      throw new FileAccessError('That path is not a file.', 'not-a-file')
+    }
+    return source
+  }
+
+  function inspectDestinationFile(target) {
+    const existing = inspectWriteTarget(target)
+    if (!existing) return null
+    if (existing.isSymbolicLink()) {
+      throw new FileAccessError('That path cannot be overwritten.', 'is-symlink')
+    }
+    if (existing.isDirectory()) {
+      throw new FileAccessError('That path is a folder, not a file.', 'not-a-file')
+    }
+    return existing
+  }
+
+  function assertSameVolume(source, destination) {
+    if (!sameVolume(source, destination)) {
+      throw new FileAccessError('Moving across volumes is not supported.', 'cross-volume')
+    }
+  }
+
+  function resolveMoveDestination(destination, sourceBasename) {
+    try {
+      const resolved = resolveWithinRoots(destination, allowedRoots, fs, { allowDeniedName: true })
+      const info = fs.lstatSync(resolved)
+      if (info.isSymbolicLink()) {
+        throw new FileAccessError('That path cannot be overwritten.', 'is-symlink')
+      }
+      if (info.isDirectory()) {
+        assertWritableBasename(sourceBasename)
+        const target = path.join(resolved, sourceBasename)
+        if (!allowedRoots.some(root => isWithin(root, target))) {
+          throw new FileAccessError('That path is outside the folders Rata may read.', 'outside-roots')
+        }
+        return { target, basename: sourceBasename }
+      }
+      assertWritableBasename(path.basename(resolved))
+      return { target: resolved, basename: path.basename(resolved) }
+    } catch (error) {
+      if (error instanceof FileAccessError && error.code !== 'not-found') throw error
+    }
+    const writable = resolveWritableTarget(destination, allowedRoots)
+    return { target: writable.target, basename: writable.basename }
+  }
+
+  function finishMovePlan(source, destination, basename, overwrite) {
+    if (overwrite !== undefined && overwrite !== true && overwrite !== false) {
+      throw new FileAccessError('overwrite must be true or false.', 'invalid-overwrite')
+    }
+    const replace = overwrite === true
+    if (source === destination) {
+      throw new FileAccessError('The source and destination are the same path.', 'same-path')
+    }
+    assertSameVolume(source, destination)
+    const existing = inspectDestinationFile(destination)
+    if (existing && !replace) {
+      throw new FileAccessError('That file already exists. Pass overwrite: true to replace it.', 'exists')
+    }
+    if (existing) {
+      resolveWithinRoots(destination, allowedRoots, fs, { allowDeniedName: true })
+    }
+    return {
+      source,
+      destination,
+      name: basename,
+      overwrite: replace,
+      exists: Boolean(existing)
+    }
+  }
+
+  function prepareCreateFolder({ path: input }) {
+    const { target, basename } = resolveWritableTarget(input, allowedRoots)
+    const existing = inspectWriteTarget(target)
+    if (existing) {
+      throw new FileAccessError('That folder already exists.', 'exists')
+    }
+    return { path: target, name: basename }
+  }
+
+  async function createFolder(input) {
+    const prepared = prepareCreateFolder(input)
+    try {
+      await fsp.mkdir(prepared.path)
+    } catch (error) {
+      if (error && error.code === 'EEXIST') {
+        throw new FileAccessError('That folder already exists.', 'exists')
+      }
+      if (error && error.code === 'ENOENT') {
+        throw new FileAccessError('The destination folder is not available.', 'not-found')
+      }
+      throw error
+    }
+    return prepared
+  }
+
+  function prepareMove({ source, destination, overwrite = false }) {
+    if (typeof source !== 'string' || !source.trim()) {
+      throw new FileAccessError('file.move requires a source path.', 'invalid-path')
+    }
+    if (typeof destination !== 'string' || !destination.trim()) {
+      throw new FileAccessError('file.move requires a destination path.', 'invalid-path')
+    }
+    const resolvedSource = requireExistingFile(source)
+    const planned = resolveMoveDestination(destination, path.basename(resolvedSource))
+    return finishMovePlan(resolvedSource, planned.target, planned.basename, overwrite)
+  }
+
+  function prepareRename({ path: input, name, destination, overwrite = false }) {
+    if (typeof input !== 'string' || !input.trim()) {
+      throw new FileAccessError('file.rename requires a file path.', 'invalid-path')
+    }
+    const resolvedSource = requireExistingFile(input)
+    const requested = name !== undefined ? name : destination
+    if (typeof requested !== 'string' || !requested) {
+      throw new FileAccessError('file.rename requires a new file name.', 'invalid-name')
+    }
+    let basename
+    let target
+    if (/[\\/]/.test(requested) || path.isAbsolute(requested)) {
+      const writable = resolveWritableTarget(requested, allowedRoots)
+      if (path.dirname(writable.target) !== path.dirname(resolvedSource)) {
+        throw new FileAccessError('file.rename cannot change directories. Use file.move.', 'not-a-rename')
+      }
+      basename = writable.basename
+      target = writable.target
+    } else {
+      if (requested.includes('..')) {
+        throw new FileAccessError('file.rename cannot change directories. Use file.move.', 'not-a-rename')
+      }
+      assertWritableBasename(requested)
+      target = path.join(path.dirname(resolvedSource), requested)
+      basename = requested
+    }
+    if (!allowedRoots.some(root => isWithin(root, target))) {
+      throw new FileAccessError('That path is outside the folders Rata may read.', 'outside-roots')
+    }
+    if (path.dirname(target) !== path.dirname(resolvedSource)) {
+      throw new FileAccessError('file.rename cannot change directories. Use file.move.', 'not-a-rename')
+    }
+    return finishMovePlan(resolvedSource, target, basename, overwrite)
+  }
+
+  async function sameVolumeRename(source, destination) {
+    try {
+      await fsp.rename(source, destination)
+    } catch (error) {
+      if (error && error.code === 'EXDEV') {
+        throw new FileAccessError('Moving across volumes is not supported.', 'cross-volume')
+      }
+      throw error
+    }
+  }
+
+  async function replaceWithRename(source, destination) {
+    const parked = path.join(
+      path.dirname(destination),
+      `.rata-overwrite-${process.pid}-${crypto.randomBytes(8).toString('hex')}.tmp`
+    )
+    await fsp.rename(destination, parked)
+    try {
+      await sameVolumeRename(source, destination)
+    } catch (error) {
+      try { await fsp.rename(parked, destination) } catch { /* destination restore failed */ }
+      throw error
+    }
+    try { await fsp.unlink(parked) } catch { /* leftover parked file */ }
+  }
+
+  async function moveFile(input) {
+    const prepared = prepareMove(input)
+    if (prepared.exists && prepared.overwrite) {
+      await replaceWithRename(prepared.source, prepared.destination)
+    } else {
+      await sameVolumeRename(prepared.source, prepared.destination)
+    }
+    return {
+      source: prepared.source,
+      path: prepared.destination,
+      name: prepared.name,
+      overwritten: prepared.exists
+    }
+  }
+
+  async function renameFile(input) {
+    const prepared = prepareRename(input)
+    if (prepared.exists && prepared.overwrite) {
+      await replaceWithRename(prepared.source, prepared.destination)
+    } else {
+      await sameVolumeRename(prepared.source, prepared.destination)
+    }
+    return {
+      source: prepared.source,
+      path: prepared.destination,
+      name: prepared.name,
+      overwritten: prepared.exists
+    }
+  }
+
   return {
     roots: allowedRoots,
     searchFiles,
@@ -563,6 +791,12 @@ function createFileAccess({ roots }) {
     searchFileContent,
     prepareSave,
     saveTextFile,
+    prepareCreateFolder,
+    createFolder,
+    prepareMove,
+    moveFile,
+    prepareRename,
+    renameFile,
     resolvePath: input => resolveWithinRoots(input, allowedRoots)
   }
 }
@@ -581,6 +815,7 @@ module.exports = {
   isWithin,
   buildMatcher,
   FileAccessError,
+  sameVolume,
   MAX_PATH_LENGTH,
   MAX_READ_BYTES,
   MAX_WRITE_BYTES,
