@@ -502,6 +502,19 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Cursor
 
+### 2026-08-17 — RATA-SKILL-007 — Filesystem Scan tools
+
+**Status:** IN PROGRESS
+**Branch:** `cursor/SKILL-007-filesystem-scan-tools`
+
+**Scope:** `skills/filesystem-scan/` declares `filesystem.scan`, `filesystem.diskUsage` and `filesystem.hash`. None is registered, so the Control Center Skills page reports the skill `unavailable`. Register all three as `risk: 'read'` tools that never write, move, rename or delete, confine every path to the RATA-006 roots by reusing `resolveWithinRoots` from `electron/file-access.cjs` rather than adding a second validator, and never return file contents.
+
+**Files currently touching:** `electron/filesystem-scan.cjs` (new), `electron/tools/filesystem.cjs` (new), `electron/file-access.cjs` (optional injected `fsApi` parameter only), `electron/main.cjs` (composition only), `tests/filesystem-scan.test.cjs` (new), `tests/tool-composition.test.cjs` (pinned tool surface), `docs/CODEMAP.md`, `docs/SECURITY.md`, `docs/VALIDATION.md`, `docs/decisions/ADR-014-filesystem-scan.md` (new).
+
+**Not touching:** `packages/agent-core/` or `mock-agent.cjs` (PR #70, PR #73), `packages/contracts/ipc-validation.cjs`, `electron/store.cjs`, `src/types/settings.ts`, `src/views/control/PermissionsPage.tsx` (PR #70). No new setting is introduced; the existing `fileReadConfirm` gate is reused.
+
+---
+
 ### 2026-08-16 — FIX — Overlay Hide and compact drag (follow-up after #60)
 
 **Status:** IN PROGRESS
