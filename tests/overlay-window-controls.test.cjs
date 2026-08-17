@@ -21,18 +21,33 @@ test('Ask bar places minimize and close after Open Control Center', () => {
   assert.match(css, /\.quick-input\s*\{[^}]*grid-template-columns:\s*1fr 38px 38px 38px 38px 38px/)
 })
 
+test('Hide collapses the Ask bar including minimize and close', () => {
+  assert.match(overlay, /expanded \? 'Hide' : 'Ask'/)
+  assert.doesNotMatch(overlay, /overlay-window-controls/)
+  assert.doesNotMatch(css, /\.overlay-window-controls/)
+  const formStart = overlay.indexOf('className="quick-input no-drag"')
+  const beforeForm = overlay.slice(0, formStart)
+  const form = overlay.slice(formStart)
+  assert.equal((beforeForm.match(/\{windowControls\}/g) || []).length, 0)
+  assert.equal((form.match(/\{windowControls\}/g) || []).length, 1)
+  assert.match(overlay, /expanded && \(/)
+})
+
 test('minimize collapses to a small draggable icon that can restore', () => {
   assert.match(overlay, /overlay-root--compact/)
   assert.match(overlay, /aria-label="Restore Rata"/)
   assert.match(overlay, /size="small"/)
   assert.match(css, /\.overlay-root--compact \.drag-zone\s*\{[^}]*flex:\s*0\s+0\s+auto/)
-  assert.match(css, /\.rata-stack--compact\s*\{/)
+  assert.match(css, /\.overlay-root--compact \.drag-zone\s*\{[^}]*-webkit-app-region:\s*drag/)
+  assert.match(css, /\.rata-stack--compact\s*\{[^}]*-webkit-app-region:\s*drag/)
   assert.match(css, /\.rata-stack\s*\{[^}]*-webkit-app-region:\s*drag/)
   assert.match(overlay, /className="rata-restore no-drag"/)
+  assert.match(css, /\.rata-restore \.rata-character[\s\S]*pointer-events:\s*none/)
 })
 
 test('close hides the overlay and keeps the process in the tray', () => {
   assert.match(overlay, /window\.rata\.hideOverlay\(\)/)
+  assert.equal((overlay.match(/hideOverlay\(\)/g) || []).length, 1)
   assert.doesNotMatch(overlay, /window\.close\(/)
   assert.doesNotMatch(overlay, /app\.quit/)
   assert.match(windowsIpc, /getOverlayWindow\(\)\?\.hide\(\)/)

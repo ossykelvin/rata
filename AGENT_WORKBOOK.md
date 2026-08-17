@@ -69,6 +69,10 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
 | Cursor | RATA-005 system status tools | `cursor/RATA-005-system-status` | DONE, PR #67 |
+| Cursor | RATA-SKILL-007 filesystem scan tools | `cursor/SKILL-007-filesystem-scan-tools` | DONE, PR #75 |
+| Cursor | FIX overlay Hide and compact drag | `cursor/FIX-overlay-hide-compact` | IN PROGRESS |
+| Cursor | FIX overlay min/close | `cursor/FIX-overlay-min-close` | DONE, PR #60 |
+| Cursor | FIX voice mid-transcript disable | `cursor/FIX-voice-mid-transcript-disable` | DONE, PR #65 |
 | Cursor | FIX overlay min/close | `cursor/FIX-overlay-min-close` | DONE, PR pending |
 | Cursor | FIX voice permission gate | `cursor/FIX-voice-permission-gate` | DONE, PR #62 |
 | Cursor | FIX critical-thinking provider | `cursor/FIX-critical-thinking-provider` | DONE, PR pending |
@@ -97,6 +101,58 @@ One line per agent. Keep it current — this is the first thing another agent re
 ---
 
 ## Claude
+
+### 2026-08-17 — RATA-010 — Expression mapping
+
+**Status:** DONE, awaiting review. Branch `claude/RATA-010-expression-mapping`.
+
+24 expressions shipped in RATA-003; 11 were mapped. Three real problems, fixed by mapping to triggers that already exist rather than by inventing states:
+
+1. **A refusal wore the failure face.** `runTool` returned `state: 'error'` both when a tool genuinely failed and when the policy engine or a validator *declined* it. Rata blocking a destructive action is Rata working correctly, and it looked like a crash. New `blocked` state -> `13_skeptical`.
+2. **A skill with unregistered tools returned `idle`**, so "installed, but its tools are not registered yet" showed a resting face. New `unavailable` state -> `12_confused`.
+3. **`sleeping` was unreachable.** It was in the type and had artwork, but the idle drift stopped at `sleepy` and nothing else ever set it. Added a fourth stage at ten minutes, so the arc is bored -> peeking -> sleepy -> asleep. `bored` moved to `01_neutral`, which also makes that progression read as a sequence.
+
+Mapped is now 13 of 24. **The remaining 11 are deliberately unmapped and pinned by a test**, because wiring an expression to a state nothing sets is worse than leaving it on disk: it looks connected and never appears. Changing that list is now a conscious edit.
+
+Candidates if someone wants to wire them: `14_worried` for provider fallback (the Gemini 429 -> OpenRouter case already logs an activity event, but the reply state stays `success`, so it needs threading through), `20_encouraging` for critical-thinking replies, `24_coffee_activated` for keep-awake once RATA-005 lands.
+
+**Left alone deliberately:** `idle` still uses `rata-concept.png`, the 477x727 full-body art, rather than `01_neutral` at 256px. It is pinned by a test and it is a visual product decision, not a mapping bug, so it is flagged to the user rather than changed.
+
+**Validation.** `npm run verify` 319/319. Four new tests: every mapped state points at a distinct existing asset, a refusal and a failure never share a face, the drift reaches `sleeping`, and the unused set is pinned. One existing policy test updated deliberately, since it asserted `state === 'error'` for a blocked destructive tool.
+
+### 2026-08-17 — FIX-006 — My confidence gate swallowed real speech
+
+**Status:** DONE, awaiting review. Branch `claude/FIX-006-voice-confidence-visibility`.
+
+FIX-005 stopped the recognizer dying, and the user reported voice still not working. The audit trail showed eight "Voice listening started" events with **no transcript and no unexpected-exit error**, which proves the child was alive and producing nothing the app would accept. That points at the gate I added in FIX-005, not at the recogniser.
+
+**My error.** I set `MinConfidence` to 0.4 from three data points, one of which was *synthesised* audio scoring 0.681. Synthesised speech fed straight to the engine is far cleaner than a real microphone in a real room, so 0.4 was tuned against an unrealistically easy sample and swallowed genuine speech. I turned "the recogniser dies" into "the recogniser works and the app throws the result away", which looks identical from the outside.
+
+**The structural fix, not just a smaller number.** The keep-or-discard decision was inside the PowerShell script, where a discarded result leaves no trace. "Heard nothing" and "heard something and discarded it" were indistinguishable from outside, which is precisely what made this hard to see. The script now emits `confidence|text` for every result and `voice-win.cjs` decides, logging every discard with its score. `MIN_CONFIDENCE` drops to 0.2, and the number can now be set from real measurements instead of a guess.
+
+Measured noise so far: 0.085, 0.225, 0.323. It varies enough that some noise will pass 0.2 occasionally. That is the right trade against silently eating speech.
+
+Parsing is backwards compatible: a line with no confidence prefix is still delivered as plain text, so an older or hand-edited script cannot cause silence.
+
+**Validation.** `npm run verify` 312/312. Five new tests including one asserting `MIN_CONFIDENCE <= 0.25`, so a future tightening has to argue with a test rather than quietly regress this.
+
+### 2026-08-17 — FIX-005 — Speech recognition never actually ran
+
+**Status:** DONE, awaiting review. Branch `claude/FIX-005-voice-recognizer-never-ran`.
+
+**Root cause.** `electron/voice-listen.ps1` marshalled the recognizer onto a raw `[System.Threading.Thread]` built from a PowerShell **ScriptBlock**, to force an STA apartment. A ScriptBlock delegate has no runspace on a raw .NET thread, so powershell.exe died **before `Run()` was ever entered**. The failure is not catchable from the script, nothing reaches stderr, and the process exits with code 2. Speech recognition had therefore never worked once, and `NO_MIC` / `NO_ENGINE` could never be produced either, because the code that writes them never executed.
+
+The thread was also unnecessary: powershell.exe 5.1 already runs its main thread in **STA**, which is what System.Speech wants. Fixed by calling `exit [RataListen]::Run()` directly.
+
+**How it was found.** Not by reading. The engine and grammar were proved healthy first by synthesising a WAV with `SpeechSynthesizer` and feeding it to the same recogniser and `DictationGrammar` the script uses: it returned "Open notepad" at 0.681 confidence. That ruled out the engine, the mic and the grammar. A spawn probe with an open stdin pipe then showed the child exiting with code 2 after ~6s and no output, and a trace written to a **file** (not stderr) showed execution stopping immediately after `Add-Type` compiled, with `Run()` never entered.
+
+**Second defect, found because of the first.** `voice-win.cjs` swallowed an unexpected child exit. When the recognizer died the renderer was never told, so the overlay stayed in its listening state for ever, waiting for a transcript from a process that no longer existed. That is why the symptom was silence rather than an error. Unrequested exits and spawn errors now log an audit error and send `{ transcript: '', error }`, which `useVoice` already handles by resetting the button.
+
+**Third issue, measured not guessed.** Dictation returns a best guess for almost any audio. Ambient noise in an empty room produced "Bolivia or rue band and I cannot believe this wrath", then "And if we're" at **0.225** and "Three" at **0.323**, against **0.681** for clean speech. Added a `MinConfidence` gate of 0.4, documented with those measurements. A dropped guess degrades to the existing "I didn't catch that" prompt rather than nonsense in the input box.
+
+**Validation.** `npm run verify` 307/307. Proved end to end through the real `createWindowsVoice` path: before the fix, zero transcript events ever; after it, transcript events arrive from the microphone. Three regression tests: the script must call `Run()` directly and must not reintroduce the ScriptBlock thread or `SetApartmentState`; an unrequested exit reports an error; a requested stop does not.
+
+**For Cursor:** this was not a wiring problem in `useVoice.ts` or the IPC layer, which is where the previous attempts looked. Both were correct throughout. The failure was entirely inside the PowerShell host, and it was invisible because the only diagnostic channel the script had was the one it could never reach.
 
 ### 2026-08-16 — RATA-007 — Weatherman skill and weather.current
 
@@ -476,6 +532,68 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 **Files touched:** `electron/tools/system.cjs`, `electron/tools/index.cjs`, `electron/main.cjs`, `tests/system-status.test.cjs`, `tests/tool-composition.test.cjs`, `tests/system-action-planner.test.cjs`, `docs/CODEMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/VALIDATION.md`.
 
 **Validation:** `npm run verify` passed (315 tests). Injected tests only; no Electron or live machine state.
+### 2026-08-17 — RATA-SKILL-007 — Filesystem Scan tools
+
+**Status:** DONE, PR #75
+**Branch:** `cursor/SKILL-007-filesystem-scan-tools`
+
+**Done:** Registered `filesystem.scan`, `filesystem.diskUsage` and `filesystem.hash`, the three ids `skills/filesystem-scan/skill.json` has always declared. The skill now reports `ready` with an empty `missingTools`; ready skills go 9 → 10 of 21. The skill files were not edited — the ids match them character for character. ADR-014.
+
+**The decision worth recording.** I did not write a path validator. `electron/file-access.cjs` already owns `resolveWithinRoots`, and a second validator would have started identical and ended different, at which point the *weaker* of the two becomes the real policy. Instead `normalizeRoots` and `resolveWithinRoots` gained an optional `fs` parameter (behaviour with real `node:fs` unchanged), and the new module calls them. `main.cjs` now has one `userFolderRoots()` feeding both `createFileAccess` and `createFilesystemScan`, so "which folders may Rata look at" has one answer instead of two that can drift.
+
+What the new module *does* add is a **stricter** gate in front of that one, never a looser one: device namespaces (`\\.\`, `\\?\`), UNC shares, drive-relative and relative paths, surviving `..` segments, NUL bytes and over-length input are refused before anything reaches `realpath`. `resolveWithinRoots` would already neutralise `..` and symlinks; the value of refusing earlier is that no device handle is opened and a dead network share cannot block a scan.
+
+**No file contents, structurally.** `scan` never opens a file. `hash` opens a read-only handle, folds 64KB chunks into the digest and drops them, and returns a hex string. A file above the 16MB cap is **refused, not partly hashed** — a prefix digest is indistinguishable from a whole-file digest to whoever receives it and would produce confident, wrong duplicate claims, which is exactly what the skill's own prompt rules 7–8 are trying to prevent. Paths come back relative to the scanned root, so the Windows user name is not in every row of output.
+
+**Confirmation reuses `fileReadConfirm`; no new setting.** A bulk inventory of file names is at least as revealing as the text of one file and leaves the machine the same way. A second overlapping switch would let a user have one on and the other off. This is deliberately stricter than ADR-010's own reasoning for `file.search` being automatic — an unrequested inventory of everything is a different act from looking for one named file. No edits to `ipc-validation.cjs`, `store.cjs`, `settings.ts` or `PermissionsPage.tsx`, which keeps this clear of PR #70.
+
+**Where I did not satisfy the skill's declared contract, and did not force it.** The skill declares `confirm_if_scope_is_entire_system_or_protected` and its first trigger is "Scan my C drive". Whole-volume and protected scanning is **refused**, not confirmed — `C:\Windows`, `C:\Program Files` and bare drive roots are outside the allow-list and fail closed. Refusing exceeds the declared policy rather than weakening it, so I did not add a confirmation path for it; a dialog is not a substitute for an allow-list, and the request originates in model-adjacent prompt text. Also outstanding and stated plainly rather than papered over: **cancellable background jobs** (the skill declares `background_capable: true`; there is no job manager — RATA-SKILL-004 — so a scan is bounded by time/entry caps but cannot be cancelled mid-flight) and **user-configured exclusions** (only the ADR-010 denied-name/denied-directory lists are honoured). Both are recorded in ADR-014 and `docs/SKILLS-HANDOVER.md`.
+
+**Files touched:** `electron/filesystem-scan.cjs` (new), `electron/tools/filesystem.cjs` (new), `electron/file-access.cjs`, `electron/main.cjs`, `tests/filesystem-scan.test.cjs` (new), `tests/tool-composition.test.cjs`, `tests/skills-registry.test.cjs`, `docs/decisions/ADR-014-filesystem-inventory-boundary.md` (new), `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/VALIDATION.md`, `docs/SKILLS-HANDOVER.md`, `docs/PRODUCT_BACKLOG.md`.
+
+**Validation:** `npm run verify` exit 0, **352/352**, 86 CommonJS files. `tests/filesystem-scan.test.cjs` adds 37 tests, all against an injected in-memory disk with no real filesystem walk, no real volume, no real Electron, and no hashing of a real file. The fake is what makes it possible to assert on device paths and junction escapes that cannot be created safely on a test machine. Registry proof with a composed tool registry: `filesystem-scan ready available=["filesystem.scan","filesystem.diskUsage","filesystem.hash"] missing=[]`.
+
+**Two pinned surfaces moved deliberately.** `EXPECTED_TOOL_IDS` in `tests/tool-composition.test.cjs` went 12 → 15; that list is the privileged tool surface and should only move in a commit that says why. And `tests/skills-registry.test.cjs` used `filesystem-scan` as its example of a skill with *no* registered tools, so it started failing on the honest-refusal assertion — correctly, because the fixture is what changed. It now uses `screenshot-inspector` (needs `screen.capture`/`vision.analyze`, a different lane) and additionally asserts `filesystem-scan` is `ready`, so swapping the fixture cannot hide a regression.
+
+**Coordination:** Claude security review requested — this touches `electron/` and reads the user's filesystem. Nothing under `packages/agent-core/` or `mock-agent.cjs` was touched, so this does not collide with PR #70 or PR #73. Scan output does **not** reach a provider in this PR; it carries `trust: 'untrusted-external'` so that whichever stage first forwards it has to fence it with `fenceUntrusted`. Follow-up, not done here: the Permissions page still describes this under its existing "Confirm reading file contents" row, because PR #70 is open against that file — a dedicated row belongs in a later change.
+
+---
+
+### 2026-08-16 — FIX — Overlay Hide and compact drag (follow-up after #60)
+
+**Status:** IN PROGRESS
+**Branch:** `cursor/FIX-overlay-hide-compact`
+
+**Scope:** #60 merged without the Hide-button and compact-drag fixes. Hide must collapse −/× with the Ask bar. Compact widget must be a native drag surface; restore stays no-drag.
+
+**Files currently touching:** `src/views/Overlay.tsx`, `src/styles/overlay.css`, `tests/overlay-window-controls.test.cjs`, `tests/overlay-drag.test.cjs`.
+
+---
+
+### 2026-08-16 — FIX — Overlay tray click must recreate via showOverlay
+
+**Status:** DONE, PR #60
+**Branch:** `cursor/FIX-overlay-min-close`
+
+**Done:** Merged current main. Tray click and Show Rata go through `showOverlay()`, not `overlayWindow?.show()`. Hide collapses min/close with the Ask bar. Compact widget is a native `-webkit-app-region: drag` surface; restore stays `no-drag` on the inner icon. Close calls `hideOverlay()` once and does not quit.
+
+**Files touched:** `electron/main.cjs`, `src/views/Overlay.tsx`, `src/styles/overlay.css`, `tests/overlay-window-controls.test.cjs`, `tests/overlay-drag.test.cjs`.
+
+**Validation:** `npm run verify` passed (274 tests).
+
+**Coordination:** Claude review required — this touches `electron/`. #60 merged before Hide/compact-drag; remaining UI fixes are on `cursor/FIX-overlay-hide-compact`.
+### 2026-08-16 — FIX — Voice mid-transcript disable contract
+
+**Status:** DONE, PR #65
+**Branch:** `cursor/FIX-voice-mid-transcript-disable`
+
+**Done:** Follow-up after #62. `start()` is a Promise through IPC and preload; rejections are clean errors (renderer `try/catch` already awaits). Disabling the mic mid-transcript **delivers** leftover buffered speech on process exit — same `stop()` path as push-to-talk release. Complete lines already emitted stay emitted.
+
+**Files touched:** `electron/voice-win.cjs`, `tests/voice-win.test.cjs`, `tests/voice-recognition.test.cjs`, `docs/SECURITY.md`, `docs/VALIDATION.md`, `docs/ARCHITECTURE.md`.
+
+**Validation:** `npm run verify` passed (277 tests).
+
+**Coordination:** New PR, not a reopen of #62. Claude review required — this touches `electron/`.
 
 ---
 

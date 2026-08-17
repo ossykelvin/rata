@@ -84,6 +84,17 @@ class FileAccessError extends Error {
 }
 
 /**
+ * `fsApi` is a parameter rather than a hard import so a second consumer can
+ * inject a fake and still be governed by *this* containment logic instead of
+ * growing its own. `realpathSync.native` is preferred when present because it
+ * is what the real `node:fs` provides on Windows.
+ */
+function realpathSync(target, fsApi) {
+  const resolver = fsApi.realpathSync
+  return typeof resolver.native === 'function' ? resolver.native(target) : resolver(target)
+}
+
+/**
  * Resolves the configured roots once, at composition time.
  *
  * Roots are realpath'd here so that containment checks later compare like with
@@ -91,13 +102,13 @@ class FileAccessError extends Error {
  * junction, and comparing a realpath'd target against a non-realpath'd root
  * would reject legitimate files.
  */
-function normalizeRoots(roots) {
+function normalizeRoots(roots, fsApi = fs) {
   if (!Array.isArray(roots)) throw new TypeError('File access requires an array of roots.')
   const resolved = []
   for (const root of roots) {
     if (typeof root !== 'string' || !root.trim()) continue
     try {
-      resolved.push(fs.realpathSync.native(path.resolve(root)))
+      resolved.push(realpathSync(path.resolve(root), fsApi))
     } catch {
       // A root that does not exist on this machine is skipped rather than
       // fatal: not every Windows profile has every known folder.
@@ -122,13 +133,16 @@ function isWithin(root, candidate) {
 }
 
 /**
- * The single gate every path passes through.
+ * The single gate every path passes through, for every tool domain that reads
+ * the user's disk. `electron/filesystem-scan.cjs` calls this rather than
+ * carrying its own containment logic, so there is exactly one place where
+ * "which paths may Rata touch" is decided.
  *
  * Order matters: syntax, then realpath, then containment, then sensitivity.
  * Resolving before comparing is what makes `..` and symlinks harmless; checking
  * the name last means a denied name inside an allowed root is still refused.
  */
-function resolveWithinRoots(input, roots) {
+function resolveWithinRoots(input, roots, fsApi = fs) {
   if (typeof input !== 'string' || !input.trim()) {
     throw new FileAccessError('A file path is required.', 'invalid-path')
   }
@@ -144,7 +158,7 @@ function resolveWithinRoots(input, roots) {
 
   let resolved
   try {
-    resolved = fs.realpathSync.native(path.resolve(input))
+    resolved = realpathSync(path.resolve(input), fsApi)
   } catch {
     // Do not echo the OS error: it distinguishes "denied" from "missing" and
     // would turn this into a probe for paths outside the roots.
@@ -356,6 +370,7 @@ module.exports = {
   isWithin,
   buildMatcher,
   FileAccessError,
+  MAX_PATH_LENGTH,
   MAX_READ_BYTES,
   MAX_CONTENT_CHARS,
   MAX_RESULTS,
