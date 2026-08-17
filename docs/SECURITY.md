@@ -53,14 +53,16 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
 
 ### Local file writing
 
-- `file.save` is the only write in the `file.` domain. `file.delete` stays registered and disabled. `file.move`, `file.rename` and `folder.create` are not implemented here.
-- The roots list is unchanged: Documents, Downloads and Desktop. `resolveWithinRoots` is not widened. For a file that does not exist yet, the **parent directory** is resolved through that gate and a validated basename is appended.
+- Writes stay inside Documents, Downloads and Desktop. `resolveWithinRoots` is not widened. For a path that does not exist yet, the **parent directory** is resolved through that gate and a validated basename is appended.
 - Basename rules fail closed: no separator, no `..`, no NUL, no colon or drive letter, no reserved Windows device name (CON, PRN, AUX, NUL, COM1–9, LPT1–9, with or without extension), no leading or trailing dots or spaces.
-- Denied names still apply on write: Rata cannot create `.env`, `id_rsa`, `credentials` or `.npmrc` inside an allowed root. Executable and script extensions are refused case-insensitively.
-- Overwrite defaults to refuse. `overwrite: true` is required, and confirmation is then **always**, independent of `fileWriteConfirm`. New-file saves are `confirmation: 'configurable'` behind `fileWriteConfirm` (default on).
-- Writes are atomic (temp file in the same directory, then rename). Content is capped at 5MB, must be a string, and has NUL bytes stripped. The approval card names the resolved absolute path, the byte count, and whether the file is overwritten.
+- Denied names still apply on write: Rata cannot create or move-to `.env`, `id_rsa`, `credentials` or `.npmrc` inside an allowed root. Executable and script extensions are refused case-insensitively on save, move and rename destinations, and on folder names that have one. A denied-name *source* may be moved or renamed to a safe name; it cannot be moved onto another denied name. Denied directories (`.ssh`, `.git`, …) still refuse the source.
+- Overwrite defaults to refuse. `overwrite: true` is required, and confirmation is then **always**, independent of `fileWriteConfirm`. New-file saves, folder creates, moves and same-directory renames are `confirmation: 'configurable'` behind `fileWriteConfirm` (default on).
+- `file.save` writes are atomic (temp file in the same directory, then rename). Content is capped at 5MB, must be a string, and has NUL bytes stripped. The approval card names the resolved absolute path, the byte count, and whether the file is overwritten.
+- `folder.create` is non-recursive: the parent must exist, and an existing name is refused. No files are created inside the new folder.
+- `file.rename` cannot change directories; that is `file.move`. v1 moves and renames files only, not folders. Cross-volume rename fails closed (no copy-then-delete). The move/rename approval card names resolved absolute source and destination, and whether it overwrites.
+- `file.delete` stays registered and disabled.
 - `document.create`, `presentation.create` and `presentation.render` generate Markdown or self-contained HTML only — not `.docx` or PowerPoint. They do no I/O. Every interpolated HTML value is escaped; `javascript:` / `data:` URLs and `onerror=` do not survive.
-- See `docs/decisions/ADR-016-file-write-boundary.md`.
+- See `docs/decisions/ADR-016-file-write-boundary.md` and `docs/decisions/ADR-019-file-organize-writes.md`.
 
 ### Storage inventory
 

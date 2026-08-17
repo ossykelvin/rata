@@ -2,8 +2,9 @@
 
 Status: Proposed — requires Claude security review before acceptance
 
-Supersedes nothing. Completes the write half that ADR-010 deferred. Does not
-cover `file.move`, `file.rename` or `folder.create`.
+Supersedes nothing. Completes the write half that ADR-010 deferred. Organize
+verbs (`file.move`, `file.rename`, `folder.create`) are specified in
+`docs/decisions/ADR-019-file-organize-writes.md`.
 
 ## Context
 
@@ -80,7 +81,7 @@ HTML deck. This is not Word and not PowerPoint. There is no `docx` or
 Unescaped deck text is stored XSS.
 
 `file.delete` stays registered and disabled. `file.move`, `file.rename` and
-`folder.create` are out of scope.
+`folder.create` are specified in ADR-017.
 
 ## Consequences
 

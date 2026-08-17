@@ -89,8 +89,9 @@ so it cannot be used to point Explorer outside the roots.
 `task-planner`, `file-organizer`, `document-assistant` and
 `presentation-builder` move closer but still need calendar or write tools.
 
-Write verbs are specified in `docs/decisions/ADR-016-file-write-boundary.md`.
-This ADR remains the containment and sensitivity gate those writes reuse.
+Write verbs are specified in `docs/decisions/ADR-016-file-write-boundary.md`
+and `docs/decisions/ADR-019-file-organize-writes.md`. This ADR remains the
+containment and sensitivity gate those writes reuse.
 
 The user cannot ask Rata about a file outside three folders, and cannot read
 their own `.env` through Rata even deliberately. Both are intended. Widening

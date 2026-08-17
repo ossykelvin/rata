@@ -26,7 +26,9 @@ const TOOLS_DIR = path.join(__dirname, '..', 'electron', 'tools')
 // filesystem tools, and RATA-005 added the system status and keep-awake
 // tools. RATA-013 added document.create, presentation.create,
 // presentation.render and file.save so the document and presentation skills
-// can generate Markdown/HTML and save it. Updated deliberately: this list is
+// can generate Markdown/HTML and save it. RATA-014 added folder.create,
+// file.move and file.rename so File Organizer can create a folder and move
+// or rename files inside the same roots. Updated deliberately: this list is
 // the privileged tool surface, and it must only change when a tool is
 // consciously added.
 const EXPECTED_TOOL_IDS = [
@@ -34,7 +36,9 @@ const EXPECTED_TOOL_IDS = [
   'clipboard.write',
   'document.create',
   'file.delete',
+  'file.move',
   'file.readText',
+  'file.rename',
   'file.reveal',
   'file.save',
   'file.search',
@@ -43,6 +47,7 @@ const EXPECTED_TOOL_IDS = [
   'filesystem.diskUsage',
   'filesystem.hash',
   'filesystem.scan',
+  'folder.create',
   'presentation.create',
   'presentation.render',
   'system.info',

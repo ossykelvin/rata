@@ -2,8 +2,8 @@ const path = require('node:path')
 
 /**
  * The `file.` domain. RATA-006 added read-only access; RATA-013 adds
- * `file.save`. `file.delete` stays disabled. `file.move`, `file.rename` and
- * `folder.create` are a different ticket.
+ * `file.save`; RATA-014 adds `folder.create`, `file.move` and `file.rename`.
+ * `file.delete` stays disabled.
  *
  * The security core lives in electron/file-access.cjs — this module is the
  * contract layer: risk, confirmation, input validation and what the approval
@@ -62,7 +62,13 @@ function create({ fileAccess, revealItem } = {}) {
     searchFileContent: unavailable,
     resolvePath: unavailable,
     prepareSave: unavailable,
-    saveTextFile: unavailable
+    saveTextFile: unavailable,
+    prepareCreateFolder: unavailable,
+    createFolder: unavailable,
+    prepareMove: unavailable,
+    moveFile: unavailable,
+    prepareRename: unavailable,
+    renameFile: unavailable
   }
 
   return [
@@ -236,12 +242,135 @@ function create({ fileAccess, revealItem } = {}) {
             : `I saved ${saved.name} (${saved.byteLength} bytes).`
         }
       }
+    },
+    {
+      id: 'folder.create',
+      description:
+        'Create one folder inside Documents, Downloads or Desktop. The parent folder must already exist. Does not create files.',
+      risk: 'safe-write',
+      confirmation: 'configurable',
+      confirmationSetting: 'fileWriteConfirm',
+      validateInput: input => {
+        const value = requireObject(input, 'folder.create')
+        if (typeof value.path !== 'string' || !value.path.trim()) {
+          throw new TypeError('folder.create requires a folder path.')
+        }
+        if (value.path.length > 4096 || value.path.includes('\0')) {
+          throw new TypeError('folder.create received an invalid path.')
+        }
+        return access.prepareCreateFolder({ path: value.path })
+      },
+      describeInput: input => `Create folder ${String(input.path)}.`,
+      execute: async ({ path: target }) => {
+        const created = await access.createFolder({ path: target })
+        return {
+          ...created,
+          summary: `Created ${created.name}`,
+          message: `I created the folder ${created.name}.`
+        }
+      }
+    },
+    {
+      id: 'file.move',
+      description:
+        'Move one file inside Documents, Downloads or Desktop. Destination folders must already exist. Does not move folders.',
+      risk: 'safe-write',
+      confirmation: 'configurable',
+      confirmationSetting: 'fileWriteConfirm',
+      validateInput: input => {
+        const value = requireObject(input, 'file.move')
+        if (typeof value.source !== 'string' || !value.source.trim()) {
+          throw new TypeError('file.move requires a source path.')
+        }
+        if (typeof value.destination !== 'string' || !value.destination.trim()) {
+          throw new TypeError('file.move requires a destination path.')
+        }
+        if (value.source.length > 4096 || value.source.includes('\0') ||
+            value.destination.length > 4096 || value.destination.includes('\0')) {
+          throw new TypeError('file.move received an invalid path.')
+        }
+        return access.prepareMove({
+          source: value.source,
+          destination: value.destination,
+          overwrite: value.overwrite
+        })
+      },
+      describeInput: input => {
+        const source = String(input.source)
+        const destination = String(input.destination)
+        if (input.overwrite === true || input.exists === true) {
+          return `Move ${source} to ${destination}. This overwrites the existing file.`
+        }
+        return `Move ${source} to ${destination}.`
+      },
+      execute: async ({ source, destination, overwrite }) => {
+        const moved = await access.moveFile({ source, destination, overwrite })
+        return {
+          ...moved,
+          summary: moved.overwritten ? `Replaced ${moved.name}` : `Moved ${moved.name}`,
+          message: moved.overwritten
+            ? `I moved the file to ${moved.name}, replacing the file that was already there.`
+            : `I moved the file to ${moved.name}.`
+        }
+      }
+    },
+    {
+      id: 'file.rename',
+      description:
+        'Rename one file in the same folder inside Documents, Downloads or Desktop. Use file.move to change folders.',
+      risk: 'safe-write',
+      confirmation: 'configurable',
+      confirmationSetting: 'fileWriteConfirm',
+      validateInput: input => {
+        const value = requireObject(input, 'file.rename')
+        if (typeof value.path !== 'string' || !value.path.trim()) {
+          throw new TypeError('file.rename requires a file path.')
+        }
+        if (value.path.length > 4096 || value.path.includes('\0')) {
+          throw new TypeError('file.rename received an invalid path.')
+        }
+        return access.prepareRename({
+          path: value.path,
+          name: value.name,
+          destination: value.destination,
+          overwrite: value.overwrite
+        })
+      },
+      describeInput: input => {
+        const source = String(input.source)
+        const destination = String(input.destination)
+        if (input.overwrite === true || input.exists === true) {
+          return `Rename ${source} to ${destination}. This overwrites the existing file.`
+        }
+        return `Rename ${source} to ${destination}.`
+      },
+      execute: async ({ source, name, overwrite }) => {
+        const renamed = await access.renameFile({ path: source, name, overwrite })
+        return {
+          ...renamed,
+          summary: renamed.overwritten ? `Replaced ${renamed.name}` : `Renamed ${renamed.name}`,
+          message: renamed.overwritten
+            ? `I renamed the file to ${renamed.name}, replacing the file that was already there.`
+            : `I renamed the file to ${renamed.name}.`
+        }
+      }
     }
   ]
 }
 
 module.exports = {
   id: 'file',
-  toolIds: ['file.delete', 'file.search', 'file.stat', 'file.readText', 'file.searchContent', 'file.reveal', 'file.save'],
+  toolIds: [
+    'file.delete',
+    'file.search',
+    'file.stat',
+    'file.readText',
+    'file.searchContent',
+    'file.reveal',
+    'file.save',
+    'folder.create',
+    'file.move',
+    'file.rename'
+  ],
   create
 }

@@ -266,6 +266,9 @@ test('every file tool declares risk and confirmation metadata', async () => {
     'file.searchContent': ['read', 'configurable'],
     'file.reveal': ['safe-write', 'never'],
     'file.save': ['safe-write', 'configurable'],
+    'folder.create': ['safe-write', 'configurable'],
+    'file.move': ['safe-write', 'configurable'],
+    'file.rename': ['safe-write', 'configurable'],
     'file.delete': ['destructive', 'always']
   }
   for (const [id, [risk, confirmation]] of Object.entries(expected)) {
@@ -276,18 +279,33 @@ test('every file tool declares risk and confirmation metadata', async () => {
   }
   assert.equal(registry.describe('file.readText').confirmationSetting, 'fileReadConfirm')
   assert.equal(registry.describe('file.save').confirmationSetting, 'fileWriteConfirm')
+  assert.equal(registry.describe('folder.create').confirmationSetting, 'fileWriteConfirm')
+  assert.equal(registry.describe('file.move').confirmationSetting, 'fileWriteConfirm')
+  assert.equal(registry.describe('file.rename').confirmationSetting, 'fileWriteConfirm')
 })
 
-test('no file tool can write, move or delete', async () => {
+test('file.delete stays disabled; organize writes are registered', async () => {
   const { access, root } = await sandbox()
   const registry = toolRegistry(access)
   await assert.rejects(() => registry.execute('file.delete', { path: path.join(root, 'notes.txt') }), /disabled in MVP/)
   assert.equal(fs.existsSync(path.join(root, 'notes.txt')), true, 'a file was removed')
-  // The module must not grow move/rename/delete without a fresh review.
-  // file.save is the RATA-013 write verb; file.delete stays disabled.
+  assert.equal(registry.describe('folder.create').confirmationSetting, 'fileWriteConfirm')
+  assert.equal(registry.describe('file.move').confirmationSetting, 'fileWriteConfirm')
+  assert.equal(registry.describe('file.rename').confirmationSetting, 'fileWriteConfirm')
   assert.deepEqual(
     [...fileModule.toolIds].sort(),
-    ['file.delete', 'file.readText', 'file.reveal', 'file.save', 'file.search', 'file.searchContent', 'file.stat']
+    [
+      'file.delete',
+      'file.move',
+      'file.readText',
+      'file.rename',
+      'file.reveal',
+      'file.save',
+      'file.search',
+      'file.searchContent',
+      'file.stat',
+      'folder.create'
+    ]
   )
 })
 
