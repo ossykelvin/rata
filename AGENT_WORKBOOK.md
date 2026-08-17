@@ -68,7 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
-| Cursor | RATA-013 document create + file.save | `cursor/RATA-013-document-and-save` | IN PROGRESS |
+| Cursor | RATA-013 document create + file.save | `cursor/RATA-013-document-and-save` | DONE, PR #79 |
 | Cursor | RATA-005 system status tools | `cursor/RATA-005-system-status` | DONE, PR #67 |
 | Cursor | RATA-SKILL-007 filesystem scan tools | `cursor/SKILL-007-filesystem-scan-tools` | DONE, PR #75 |
 | Cursor | FIX overlay Hide and compact drag | `cursor/FIX-overlay-hide-compact` | IN PROGRESS |
@@ -542,12 +542,16 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-17 — RATA-013 — Document create and file.save
 
-**Status:** IN PROGRESS
+**Status:** DONE, PR #79
 **Branch:** `cursor/RATA-013-document-and-save`
 
-**Scope:** Register `document.create`, `presentation.create`, `presentation.render`, and `file.save`. v1 is Markdown/HTML only (not .docx/.pptx). `file.save` is this ticket; `file.move` / `file.rename` / `folder.create` stay with Codex. Do not widen `resolveWithinRoots` or the Documents/Downloads/Desktop roots.
+**Done:** Registered `document.create`, `presentation.create`, `presentation.render`, and `file.save`. v1 is Markdown/HTML, not .docx/.pptx. `file.save` splits parent + basename and runs the parent through existing `resolveWithinRoots` (not widened). Denied names and executable extensions are refused on write. Overwrite defaults to refuse and always confirms when requested, even if `fileWriteConfirm` is off. Writes are atomic. Generation tools do no I/O and HTML-escape every interpolated value. Skill files were not edited.
 
-**Files I intend to change:** `electron/file-access.cjs`, `electron/tools/file.cjs`, `electron/tools/document.cjs` (new), `packages/contracts/ipc-validation.cjs`, `electron/store.cjs`, `packages/agent-core/policy-engine.cjs`, `src/types/settings.ts`, `src/views/control/PermissionsPage.tsx`, `tests/file-write.test.cjs` (new), `tests/document-tools.test.cjs` (new), `tests/tool-composition.test.cjs`, `tests/file-access-security.test.cjs`, `docs/decisions/ADR-016-file-write-boundary.md` (new), `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/VALIDATION.md`. Skill files will not be edited.
+**Files touched:** `electron/file-access.cjs`, `electron/tools/file.cjs`, `electron/tools/document.cjs`, `packages/agent-core/policy-engine.cjs`, `packages/contracts/ipc-validation.cjs`, `electron/store.cjs`, `src/types/settings.ts`, `src/views/control/PermissionsPage.tsx`, `tests/file-write.test.cjs`, `tests/document-tools.test.cjs`, `tests/tool-composition.test.cjs`, `tests/file-access-security.test.cjs`, `tests/settings-validation.test.cjs`, `docs/decisions/ADR-016-file-write-boundary.md`, `docs/decisions/ADR-010-readonly-local-file-access.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/VALIDATION.md`.
+
+**Validation:** `npm run verify` exit 0, **454/454**. Registry proof with a composed tool registry: `document-assistant ready available=["file.readText","document.create","file.save"] missing=[]`; `presentation-builder ready available=["presentation.create","presentation.render","file.save"] missing=[]`.
+
+**Coordination:** Claude review requested on PR #79 for the `electron/` file-write boundary. `file.move` / `file.rename` / `folder.create` left for Codex. Did not touch `packages/agent-core/mock-agent.cjs`, communicator intent enum, or ADR-009.
 
 ---
 
