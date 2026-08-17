@@ -17,4 +17,10 @@ export type RataSettings = {
   fileReadConfirm: boolean
   /** A weather lookup sends the named location to a third party. Confirmed by default. */
   weatherConfirm: boolean
+  /**
+   * Opt-in. When on, unmatched requests may be interpreted by a provider and
+   * conversational replies may be rewritten. Off by default because both
+   * stages send text off the machine.
+   */
+  communicatorEnabled: boolean
 }

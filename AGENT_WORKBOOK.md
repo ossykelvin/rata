@@ -538,6 +538,31 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Cursor
 
+### 2026-08-17 — RATA-011 — Session conversation continuity
+
+**Status:** DONE, PR #73
+**Branch:** `cursor/RATA-011-session-continuity`
+
+**Done:** In-memory session history so follow-up `ask()` turns can refer to earlier ones. History is data, not authority. Safer v1: history is passed only into `ask()`, not the communicator intent stage. No pronoun resolution for tools. Cap 16 turns / 8,000 characters; drop oldest. Quit clears. Overlay and Control Center share one MockAgent. Claude review requested on `packages/agent-core/`.
+
+**Files touched:** `packages/agent-core/conversation-memory.cjs`, `packages/agent-core/mock-agent.cjs`, `tests/conversation-memory.test.cjs`, `docs/decisions/ADR-013-session-continuity.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/ARCHITECTURE.md`, `docs/VALIDATION.md`, `docs/TASKS.md`.
+
+**Validation:** `npm run verify` 349/349.
+
+**Coordination:** Stacked on #70. Retarget to `main` after Communicator merges.
+
+---
+
+### 2026-08-17 — RATA-008 — Communicator (understanding + voice)
+
+**Status:** DONE, PR #70
+**Branch:** `cursor/RATA-008-communicator`
+
+**Done:** Always-on communicator, not a routed skill (`selectable: false`). Understanding sits last after deterministic routes, the skill router and ADR-009; it maps a fixed intent enum onto existing tools. Voice rewrites conversational replies through one `presentReply` seam. `communicatorEnabled` defaults to false. Claude review requested on `packages/agent-core/`.
+
+**Files touched:** `packages/agent-core/communicator.cjs`, `packages/agent-core/mock-agent.cjs`, `packages/skills/{router,loader,contracts,index}.cjs`, `skills/communicator/`, `packages/contracts/ipc-validation.cjs`, `electron/store.cjs`, `src/types/settings.ts`, `src/views/control/PermissionsPage.tsx`, `tests/communicator.test.cjs`, `tests/skill-fragments.test.cjs`, `docs/decisions/ADR-012-communicator.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`.
+
+**Validation:** `npm run verify` 337/337 after merging current `origin/main`.
 ### 2026-08-17 — RATA-SKILL-007 — Filesystem Scan tools
 
 **Status:** DONE, PR #75

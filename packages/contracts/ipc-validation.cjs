@@ -33,7 +33,10 @@ const settingValidators = Object.assign(Object.create(null), {
   fileReadConfirm: value => typeof value === 'boolean',
   // A weather lookup sends the named location to a third party. Confirmed by
   // default, like every other outbound request. RATA-007.
-  weatherConfirm: value => typeof value === 'boolean'
+  weatherConfirm: value => typeof value === 'boolean',
+  // Communicator sends the user's request and Rata's reply to a provider.
+  // Opt-in; a fresh install performs no extra egress. ADR-012.
+  communicatorEnabled: value => typeof value === 'boolean'
 })
 
 /** The complete set of writable settings. Use this rather than `key in obj`. */

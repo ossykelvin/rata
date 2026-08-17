@@ -39,6 +39,10 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
         <input type="checkbox" checked={settings.weatherConfirm} onChange={e => setSetting('weatherConfirm', e.target.checked)} />
       </label>
       <label className="setting-row">
+        <div><strong>Communicator</strong><span>Off by default. When on, unmatched requests and conversational replies are sent to your AI provider so Rata can interpret phrasing the built-in routes miss and speak more naturally. Your original request is never rewritten. Approval cards, refusals and tool result values stay exactly as produced.</span></div>
+        <input type="checkbox" checked={settings.communicatorEnabled} onChange={e => setSetting('communicatorEnabled', e.target.checked)} />
+      </label>
+      <label className="setting-row">
         <div><strong>Microphone</strong><span>Allow speech-to-text from the overlay and Chat. Main process denies media permission when this is off.</span></div>
         <input type="checkbox" checked={settings.microphoneEnabled} onChange={e => setSetting('microphoneEnabled', e.target.checked)} />
       </label>
