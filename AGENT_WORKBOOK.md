@@ -68,6 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
+| Cursor | RATA-014 file organize writes | `cursor/RATA-014-file-organize` | IN PROGRESS |
 | Cursor | RATA-013 document create + file.save | `cursor/RATA-013-document-and-save` | DONE, PR #79 |
 | Cursor | RATA-005 system status tools | `cursor/RATA-005-system-status` | DONE, PR #67 |
 | Cursor | RATA-SKILL-007 filesystem scan tools | `cursor/SKILL-007-filesystem-scan-tools` | DONE, PR #75 |
@@ -539,6 +540,17 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 ---
 
 ## Cursor
+
+### 2026-08-17 — RATA-014 — File organize writes (folder.create, file.move, file.rename)
+
+**Status:** IN PROGRESS
+**Branch:** `cursor/RATA-014-file-organize` (stacked on `cursor/RATA-013-document-and-save` / PR #79)
+
+**Scope:** Register `folder.create`, `file.move` and `file.rename` so File Organizer can become available. Same containment as `file.save` / ADR-010 / ADR-016: Documents, Downloads, Desktop only; parent+basename for destinations that do not exist yet; overwrite always confirms; executable destinations refused. v1 is files-only for move/rename, folders-only for folder.create, same-volume rename, non-recursive mkdir. `file.delete` stays disabled. Skill files and planner/communicator enums are not edited.
+
+**Files to touch:** `electron/file-access.cjs`, `electron/tools/file.cjs`, `tests/file-organize.test.cjs`, `tests/file-access-security.test.cjs`, `tests/tool-composition.test.cjs`, `docs/decisions/ADR-017-file-organize-writes.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/VALIDATION.md`, `docs/TASKS.md`.
+
+---
 
 ### 2026-08-17 — RATA-013 — Document create and file.save
 
