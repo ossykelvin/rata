@@ -150,6 +150,29 @@ class MockAgent {
       return this.help()
     }
 
+    // Local file routes sit BEFORE the web-search route on purpose.
+    //
+    // "search my files for invoice" matches the web pattern below, which would
+    // send the phrase to Serper — the exact opposite of what was asked, and a
+    // local request leaving the machine. The file tools shipped in RATA-006
+    // with no deterministic route at all, so ordinary phrasing fell through to
+    // the skill router instead of running the tool that exists. FIX-010.
+    const fileContentMatch = text.match(
+      /^(?:search|grep|look)\s+(?:in\s+|inside\s+|through\s+)?(?:my\s+|the\s+)?(?:files?|documents?|notes?)\s+for\s+(.+)$/i
+    )
+    if (fileContentMatch && this.registry.has?.('file.searchContent')) {
+      const query = fileContentMatch[1].replace(/[?.!]+$/, '').trim()
+      if (query) return this.runTool('file.searchContent', { query }, `Search your files for “${query}”`)
+    }
+
+    const fileNameMatch = text.match(
+      /^(?:find|list|show|locate)\s+(?:me\s+)?(?:all\s+)?(?:the\s+|my\s+)?files?\s+(?:called|named|matching|with\s+the\s+name)\s+(.+)$/i
+    )
+    if (fileNameMatch && this.registry.has?.('file.search')) {
+      const query = fileNameMatch[1].replace(/[?.!]+$/, '').trim()
+      if (query) return this.runTool('file.search', { query }, `Find files named “${query}”`)
+    }
+
     // Explicit search intent goes to the registered tool, so the query passes
     // the policy engine before it leaves the machine.
     const searchMatch = text.match(/^(?:search(?:\s+the\s+web)?(?:\s+for)?|google|look\s+up|find\s+online)\s+(.+)$/i)
@@ -433,8 +456,18 @@ class MockAgent {
       }
     }
 
+    // A skill with all its tools registered and a live provider answers through
+    // its own prompt, the same way critical-thinking does. This used to return
+    // "the mock agent has no live provider" unconditionally, without ever
+    // checking, so a fully configured install was told its provider was
+    // missing while Gemini was answering other requests in the same session.
+    // FIX-010.
+    if (this.provider) {
+      return this.ask(text, { skillId })
+    }
+
     return {
-      message: `${routed.skill?.name || skillId} matched this request, but the mock agent has no live provider to continue. The skill prompt stays unloaded until a provider adapter is added.`,
+      message: `${routed.skill?.name || skillId} matched this request, but no AI provider is connected. Set one in Control Center, or try a built-in command such as “open notepad”.`,
       state: 'idle'
     }
   }
