@@ -28,7 +28,13 @@ const ROOT = path.join(__dirname, '..')
 // files are exactly what a mock would paper over.
 
 async function sandbox() {
-  const base = await fsp.mkdtemp(path.join(os.tmpdir(), 'rata-organize-'))
+  // Realpath'd on purpose, like the other file sandboxes. move, rename and
+  // folder.create all return the *resolved* path, because resolving before
+  // comparing is what makes containment work. A CI runner reaches its temp
+  // directory through an 8.3 short name (C:\Users\RUNNER~1\...), which
+  // realpath expands, so an unresolved base makes every path assertion fail
+  // there while passing on a developer machine.
+  const base = await fsp.realpath(await fsp.mkdtemp(path.join(os.tmpdir(), 'rata-organize-')))
   const root = path.join(base, 'root')
   const otherRoot = path.join(base, 'other-root')
   const outside = path.join(base, 'outside')
