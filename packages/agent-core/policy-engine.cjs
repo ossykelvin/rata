@@ -4,6 +4,11 @@ class PolicyEngine {
     if (tool.risk === 'destructive') return { decision: 'deny', reason: 'Destructive actions are blocked in MVP.' }
     if (tool.risk === 'external-write') return { decision: 'confirm' }
     if (tool.confirmation === 'always') return { decision: 'confirm' }
+    // Overwrite replaces bytes already on disk. Always confirm, even when the
+    // tool's configurable setting is off. See ADR-016.
+    if (input && typeof input === 'object' && input.overwrite === true) {
+      return { decision: 'confirm' }
+    }
     if (tool.confirmation === 'configurable' && settings?.[tool.confirmationSetting] !== false) {
       return { decision: 'confirm' }
     }

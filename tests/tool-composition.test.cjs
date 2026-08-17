@@ -24,20 +24,27 @@ const TOOLS_DIR = path.join(__dirname, '..', 'electron', 'tools')
 // WEB-001 added web.fetch. RATA-006 added the five read-only file tools.
 // RATA-007 added weather.current. RATA-SKILL-007 added the three read-only
 // filesystem tools, and RATA-005 added the system status and keep-awake
-// tools. Updated deliberately: this list is the privileged tool surface, and
-// it must only change when a tool is consciously added.
+// tools. RATA-013 added document.create, presentation.create,
+// presentation.render and file.save so the document and presentation skills
+// can generate Markdown/HTML and save it. Updated deliberately: this list is
+// the privileged tool surface, and it must only change when a tool is
+// consciously added.
 const EXPECTED_TOOL_IDS = [
   'calculator.evaluate',
   'clipboard.write',
+  'document.create',
   'file.delete',
   'file.readText',
   'file.reveal',
+  'file.save',
   'file.search',
   'file.searchContent',
   'file.stat',
   'filesystem.diskUsage',
   'filesystem.hash',
   'filesystem.scan',
+  'presentation.create',
+  'presentation.render',
   'system.info',
   'system.keepAwake.start',
   'system.keepAwake.status',

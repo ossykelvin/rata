@@ -17,6 +17,7 @@ const defaults = {
     webSearchConfirm: true,
     webFetchConfirm: true,
     fileReadConfirm: true,
+    fileWriteConfirm: true,
     weatherConfirm: true,
     // Opt-in. Both communicator stages send text to a provider. ADR-012.
     communicatorEnabled: false
@@ -34,6 +35,7 @@ const safeDiskFallbackSettings = Object.freeze({
   webSearchConfirm: true,
   webFetchConfirm: true,
   fileReadConfirm: true,
+  fileWriteConfirm: true,
   weatherConfirm: true,
   communicatorEnabled: false
 })

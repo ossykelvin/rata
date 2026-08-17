@@ -51,6 +51,17 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
 - Reading content is confirmed by default (`fileReadConfirm`) because the text leaves the machine for a provider; searching by *name* is automatic.
 - See `docs/decisions/ADR-010-readonly-local-file-access.md`.
 
+### Local file writing
+
+- `file.save` is the only write in the `file.` domain. `file.delete` stays registered and disabled. `file.move`, `file.rename` and `folder.create` are not implemented here.
+- The roots list is unchanged: Documents, Downloads and Desktop. `resolveWithinRoots` is not widened. For a file that does not exist yet, the **parent directory** is resolved through that gate and a validated basename is appended.
+- Basename rules fail closed: no separator, no `..`, no NUL, no colon or drive letter, no reserved Windows device name (CON, PRN, AUX, NUL, COM1–9, LPT1–9, with or without extension), no leading or trailing dots or spaces.
+- Denied names still apply on write: Rata cannot create `.env`, `id_rsa`, `credentials` or `.npmrc` inside an allowed root. Executable and script extensions are refused case-insensitively.
+- Overwrite defaults to refuse. `overwrite: true` is required, and confirmation is then **always**, independent of `fileWriteConfirm`. New-file saves are `confirmation: 'configurable'` behind `fileWriteConfirm` (default on).
+- Writes are atomic (temp file in the same directory, then rename). Content is capped at 5MB, must be a string, and has NUL bytes stripped. The approval card names the resolved absolute path, the byte count, and whether the file is overwritten.
+- `document.create`, `presentation.create` and `presentation.render` generate Markdown or self-contained HTML only — not `.docx` or PowerPoint. They do no I/O. Every interpolated HTML value is escaped; `javascript:` / `data:` URLs and `onerror=` do not survive.
+- See `docs/decisions/ADR-016-file-write-boundary.md`.
+
 ### Storage inventory
 
 - Read-only. `filesystem.scan`, `filesystem.diskUsage` and `filesystem.hash` never write, move, rename, delete, quarantine or compress. There is no bulk-hash and no write verb in the domain at all.

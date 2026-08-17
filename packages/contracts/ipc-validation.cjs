@@ -31,6 +31,9 @@ const settingValidators = Object.assign(Object.create(null), {
   // egress decision like web.fetch rather than a plain local read. Confirmed
   // by default. RATA-006.
   fileReadConfirm: value => typeof value === 'boolean',
+  // Local file writes are confirmed by default. Overwrite is always confirmed
+  // in the policy engine, independent of this setting. RATA-013 / ADR-016.
+  fileWriteConfirm: value => typeof value === 'boolean',
   // A weather lookup sends the named location to a third party. Confirmed by
   // default, like every other outbound request. RATA-007.
   weatherConfirm: value => typeof value === 'boolean',

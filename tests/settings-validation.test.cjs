@@ -134,6 +134,7 @@ test('corrupt JSON restores fail-closed security settings and records recovery',
   assert.equal(settings.clipboardConfirm, true)
   assert.equal(settings.webSearchConfirm, true)
   assert.equal(settings.webFetchConfirm, true)
+  assert.equal(settings.fileWriteConfirm, true)
   assert.match(store.getActivity()[0].detail, /unreadable/)
 })
 
@@ -143,7 +144,8 @@ test('invalid microphone and confirmation settings cannot loosen policy from dis
       microphoneEnabled: 'true',
       clipboardConfirm: 'false',
       webSearchConfirm: 0,
-      webFetchConfirm: null
+      webFetchConfirm: null,
+      fileWriteConfirm: 'false'
     }
   })
   const settings = store.getSettings()
@@ -151,5 +153,6 @@ test('invalid microphone and confirmation settings cannot loosen policy from dis
   assert.equal(settings.clipboardConfirm, true)
   assert.equal(settings.webSearchConfirm, true)
   assert.equal(settings.webFetchConfirm, true)
-  assert.equal(store.getActivity().length, 4)
+  assert.equal(settings.fileWriteConfirm, true)
+  assert.equal(store.getActivity().length, 5)
 })

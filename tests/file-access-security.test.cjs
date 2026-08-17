@@ -34,7 +34,12 @@ const fileModule = require('../electron/tools/file.cjs')
  * and <tmp>/outside/secret.txt, with a symlink root/escape -> outside.
  */
 async function sandbox() {
-  const base = await fsp.mkdtemp(path.join(os.tmpdir(), 'rata-files-'))
+  // Realpath'd on purpose. saveTextFile returns the resolved path,
+  // because resolving before comparing is what makes containment work.
+  // A CI runner's temp directory is reached through an 8.3 short name
+  // (C:\Users\RUNNER~1\...), so an un-resolved base makes every path
+  // assertion fail there and pass on a developer machine.
+  const base = await fsp.realpath(await fsp.mkdtemp(path.join(os.tmpdir(), 'rata-files-')))
   const root = path.join(base, 'root')
   const outside = path.join(base, 'outside')
   await fsp.mkdir(path.join(root, 'sub'), { recursive: true })
@@ -260,6 +265,7 @@ test('every file tool declares risk and confirmation metadata', async () => {
     'file.readText': ['read', 'configurable'],
     'file.searchContent': ['read', 'configurable'],
     'file.reveal': ['safe-write', 'never'],
+    'file.save': ['safe-write', 'configurable'],
     'file.delete': ['destructive', 'always']
   }
   for (const [id, [risk, confirmation]] of Object.entries(expected)) {
@@ -269,6 +275,7 @@ test('every file tool declares risk and confirmation metadata', async () => {
     assert.equal(meta.confirmation, confirmation, `${id} confirmation`)
   }
   assert.equal(registry.describe('file.readText').confirmationSetting, 'fileReadConfirm')
+  assert.equal(registry.describe('file.save').confirmationSetting, 'fileWriteConfirm')
 })
 
 test('no file tool can write, move or delete', async () => {
@@ -276,10 +283,11 @@ test('no file tool can write, move or delete', async () => {
   const registry = toolRegistry(access)
   await assert.rejects(() => registry.execute('file.delete', { path: path.join(root, 'notes.txt') }), /disabled in MVP/)
   assert.equal(fs.existsSync(path.join(root, 'notes.txt')), true, 'a file was removed')
-  // The module must not grow write verbs without a fresh review.
+  // The module must not grow move/rename/delete without a fresh review.
+  // file.save is the RATA-013 write verb; file.delete stays disabled.
   assert.deepEqual(
     [...fileModule.toolIds].sort(),
-    ['file.delete', 'file.readText', 'file.reveal', 'file.search', 'file.searchContent', 'file.stat']
+    ['file.delete', 'file.readText', 'file.reveal', 'file.save', 'file.search', 'file.searchContent', 'file.stat']
   )
 })
 

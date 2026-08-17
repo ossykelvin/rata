@@ -15,6 +15,8 @@ export type RataSettings = {
   webFetchConfirm: boolean
   /** File contents flow on to a provider, so reading one is an egress decision. Confirmed by default. */
   fileReadConfirm: boolean
+  /** Saving a local file is a disk write. Confirmed by default. Overwrite always confirms. */
+  fileWriteConfirm: boolean
   /** A weather lookup sends the named location to a third party. Confirmed by default. */
   weatherConfirm: boolean
   /**

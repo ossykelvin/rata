@@ -10,10 +10,11 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
     ['Write to clipboard', 'safe-write', settings.clipboardConfirm ? 'Ask every time' : 'Automatic'],
     ['Find files by name', 'read', 'Automatic'],
     ['Read file contents', 'read', settings.fileReadConfirm ? 'Ask every time' : 'Automatic'],
+    ['Save a local file', 'safe-write', settings.fileWriteConfirm ? 'Ask every time' : 'Automatic'],
     ['Look up weather', 'read', settings.weatherConfirm ? 'Ask every time' : 'Automatic'],
     ['Send email / invite attendees', 'external-write', 'Always ask'],
     ['Delete files / cancel meetings', 'destructive', 'Always ask']
-  ], [settings.clipboardConfirm, settings.fileReadConfirm, settings.weatherConfirm])
+  ], [settings.clipboardConfirm, settings.fileReadConfirm, settings.fileWriteConfirm, settings.weatherConfirm])
 
   return (
     <section className="panel page-panel">
@@ -33,6 +34,10 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
       <label className="setting-row">
         <div><strong>Confirm reading file contents</strong><span>Rata searches names freely inside Documents, Downloads and Desktop, but file text may be sent to your AI provider.</span></div>
         <input type="checkbox" checked={settings.fileReadConfirm} onChange={e => setSetting('fileReadConfirm', e.target.checked)} />
+      </label>
+      <label className="setting-row">
+        <div><strong>Confirm saving files</strong><span>Rata may write Markdown or HTML into Documents, Downloads and Desktop. Overwriting an existing file always asks, even when this is off.</span></div>
+        <input type="checkbox" checked={settings.fileWriteConfirm} onChange={e => setSetting('fileWriteConfirm', e.target.checked)} />
       </label>
       <label className="setting-row">
         <div><strong>Confirm weather lookups</strong><span>The place you ask about is sent to WeatherAPI.com.</span></div>
