@@ -49,6 +49,27 @@ function requireLimit(value) {
   return value
 }
 
+/** Longest content preview shown on the approval card. */
+const PREVIEW_LENGTH = 240
+
+/**
+ * A short, single-line look at what is about to be written.
+ *
+ * Clamped and stripped of control characters for the same reason
+ * clipboard.write truncates its card: an approval card must stay readable and
+ * must never render raw tool input (REVIEW-001 M5). Newlines collapse to
+ * spaces so a long document cannot push the path off the card.
+ */
+function previewContent(content) {
+  if (typeof content !== 'string' || !content.trim()) return ''
+  const flattened = content
+    // eslint-disable-next-line no-control-regex -- stripping control bytes is the point
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return flattened.length > PREVIEW_LENGTH ? `${flattened.slice(0, PREVIEW_LENGTH)}…` : flattened
+}
+
 function unavailable() {
   throw new Error('Local file access is not configured.')
 }
@@ -227,10 +248,17 @@ function create({ fileAccess, revealItem } = {}) {
       describeInput: input => {
         const target = String(input.path)
         const bytes = Number.isInteger(input.byteLength) ? input.byteLength : 0
-        if (input.overwrite === true || input.exists === true) {
-          return `Save ${bytes} byte(s) to ${target}. This overwrites the existing file.`
-        }
-        return `Save ${bytes} byte(s) to ${target}.`
+        const preview = previewContent(input.content)
+        const overwriting = input.overwrite === true || input.exists === true
+        // The preview is the point of this card. A path and a byte count tell
+        // the user where and how much, never what, and "save that as memo.md"
+        // saves whatever Rata said last — which is not always what the user
+        // had in mind. A card without a preview is a byte count to approve.
+        // FIX-012.
+        const head = preview
+          ? `Save this to ${target} (${bytes} bytes):\n\n“${preview}”`
+          : `Save ${bytes} byte(s) to ${target}.`
+        return overwriting ? `${head}\n\nThis overwrites the existing file.` : head
       },
       execute: async ({ path: target, content, overwrite }) => {
         const saved = await access.saveTextFile({ path: target, content, overwrite })
