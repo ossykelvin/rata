@@ -25,7 +25,7 @@ src/views (React UI)
 | `src/` | Overlay, Control Center, character presentation | Node, Electron, OS, tools |
 | `src/hooks/useVoice.ts` | Push-to-talk UI and transcript display | Audio capture, Node, OS speech |
 | `electron/voice-win.cjs` | Windows speech recognition adapter | Generic shell, model-generated commands |
-| `electron/file-access.cjs` | Root containment, denied names, bounded read-only file access. `resolveWithinRoots()` is the single path gate for every filesystem domain | Any write, move, rename or delete |
+| `electron/file-access.cjs` | Root containment, denied names, bounded reads, and `file.save` writes. `resolveWithinRoots()` is the single path gate; writes resolve the parent through it and validate the basename separately (ADR-016) | Move, rename, delete, writing outside the roots, creating executables or denied names |
 | `electron/filesystem-scan.cjs` | Bounded metadata inventory, volume totals and file digests over the same roots (ADR-014) | Its own path validator, file contents in any return value, deriving its own roots |
 | `electron/weather-client.cjs` | Bound WeatherAPI capability, response mapping, credential-safe errors | The key in any log, error or return value |
 | `electron/handy-stt.cjs` | Local transcription: fixed executable path and arguments, temp-file lifecycle | Renderer-supplied paths or flags, transcripts in the audit log |
@@ -43,6 +43,7 @@ src/views (React UI)
 | `electron/tools/index.cjs` | Discovers and composes declared tool-domain modules | User/model-supplied modules, undeclared tool IDs |
 | `electron/tools/*.cjs` | Per-domain allow-listed native tool adapters | Unrestricted shell, policy bypass |
 | `electron/tools/filesystem.cjs` | Sole owner of `filesystem.scan`, `filesystem.diskUsage`, `filesystem.hash` | Any write verb, returning file contents |
+| `electron/tools/document.cjs` | Sole owner of `document.create`, `presentation.create`, `presentation.render`. Pure Markdown/HTML transforms, no I/O (ADR-016) | Disk writes, .docx/.pptx, unescaped HTML, a document library |
 | `electron/mvp-tools.cjs` | Compatibility export for existing consumers | New tool registration logic |
 | `electron/store.cjs` | Non-secret JSON preferences + audit metadata | Tokens / secrets |
 | `packages/contracts/` | IPC channel names and payload validation | Native I/O |
@@ -70,6 +71,8 @@ src/views (React UI)
 - `web.search` — Serper-backed result discovery; confirmation configurable
 - `web.fetch` — keyless, bounded public-page retrieval; confirmation configurable
 - `file.search` / `file.stat` / `file.readText` / `file.searchContent` / `file.reveal` — read-only, root-confined local access
+- `file.save` — write Markdown/HTML text inside the same roots; overwrite always confirms; executables and denied names refused
+- `document.create` / `presentation.create` / `presentation.render` — Markdown or self-contained HTML generation; no I/O; not .docx/.pptx
 - `filesystem.scan` / `filesystem.diskUsage` / `filesystem.hash` — read-only storage inventory over the same roots; metadata and digests only, never file contents; confirmation configurable
 - `weather.current` — WeatherAPI current conditions and air quality; confirmation configurable
 
