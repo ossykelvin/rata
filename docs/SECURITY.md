@@ -100,6 +100,18 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
 - History cannot bypass `PolicyEngine`, confirmation, or `ToolRegistry.validate()`. A matching deterministic route still wins.
 - Caps drop the oldest turns. The transcript is not persisted; quitting clears it.
 
+### Screen capture and vision
+
+- `screen.capture` and `vision.analyze` are `read` tools with confirmation `always`. Confirmation is not configurable. The skill declares `respect_screen_capture_policy_and_exclusions`; requiring a fresh approval exceeds that rather than weakening it.
+- `screenCaptureEnabled` defaults **false**. When it is off, both tools refuse in `validateInput` before anything is captured. When it is on, every capture and every analysis still asks. Invalid stored values fall back off.
+- Capture uses Electron `desktopCapturer` for the primary display only. Window sources are not enumerated, so titles cannot leak. Rata's own windows are excluded by media-source id and `setContentProtection` where the platform allows.
+- The PNG is held in a single in-memory slot in the main process (TTL five minutes) and is never written to disk. The agent receives a handle, dimensions and a byte count — not bytes, base64 or a data URL. Images larger than 1920px wide (after downscale) or 4MB are refused rather than truncated.
+- The `vision.analyze` approval card renders the actual image. Bytes are snapshotted at approval time; a mutated store fails closed rather than sending a different image. The preview data URL is sent only to the trusted renderer and is not audited or persisted.
+- `vision.analyze` accepts only a capture handle and a question. Unknown, expired, consumed or mismatched handles fail closed. The tool never silently recaptures.
+- Vision output carries `trust: 'untrusted-external'` and reaches a later provider only through `fenceUntrusted`. Text in a screenshot is data, not instructions.
+- Audit records that a capture happened, plus dimensions and byte count. It never records image bytes.
+- See `docs/decisions/ADR-020-screen-capture-and-vision.md`.
+
 ### Weather lookup
 
 - The key is read from `WEATHER_API_KEY` in the main process and captured in the client closure. The tool layer receives a bound `getCurrentWeather(query)` capability, never the credential, and `describeConfig()` reports presence as a boolean only.
@@ -127,7 +139,8 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
 - Validate settings, messages and approval identifiers in the main process before use. Preload and TypeScript types are developer ergonomics, not a trust boundary.
 - Settings loaded from disk pass through the same runtime validators as IPC
   writes. Unknown and invalid values are rejected and audited; invalid
-  microphone access falls back off, while confirmation settings fall back on.
+  microphone access and screen capture fall back off, while confirmation
+  settings fall back on.
 
 ## Tool contracts
 

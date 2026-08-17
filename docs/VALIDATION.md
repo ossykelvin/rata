@@ -65,5 +65,9 @@ Then verify:
 32. Ask Rata to move a file into that folder. After Allow, the file is gone from the old path and present at the new one. Ask it to rename a file in the same folder; a rename that points at a different folder is refused with an instruction to use move.
 33. Ask Rata to move or rename a file onto `payload.exe` (or `.ps1` / `.bat` / `.js`) inside Documents. It must refuse. Directory contents are unchanged. The same refusal applies to `.env`, `id_rsa` and `CON.txt`.
 34. Move or rename onto a path that already exists. Without an explicit overwrite it must refuse and leave both files. With overwrite requested, an approval card appears even if **Confirm saving files** is off, names the resolved absolute source and destination, and says it overwrites. Cancel leaves both files; Allow replaces the destination.
+35. With **Screen capture** off (the default), ask “What is on my screen?”. Rata refuses. No screenshot is taken. Control Center → Skills still shows **Screenshot Inspector** as ready because the tools are registered; the master switch is a separate gate.
+36. Turn **Screen capture** on, set a vision-capable provider, and ask again. The first card asks to capture the primary display. After Allow, a second card shows the **actual screenshot**, not a title. Allow sends that image; Cancel does not. The analysed reply is what the provider returned.
+37. Open Control Center → Activity after a capture. The event names the capture and the pixel size / byte count. It must not contain a data URL, base64, or raw image bytes. The screenshot is not on disk.
+38. Turn **Screen capture** off again. Further “what is on my screen?” requests refuse before capture. There is no “remember this choice” control that skips the approval card.
 
 The Control Center window, Windows taskbar, and system tray use `public/24_dialog_avatar_reply.png`. Packaged Windows builds take the same file as `win.icon`.
