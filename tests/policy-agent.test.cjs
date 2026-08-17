@@ -44,9 +44,11 @@ test('clipboard approval can be rejected without executing', async () => {
 test('destructive tools stay blocked even when they declare confirmation', async () => {
   const { agent, calls } = fixture()
   const result = await agent.runTool('file.delete', { path: 'example.txt' }, 'Delete file')
-  assert.equal(result.state, 'error')
+  // 'blocked', not 'error'. A policy refusal is Rata working correctly, and it
+  // used to present with the same face as a crash. RATA-010.
+  assert.equal(result.state, 'blocked')
   assert.match(result.message, /blocked/i)
-  assert.equal(calls.length, 0)
+  assert.equal(calls.length, 0, 'a denied tool must not execute')
 })
 
 test('audit events do not include the full user request', async () => {
