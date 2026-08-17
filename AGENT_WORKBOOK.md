@@ -502,6 +502,17 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Cursor
 
+### 2026-08-17 — RATA-011 — Session conversation continuity
+
+**Status:** IN PROGRESS
+**Branch:** `cursor/RATA-011-session-continuity`
+
+**Scope:** In-memory session history so follow-up turns can refer to earlier ones. History is data, not authority. Safer v1: history is passed only into `ask()`, not the communicator intent stage. No pronoun resolution for tools. Cap turns/characters; drop oldest. Quit clears. Overlay and Control Center share one MockAgent.
+
+**Files currently touching:** `packages/agent-core/conversation-memory.cjs`, `packages/agent-core/mock-agent.cjs`, `tests/conversation-memory.test.cjs`, `docs/decisions/ADR-013-session-continuity.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/ARCHITECTURE.md`, `docs/VALIDATION.md`, `docs/TASKS.md`.
+
+---
+
 ### 2026-08-17 — RATA-008 — Communicator (understanding + voice)
 
 **Status:** DONE, PR #70
