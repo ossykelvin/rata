@@ -68,7 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
-| Cursor | RATA-SKILL-007 filesystem scan tools | `cursor/SKILL-007-filesystem-scan-tools` | DONE, PR #74 |
+| Cursor | RATA-SKILL-007 filesystem scan tools | `cursor/SKILL-007-filesystem-scan-tools` | DONE, PR #75 |
 | Cursor | FIX overlay Hide and compact drag | `cursor/FIX-overlay-hide-compact` | IN PROGRESS |
 | Cursor | FIX overlay min/close | `cursor/FIX-overlay-min-close` | DONE, PR #60 |
 | Cursor | FIX voice mid-transcript disable | `cursor/FIX-voice-mid-transcript-disable` | DONE, PR #65 |
@@ -505,7 +505,7 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-17 — RATA-SKILL-007 — Filesystem Scan tools
 
-**Status:** DONE, PR #74
+**Status:** DONE, PR #75
 **Branch:** `cursor/SKILL-007-filesystem-scan-tools`
 
 **Done:** Registered `filesystem.scan`, `filesystem.diskUsage` and `filesystem.hash`, the three ids `skills/filesystem-scan/skill.json` has always declared. The skill now reports `ready` with an empty `missingTools`; ready skills go 9 → 10 of 21. The skill files were not edited — the ids match them character for character. ADR-014.
