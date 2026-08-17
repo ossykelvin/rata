@@ -68,6 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
+| Cursor | RATA-013 document create + file.save | `cursor/RATA-013-document-and-save` | IN PROGRESS |
 | Cursor | RATA-005 system status tools | `cursor/RATA-005-system-status` | DONE, PR #67 |
 | Cursor | RATA-SKILL-007 filesystem scan tools | `cursor/SKILL-007-filesystem-scan-tools` | DONE, PR #75 |
 | Cursor | FIX overlay Hide and compact drag | `cursor/FIX-overlay-hide-compact` | IN PROGRESS |
@@ -538,6 +539,17 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 ---
 
 ## Cursor
+
+### 2026-08-17 — RATA-013 — Document create and file.save
+
+**Status:** IN PROGRESS
+**Branch:** `cursor/RATA-013-document-and-save`
+
+**Scope:** Register `document.create`, `presentation.create`, `presentation.render`, and `file.save`. v1 is Markdown/HTML only (not .docx/.pptx). `file.save` is this ticket; `file.move` / `file.rename` / `folder.create` stay with Codex. Do not widen `resolveWithinRoots` or the Documents/Downloads/Desktop roots.
+
+**Files I intend to change:** `electron/file-access.cjs`, `electron/tools/file.cjs`, `electron/tools/document.cjs` (new), `packages/contracts/ipc-validation.cjs`, `electron/store.cjs`, `packages/agent-core/policy-engine.cjs`, `src/types/settings.ts`, `src/views/control/PermissionsPage.tsx`, `tests/file-write.test.cjs` (new), `tests/document-tools.test.cjs` (new), `tests/tool-composition.test.cjs`, `tests/file-access-security.test.cjs`, `docs/decisions/ADR-016-file-write-boundary.md` (new), `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/VALIDATION.md`. Skill files will not be edited.
+
+---
 
 ### 2026-08-16 — RATA-005 — System status and keep-awake tools
 
