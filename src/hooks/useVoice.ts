@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { createAudioRecorder } from './useAudioRecorder'
+import { createAudioRecorder, type AudioRecorder } from './useAudioRecorder'
 
 export type VoicePermissionState = 'off' | 'unavailable' | 'prompt' | 'granted' | 'denied'
 
@@ -25,7 +25,11 @@ export function useVoice(options: {
   // RATA-009: record locally and transcribe with Handy when it is installed.
   // The Windows recognizer stays as the fallback, so a machine without Handy
   // behaves exactly as before.
-  const recorderRef = useRef(createAudioRecorder())
+  // Lazily constructed: `useRef(createAudioRecorder())` would build and discard
+  // a recorder on every render, since the argument is evaluated each time even
+  // though only the first value is kept.
+  const recorderRef = useRef<AudioRecorder | null>(null)
+  if (!recorderRef.current) recorderRef.current = createAudioRecorder()
   const localRef = useRef(false)
   const [listening, setListening] = useState(false)
   const [permission, setPermission] = useState<VoicePermissionState>(
@@ -61,7 +65,7 @@ export function useVoice(options: {
     const recorder = recorderRef.current
     return () => {
       // Releases the microphone tracks as well as the recognizer.
-      recorder.cancel()
+      recorder?.cancel()
       void window.rata.stopVoiceListening()
     }
   }, [])
@@ -80,7 +84,7 @@ export function useVoice(options: {
       // process when the microphone setting is off, so this path is gated by
       // the same boundary as the recognizer.
       try {
-        await recorderRef.current.start()
+        await recorderRef.current!.start()
         localRef.current = true
         return
       } catch {
@@ -100,7 +104,7 @@ export function useVoice(options: {
       if (localRef.current) {
         localRef.current = false
         setListen(false)
-        const audio = await recorderRef.current.stop()
+        const audio = await recorderRef.current!.stop()
         if (!audio) {
           onMessage?.("I didn't catch that. Click the microphone and speak, then click it again.")
           return
@@ -133,7 +137,7 @@ export function useVoice(options: {
       if (!listeningRef.current) return
       if (localRef.current) {
         localRef.current = false
-        recorderRef.current.cancel()
+        recorderRef.current!.cancel()
       } else {
         await window.rata.stopVoiceListening()
       }

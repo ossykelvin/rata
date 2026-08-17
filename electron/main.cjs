@@ -23,7 +23,7 @@ const { createWindowsVoice } = require('./voice-win.cjs')
 const { IPC } = require('../packages/contracts/ipc-channels.cjs')
 const { createSkillRegistry, createSkillRouter, createSkillLoader } = require('../packages/skills/index.cjs')
 const { createFileAccess } = require('./file-access.cjs')
-const { createHandyTranscriber } = require('./handy-stt.cjs')
+const { createHandyTranscriber, candidateExecutables } = require('./handy-stt.cjs')
 
 let overlayWindow
 let controlWindow
@@ -292,7 +292,11 @@ if (!hasSingleInstanceLock) {
       // builds; later ones are ~2s.
       void transcriber.warmUp()
     } else {
-      logActivity('Speech to text', 'Handy is not installed; using Windows speech recognition.', 'info')
+      // Name the locations that were checked. "Not installed" with no detail
+      // is the same unfalsifiable message that made the earlier voice failures
+      // so hard to diagnose.
+      const looked = candidateExecutables().join(' | ')
+      logActivity('Speech to text', `Handy was not found; using Windows speech recognition. Looked in: ${looked}`, 'info')
     }
 
     voice = createWindowsVoice({
