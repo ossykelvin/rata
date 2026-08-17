@@ -571,6 +571,19 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Cursor
 
+### 2026-08-17 — RATA-015 — Screen capture and vision
+
+**Status:** IN PROGRESS
+**Branch:** `cursor/RATA-015-screen-vision` (from origin/main)
+
+**Scope:** Register `screen.capture` and `vision.analyze` so Screenshot Inspector can run. User must see the exact image on the approval card before pixels leave the machine. Confirmation is always, not configurable. Master switch `screenCaptureEnabled` defaults off. ADR-020.
+
+**Files planned:** `electron/screen-capture.cjs`, `electron/tools/screen.cjs`, `packages/agent-core/providers/provider-contract.cjs`, `packages/agent-core/providers/gemini-provider.cjs`, `packages/agent-core/providers/openrouter-provider.cjs`, `packages/agent-core/providers/mock-provider.cjs`, `packages/agent-core/providers/index.cjs`, `packages/agent-core/mock-agent.cjs`, `packages/agent-core/tool-registry.cjs`, `electron/main.cjs`, `electron/store.cjs`, `packages/contracts/ipc-validation.cjs`, `src/types/settings.ts`, `src/types/agent.ts`, `src/views/control/PermissionsPage.tsx`, `src/components/ApprovalActions.tsx`, `src/styles/overlay.css`, `src/styles/control.css`, `tests/screen-capture.test.cjs`, `tests/vision-analyze.test.cjs`, `tests/tool-composition.test.cjs`, `tests/providers.test.cjs`, `tests/skills-registry.test.cjs`, `tests/settings-validation.test.cjs`, `docs/decisions/ADR-020-screen-capture-and-vision.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/VALIDATION.md`.
+
+**Not touching:** `skills/screenshot-inspector/` (ids already match), ADR-009 planner enum, communicator intent enum, Handy-main, dist, release, node_modules, `.env.local`.
+
+---
+
 ### 2026-08-17 — RATA-014 — File organize writes (folder.create, file.move, file.rename)
 
 **Status:** DONE, PR #80
