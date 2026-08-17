@@ -23,6 +23,7 @@ const { createWindowsVoice } = require('./voice-win.cjs')
 const { IPC } = require('../packages/contracts/ipc-channels.cjs')
 const { createSkillRegistry, createSkillRouter, createSkillLoader } = require('../packages/skills/index.cjs')
 const { createFileAccess } = require('./file-access.cjs')
+const { createHandyTranscriber } = require('./handy-stt.cjs')
 
 let overlayWindow
 let controlWindow
@@ -34,6 +35,7 @@ let security
 let runtimeConfig
 let providers
 let voice
+let transcriber
 
 const isDev = !app.isPackaged
 const APP_ID = 'uk.koptechnology.rata'
@@ -281,6 +283,18 @@ if (!hasSingleInstanceLock) {
     // REVIEW-001 M4 / Codex b1d9c52: renderer `microphoneEnabled` is not a
     // boundary. Deny media unless the setting is on; deny every other permission.
     applySessionPermissionHandler(session.defaultSession, () => store.getSettings())
+    // Local speech to text. Handy is optional: when it is not installed the
+    // Windows recognizer remains the fallback. RATA-009.
+    transcriber = createHandyTranscriber({ logActivity })
+    if (transcriber.available) {
+      // Pre-load the model so the first press is not the slow one. The first
+      // transcription after installing costs ~20s while the GPU shader cache
+      // builds; later ones are ~2s.
+      void transcriber.warmUp()
+    } else {
+      logActivity('Speech to text', 'Handy is not installed; using Windows speech recognition.', 'info')
+    }
+
     voice = createWindowsVoice({
       sendTranscript: payload => {
         for (const win of BrowserWindow.getAllWindows()) win.webContents.send(IPC.voiceTranscript, payload)
@@ -345,7 +359,8 @@ if (!hasSingleInstanceLock) {
         broadcastSettings,
         logActivity,
         Notification,
-        getVoice: () => voice
+        getVoice: () => voice,
+        getTranscriber: () => transcriber
       }
     })
     createOverlay()

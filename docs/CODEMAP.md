@@ -25,6 +25,8 @@ src/views (React UI)
 | `electron/voice-win.cjs` | Windows speech recognition adapter | Generic shell, model-generated commands |
 | `electron/file-access.cjs` | Root containment, denied names, bounded read-only file access | Any write, move, rename or delete |
 | `electron/weather-client.cjs` | Bound WeatherAPI capability, response mapping, credential-safe errors | The key in any log, error or return value |
+| `electron/handy-stt.cjs` | Local transcription: fixed executable path and arguments, temp-file lifecycle | Renderer-supplied paths or flags, transcripts in the audit log |
+| `src/hooks/useAudioRecorder.ts` | Microphone capture, 16 kHz mono WAV encoding | Sending audio anywhere except the declared IPC channel |
 | `src/types/` | Renderer domain types and barrel | Privileged contracts or Electron APIs |
 | `src/styles/` | `base.css`, `overlay.css`, `control.css`, plus per-component sheets | Privileged styling or Node imports |
 | `src/views/control/` | Self-registered Control Center pages (`controlPage` + `import.meta.glob`) | Editing `ControlCenter.tsx` or `model.ts` to add a page |

@@ -100,6 +100,24 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ## Claude
 
+### 2026-08-17 — RATA-009 — Local speech to text via Handy
+
+**Status:** DONE, awaiting review. Branch `claude/RATA-009-handy-stt`.
+
+Four fixes (FIX-005 to FIX-008) made the Windows recognizer *work*; none could make it *accurate*. It returned "eat one C" for "open notepad", and real speech (0.003-0.167 confidence) overlapped ambient noise (0.085-0.323), so the engine could not distinguish a phrase from a quiet room. That is a limit of the recognizer, not of the code around it.
+
+Handy, MIT and fully offline, returned "Open notepad and check the weather in Preston." exactly, on the same audio. Installed 0.9.5 per-user (the MSI is `ALLUSERS=1` and needs elevation I cannot grant; the NSIS installer from the same signed release is per-user) plus Whisper Small English, 257 MB.
+
+**Measured, after correcting my own error.** I first reported 20.4s per transcription and called it too slow for push-to-talk. That was a single cold run including one-time Vulkan shader compilation. Steady state on this hardware: NVIDIA 248ms, Intel Iris Xe 268ms, CPU 2172ms, all transcribing perfectly. A fresh process per press is ~2.1s wall, of which ~350ms is inference, ~450ms model load and ~1.3s Handy's own application start.
+
+**Design.** Headless batch mode only (`--transcribe-file ... --json`); no UI, shortcut or clipboard paste. Handy is optional and the Windows recognizer stays as the fallback. The executable path and argument list are fixed in the main process, `execFile` not a shell, and the only variable is a temp path we created. Audio is validated at the IPC edge *and* again before spawning, because the renderer is not a boundary. The temp WAV is deleted in a `finally` on every path, the transcript is never audited, and failure messages are fixed strings since Handy's stderr carries model paths. The model is warmed at startup so the first press is not the 20s one.
+
+**One architectural reversal, deliberate.** Recording now happens in the renderer via `getUserMedia`, which breaks Cursor's pin that the renderer never touches audio. Electron has no dependency-free main-process capture, which is why the PowerShell recognizer existed at all. Capture is gated by the same `decideRendererPermission()` boundary, and a compromised renderer could call `getUserMedia` regardless of what our hook contains, so the permission handler is the protection and the absence of the call never was. I rewrote that test to pin the narrower property that still matters: audio leaves the hook only through the declared channel, the microphone is released, and nothing in the recorder can reach the network.
+
+**Validation.** `npm run verify` 333/333. 18 new tests, none of which run handy.exe. Verified live through the real module: "Open notepad and check the weather in Preston." in 408ms of inference.
+
+**Note for the user:** 371 files of Handy source (79,223 lines) are committed to this repo under `Handy-main/`, swept in by a `git add -A` of mine in `f2dda9c`. It should be gitignored and untracked; purging it from history needs a rewrite and is their call.
+
 ### 2026-08-17 — FIX-006 — My confidence gate swallowed real speech
 
 **Status:** DONE, awaiting review. Branch `claude/FIX-006-voice-confidence-visibility`.

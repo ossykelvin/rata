@@ -69,6 +69,12 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
 - Preload exposes named functions only.
 - Never expose raw `ipcRenderer`, `fs`, `child_process`, shell execution or generic file APIs.
 - Microphone capture is gated by `isMicrophoneEnabled()` in `electron/security.cjs`. Chromium `media`/`microphone` permissions and the Windows speech child process both consult it. Turning the setting off stops an in-flight recognizer. A leftover partial transcript already buffered from that session is still delivered to the renderer; it is not dropped.
+- Local speech to text (RATA-009) records in the renderer through `getUserMedia`, so it passes the same `decideRendererPermission()` gate. The gate is re-checked in the IPC handler at transcription time, because a renderer could hold a recording made before the setting was turned off.
+- The transcriber executable path is resolved in the main process from known install locations, never supplied by the renderer or a model. Arguments are a fixed list whose only variable is a temp path the main process created, and `execFile` is used rather than a shell.
+- Audio is validated twice, at the IPC edge and again before a process is spawned: the renderer is not a boundary. Oversized or non-WAV payloads are refused before anything touches disk.
+- The recording is the user's voice: it is written to a randomly named temp file and removed in a `finally` on every path. The transcript is never written to an audit event, and failure messages are fixed strings because the transcriber's stderr carries model and machine detail.
+- Transcription is fully offline and adds no network egress, so unlike file reads and weather it needs no confirmation setting.
+- See `docs/decisions/ADR-013-local-speech-to-text.md`.
 - Validate settings, messages and approval identifiers in the main process before use. Preload and TypeScript types are developer ergonomics, not a trust boundary.
 - Settings loaded from disk pass through the same runtime validators as IPC
   writes. Unknown and invalid values are rejected and audited; invalid
