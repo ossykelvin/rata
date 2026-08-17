@@ -100,7 +100,12 @@ test('disabling the microphone mid-session stops the recognizer', async () => {
   assert.deepEqual(stopped, ['stop'])
 })
 
-test('start during stop waits for the old child and does not spawn a second powershell', async () => {
+test('repeated start and stop never spawns a second powershell', async () => {
+  // Was: "start during stop waits for the old child and does not spawn a
+  // second powershell". That race guarded a design where every press spawned
+  // its own process. The recognizer is now one warm process that acquires and
+  // releases the microphone on command, so a second spawn is structurally
+  // impossible rather than merely avoided. FIX-008.
   const spawned = []
   const voice = createWindowsVoice({
     spawnProcess: () => {
@@ -114,14 +119,23 @@ test('start during stop waits for the old child and does not spawn a second powe
   await voice.start()
   assert.equal(spawned.length, 1)
   voice.stop()
-  const restart = voice.start()
-  assert.equal(spawned.length, 1, 'second start must wait for the old child to exit')
-  spawned[0].emit('exit', 0)
-  await restart
-  assert.equal(spawned.length, 2)
+  await voice.start()
+  voice.stop()
+  await voice.start()
+  assert.equal(spawned.length, 1, 'a press spawned another powershell.exe')
+
+  // The microphone is still released between presses: STOP calls
+  // SetInputToNull() in the script, so warm does not mean an open mic.
+  assert.deepEqual(
+    spawned[0].stdinWrites,
+    ['LISTEN\n', 'STOP\n', 'LISTEN\n', 'STOP\n', 'LISTEN\n']
+  )
 })
 
-test('an old child exit does not clear a newer child reference', async () => {
+test('a replacement recognizer is not clobbered by the old one exiting', async () => {
+  // The warm process only respawns after it has died, so the stale-callback
+  // hazard is narrower than before but still real: the old child's exit event
+  // can arrive after a replacement has been created.
   const spawned = []
   const voice = createWindowsVoice({
     spawnProcess: () => {
@@ -129,19 +143,21 @@ test('an old child exit does not clear a newer child reference', async () => {
       spawned.push(child)
       return child
     },
-    sendTranscript: () => {}
+    sendTranscript: () => {},
+    logActivity: () => {}
   })
 
   await voice.start()
   const first = spawned[0]
-  voice.stop()
-  const restart = voice.start()
-  first.emit('exit', 0)
-  await restart
+  first.emit('exit', 1)          // died on its own
+  await voice.start()            // respawns
   const second = spawned[1]
-  first.emit('exit', 0)
+  assert.equal(spawned.length, 2)
+
+  first.emit('exit', 1)          // late duplicate from the dead child
   voice.stop()
-  assert.deepEqual(second.stdinWrites, ['\n'])
+  // The replacement is still the live child and still receives commands.
+  assert.deepEqual(second.stdinWrites, ['LISTEN\n', 'STOP\n'])
 })
 
 test('voice channels are declared on the shared contract', () => {

@@ -33,6 +33,7 @@ let skillRuntime
 let security
 let runtimeConfig
 let providers
+let voice
 
 const isDev = !app.isPackaged
 const APP_ID = 'uk.koptechnology.rata'
@@ -280,7 +281,7 @@ if (!hasSingleInstanceLock) {
     // REVIEW-001 M4 / Codex b1d9c52: renderer `microphoneEnabled` is not a
     // boundary. Deny media unless the setting is on; deny every other permission.
     applySessionPermissionHandler(session.defaultSession, () => store.getSettings())
-    const voice = createWindowsVoice({
+    voice = createWindowsVoice({
       sendTranscript: payload => {
         for (const win of BrowserWindow.getAllWindows()) win.webContents.send(IPC.voiceTranscript, payload)
       },
@@ -378,7 +379,12 @@ if (!hasSingleInstanceLock) {
     })
   })
 
-  app.on('before-quit', () => { app.isQuitting = true })
+  app.on('before-quit', () => {
+    app.isQuitting = true
+    // The recognizer is a long-lived warm process now, so it has to be told
+    // to exit or a powershell.exe is left behind after Rata quits.
+    voice?.dispose?.()
+  })
   app.on('window-all-closed', event => {
     event?.preventDefault?.()
   })
