@@ -1,12 +1,13 @@
 const path = require('node:path')
 
 /**
- * The `file.` domain. RATA-006 adds read-only access; `file.delete` stays
- * disabled.
+ * The `file.` domain. RATA-006 added read-only access; RATA-013 adds
+ * `file.save`. `file.delete` stays disabled. `file.move`, `file.rename` and
+ * `folder.create` are a different ticket.
  *
- * Every tool here is read-only by construction. The security core lives in
- * electron/file-access.cjs — this module is the contract layer: risk,
- * confirmation, input validation and what the approval card says.
+ * The security core lives in electron/file-access.cjs — this module is the
+ * contract layer: risk, confirmation, input validation and what the approval
+ * card says.
  *
  * `fileAccess` is optional in the same way `webSearch` is. A machine with no
  * readable roots configured is a legitimate state, and throwing during
@@ -59,7 +60,9 @@ function create({ fileAccess, revealItem } = {}) {
     statFile: unavailable,
     readTextFile: unavailable,
     searchFileContent: unavailable,
-    resolvePath: unavailable
+    resolvePath: unavailable,
+    prepareSave: unavailable,
+    saveTextFile: unavailable
   }
 
   return [
@@ -193,12 +196,52 @@ function create({ fileAccess, revealItem } = {}) {
           message: `I opened Explorer at ${path.basename(resolved)}.`
         }
       }
+    },
+    {
+      id: 'file.save',
+      description:
+        'Write a text file inside Documents, Downloads or Desktop. v1 saves Markdown or HTML text, not .docx or PowerPoint.',
+      risk: 'safe-write',
+      confirmation: 'configurable',
+      confirmationSetting: 'fileWriteConfirm',
+      validateInput: input => {
+        const value = requireObject(input, 'file.save')
+        if (typeof value.path !== 'string' || !value.path.trim()) {
+          throw new TypeError('file.save requires a file path.')
+        }
+        if (value.path.length > 4096 || value.path.includes('\0')) {
+          throw new TypeError('file.save received an invalid path.')
+        }
+        return access.prepareSave({
+          path: value.path,
+          content: value.content,
+          overwrite: value.overwrite
+        })
+      },
+      describeInput: input => {
+        const target = String(input.path)
+        const bytes = Number.isInteger(input.byteLength) ? input.byteLength : 0
+        if (input.overwrite === true || input.exists === true) {
+          return `Save ${bytes} byte(s) to ${target}. This overwrites the existing file.`
+        }
+        return `Save ${bytes} byte(s) to ${target}.`
+      },
+      execute: async ({ path: target, content, overwrite }) => {
+        const saved = await access.saveTextFile({ path: target, content, overwrite })
+        return {
+          ...saved,
+          summary: saved.overwritten ? `Overwrote ${saved.name}` : `Saved ${saved.name}`,
+          message: saved.overwritten
+            ? `I replaced ${saved.name} (${saved.byteLength} bytes).`
+            : `I saved ${saved.name} (${saved.byteLength} bytes).`
+        }
+      }
     }
   ]
 }
 
 module.exports = {
   id: 'file',
-  toolIds: ['file.delete', 'file.search', 'file.stat', 'file.readText', 'file.searchContent', 'file.reveal'],
+  toolIds: ['file.delete', 'file.search', 'file.stat', 'file.readText', 'file.searchContent', 'file.reveal', 'file.save'],
   create
 }

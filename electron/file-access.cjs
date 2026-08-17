@@ -3,14 +3,15 @@
 const fs = require('node:fs')
 const fsp = require('node:fs/promises')
 const path = require('node:path')
+const crypto = require('node:crypto')
 
 /**
- * Read-only local file access for RATA-006.
+ * Local file access for RATA-006 (reads) and RATA-013 (file.save).
  *
  * This module is to the file tools what public-web-client.cjs is to web.fetch:
- * the whole security value is in what it refuses. Nothing here writes, moves,
- * renames or deletes, and no caller can reach a path outside the configured
- * roots.
+ * the whole security value is in what it refuses. No caller can reach a path
+ * outside the configured roots. Move, rename, folder.create and delete are
+ * not implemented here.
  *
  * Two boundaries matter and are enforced separately:
  *
@@ -35,6 +36,20 @@ const MAX_ENTRIES_SCANNED = 20000
 const MAX_DEPTH = 8
 const MAX_QUERY_LENGTH = 200
 const MAX_MATCHES_PER_FILE = 5
+const MAX_WRITE_BYTES = 5 * 1024 * 1024
+
+/**
+ * Extensions that must never be written, matched case-insensitively on the
+ * final suffix. Creating an executable or script is not a document save.
+ */
+const DENIED_WRITE_EXTENSIONS = Object.freeze(new Set([
+  '.exe', '.dll', '.com', '.scr', '.bat', '.cmd', '.ps1', '.psm1',
+  '.vbs', '.vbe', '.js', '.jse', '.wsf', '.wsh', '.msi', '.msp',
+  '.reg', '.lnk', '.cpl', '.hta', '.jar', '.sys', '.drv', '.inf', '.chm'
+]))
+
+/** Windows device names, with or without an extension. */
+const RESERVED_DEVICE_PATTERN = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i
 
 /**
  * Files that are refused even inside an allowed root. Matched on the basename,
@@ -178,6 +193,143 @@ function resolveWithinRoots(input, roots, fsApi = fs) {
     throw new FileAccessError('That folder is not readable for safety reasons.', 'denied-directory')
   }
   return resolved
+}
+
+/**
+ * Split a write path without using `path.basename`, which on Windows strips a
+ * drive letter from `C:notes.txt` and would turn a colon-bearing name into a
+ * plausible file. Containment of the parent still goes through
+ * `resolveWithinRoots`; this only names the two halves.
+ */
+function splitParentAndBasename(input) {
+  if (typeof input !== 'string' || !input.trim()) {
+    throw new FileAccessError('A file path is required.', 'invalid-path')
+  }
+  if (input.length > MAX_PATH_LENGTH) {
+    throw new FileAccessError('That path is too long.', 'invalid-path')
+  }
+  if (input.includes('\0')) {
+    throw new FileAccessError('That path is not valid.', 'invalid-path')
+  }
+  // Do not trim the whole string: Windows trailing spaces in the basename
+  // must still be visible so we can refuse them rather than writing a
+  // different name than the one we checked.
+  const lastSep = Math.max(input.lastIndexOf('/'), input.lastIndexOf('\\'))
+  const parent = lastSep === -1 ? '' : input.slice(0, lastSep)
+  const basename = lastSep === -1 ? input : input.slice(lastSep + 1)
+  if (parent.split(/[\\/]/).some(segment => segment === '.' || segment === '..') || basename === '.' || basename === '..') {
+    throw new FileAccessError('That path is not valid.', 'invalid-path')
+  }
+  return { parent, basename }
+}
+
+function isReservedDeviceName(name) {
+  return RESERVED_DEVICE_PATTERN.test(name)
+}
+
+function isDeniedWriteExtension(name) {
+  return DENIED_WRITE_EXTENSIONS.has(path.extname(name).toLowerCase())
+}
+
+/**
+ * Basename rules for a file that does not exist yet. Separators, `..`, NUL,
+ * colons (ADS / drive letters), reserved device names, and leading/trailing
+ * dots or spaces are refused here so Windows cannot silently rewrite the name
+ * after we have checked containment on the parent.
+ */
+function assertWritableBasename(name) {
+  if (typeof name !== 'string' || !name) {
+    throw new FileAccessError('A file name is required.', 'invalid-name')
+  }
+  if (name !== name.trim() || name.startsWith('.') || name.endsWith('.')) {
+    throw new FileAccessError('That file name is not valid.', 'invalid-name')
+  }
+  if (/[\\/:\0]/.test(name) || name.includes('..')) {
+    throw new FileAccessError('That file name is not valid.', 'invalid-name')
+  }
+  if (/^[a-zA-Z]:/.test(name)) {
+    throw new FileAccessError('That file name is not valid.', 'invalid-name')
+  }
+  if (isReservedDeviceName(name)) {
+    throw new FileAccessError('That file name is reserved by Windows.', 'reserved-name')
+  }
+  if (isDeniedName(name)) {
+    throw new FileAccessError('That file type is not writable for safety reasons.', 'denied-name')
+  }
+  if (isDeniedWriteExtension(name)) {
+    throw new FileAccessError('That file type cannot be created.', 'denied-extension')
+  }
+}
+
+/**
+ * Containment for a write: resolve the *parent directory* through the existing
+ * gate, then append a validated basename. The target itself may not exist, so
+ * it cannot be handed to `resolveWithinRoots` (realpath would fail closed as
+ * not-found). Widening that gate to skip realpath would weaken every reader.
+ */
+function resolveWritableTarget(input, roots, fsApi = fs) {
+  const { parent, basename } = splitParentAndBasename(input)
+  assertWritableBasename(basename)
+  if (!parent) {
+    throw new FileAccessError('A file path is required.', 'invalid-path')
+  }
+  const resolvedParent = resolveWithinRoots(parent, roots, fsApi)
+  let parentInfo
+  try {
+    parentInfo = fsApi.statSync(resolvedParent)
+  } catch {
+    throw new FileAccessError('That file is not available.', 'not-found')
+  }
+  if (typeof parentInfo.isDirectory === 'function' ? !parentInfo.isDirectory() : false) {
+    throw new FileAccessError('The destination folder is not a folder.', 'not-a-file')
+  }
+  const target = path.join(resolvedParent, basename)
+  if (!roots.some(root => isWithin(root, target))) {
+    throw new FileAccessError('That path is outside the folders Rata may read.', 'outside-roots')
+  }
+  return { parent: resolvedParent, basename, target }
+}
+
+function normalizeWriteContent(content) {
+  if (typeof content !== 'string') {
+    throw new FileAccessError('File content must be a string.', 'not-a-string')
+  }
+  const cleaned = content.replace(/\0/g, '')
+  const byteLength = Buffer.byteLength(cleaned, 'utf8')
+  if (byteLength > MAX_WRITE_BYTES) {
+    throw new FileAccessError(`Content is larger than the ${MAX_WRITE_BYTES}-byte write limit.`, 'too-large')
+  }
+  return { content: cleaned, byteLength }
+}
+
+async function atomicWriteFile(target, content) {
+  const directory = path.dirname(target)
+  const tmp = path.join(
+    directory,
+    `.rata-write-${process.pid}-${crypto.randomBytes(8).toString('hex')}.tmp`
+  )
+  let tmpExists = false
+  try {
+    await fsp.writeFile(tmp, content, { encoding: 'utf8', flag: 'wx' })
+    tmpExists = true
+    try {
+      await fsp.rename(tmp, target)
+      tmpExists = false
+    } catch (error) {
+      // POSIX rename replaces; Windows rename refuses an existing dest.
+      const replaceable = process.platform === 'win32' && error && ['EPERM', 'EEXIST', 'EACCES'].includes(error.code)
+      if (!replaceable) throw error
+      try { await fsp.unlink(target) } catch (unlinkError) {
+        if (unlinkError.code !== 'ENOENT') throw unlinkError
+      }
+      await fsp.rename(tmp, target)
+      tmpExists = false
+    }
+  } finally {
+    if (tmpExists) {
+      try { await fsp.unlink(tmp) } catch { /* tmp already gone or never created */ }
+    }
+  }
 }
 
 function buildMatcher(query) {
@@ -351,12 +503,66 @@ function createFileAccess({ roots }) {
     return { matches, truncated: matches.length >= cap || exhausted, trust: 'untrusted-external' }
   }
 
+  function inspectWriteTarget(target) {
+    try {
+      return fs.lstatSync(target)
+    } catch (error) {
+      if (error && error.code === 'ENOENT') return null
+      throw new FileAccessError('That file is not available.', 'not-found')
+    }
+  }
+
+  function prepareSave({ path: input, content, overwrite = false }) {
+    if (overwrite !== undefined && overwrite !== true && overwrite !== false) {
+      throw new FileAccessError('overwrite must be true or false.', 'invalid-overwrite')
+    }
+    const replace = overwrite === true
+    const { content: cleaned, byteLength } = normalizeWriteContent(content)
+    const { target, basename } = resolveWritableTarget(input, allowedRoots)
+    const existing = inspectWriteTarget(target)
+    if (existing) {
+      if (existing.isSymbolicLink()) {
+        throw new FileAccessError('That path cannot be overwritten.', 'is-symlink')
+      }
+      if (existing.isDirectory()) {
+        throw new FileAccessError('That path is a folder, not a file.', 'not-a-file')
+      }
+      if (!replace) {
+        throw new FileAccessError('That file already exists. Pass overwrite: true to replace it.', 'exists')
+      }
+      // The file exists, so the read gate can realpath it and catch a
+      // junction/symlink that lstat missed on an unusual volume.
+      resolveWithinRoots(target, allowedRoots)
+    }
+    return {
+      path: target,
+      name: basename,
+      content: cleaned,
+      byteLength,
+      overwrite: replace,
+      exists: Boolean(existing)
+    }
+  }
+
+  async function saveTextFile(input) {
+    const prepared = prepareSave(input)
+    await atomicWriteFile(prepared.path, prepared.content)
+    return {
+      path: prepared.path,
+      name: prepared.name,
+      byteLength: prepared.byteLength,
+      overwritten: prepared.exists
+    }
+  }
+
   return {
     roots: allowedRoots,
     searchFiles,
     statFile,
     readTextFile,
     searchFileContent,
+    prepareSave,
+    saveTextFile,
     resolvePath: input => resolveWithinRoots(input, allowedRoots)
   }
 }
@@ -365,18 +571,25 @@ module.exports = {
   createFileAccess,
   normalizeRoots,
   resolveWithinRoots,
+  resolveWritableTarget,
+  splitParentAndBasename,
+  assertWritableBasename,
   isDeniedName,
   isDeniedDirectory,
+  isDeniedWriteExtension,
+  isReservedDeviceName,
   isWithin,
   buildMatcher,
   FileAccessError,
   MAX_PATH_LENGTH,
   MAX_READ_BYTES,
+  MAX_WRITE_BYTES,
   MAX_CONTENT_CHARS,
   MAX_RESULTS,
   MAX_DEPTH,
   MAX_QUERY_LENGTH,
   TEXT_EXTENSIONS,
   DENIED_NAME_PATTERNS,
-  DENIED_DIRECTORY_NAMES
+  DENIED_DIRECTORY_NAMES,
+  DENIED_WRITE_EXTENSIONS
 }
