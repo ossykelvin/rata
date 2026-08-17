@@ -48,7 +48,7 @@ src/views (React UI)
 | `packages/contracts/` | IPC channel names and payload validation | Native I/O |
 | `packages/agent-core/` | Mock agent, policy, tool registry, calculator parser, communicator | Provider SDKs in UI |
 | `packages/agent-core/communicator.cjs` | Always-on understanding parser and voice sanitiser (ADR-012) | Tool execution, request rewriting, routed skill selection |
-| `packages/agent-core/conversation-memory.cjs` | In-memory session transcript for `ask()` (ADR-013) | Persistence, tool grants, rewriting the current request |
+| `packages/agent-core/conversation-memory.cjs` | In-memory session transcript for `ask()` (ADR-013 session continuity) | Persistence, tool grants, rewriting the current request |
 | `packages/skills/` | Per-fragment validation/load, prompt extract, deterministic router | Executing skill files |
 | `skills/<id>/skill.json` | Independently validated routing/permission metadata | Authority, code, credentials |
 | `skills/<id>/SKILL.md` | Declarative prompt text loaded only for a selected skill | Code, credentials |

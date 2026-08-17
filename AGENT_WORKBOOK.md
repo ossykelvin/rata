@@ -102,6 +102,26 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ## Claude
 
+### 2026-08-17 — RATA-006/007 — Graph scope proposal, and an ADR number collision
+
+**Status:** ADR-017 written, **blocked on the user**. Branch `claude/RATA-006-graph-scope-proposal`.
+
+`docs/decisions/ADR-017-microsoft-graph-scopes.md` decides the parts that cannot be changed later without asking the user to consent again: the scope list, the auth flow and token storage. It does not implement anything.
+
+**Scopes are split across the two existing tickets**, which is the point rather than a formality. RATA-006 requests `openid profile offline_access User.Read Mail.Read Calendars.Read`. RATA-007 requests `Mail.ReadWrite Mail.Send Calendars.ReadWrite` **incrementally at the first write**, so a user who never sends mail never consents to sending as themselves. Asking for everything at sign-in would be simpler and would defeat doing the tickets in order.
+
+**Auth:** public client, authorization code with PKCE, system browser via `shell.openExternal` with a loopback redirect. Explicitly not an embedded `BrowserWindow` — Microsoft blocks embedded webviews, and a Microsoft credential form inside Rata's own chrome is the shape of a phishing attack.
+
+**Tokens:** Electron `safeStorage` (DPAPI) ciphertext in `userData`, never `rata-store.json`. `docs/SECURITY.md` already says that store holds only non-secret preferences; this is the first credential that has to honour it. Tools receive a bound capability, never the token, exactly as `web.search` receives a bound Serper capability.
+
+**The asymmetry worth noting:** reads are confirmable but writes cannot opt out. `mail.send`, `calendar.create` and `calendar.update` are `external-write` and always confirm; `calendar.delete` is `destructive` and should cancel rather than delete. The approval card shows the actual recipients, subject and body preview, and the executed payload must equal the approved one.
+
+**Not requested, each needing its own ADR if wanted:** `Mail.Read.Shared`, `Calendars.Read.Shared`, `MailboxSettings.Read` (would make `findAvailability` respect working hours, but reads more than it appears to), `Files.*`, `Contacts.*`, `People.Read`, `Directory.Read.All`, and any application permission.
+
+**Blocked on the user:** an Entra app registration (public client, `http://localhost` redirect, allow public client flows), the account-type choice, `MSGRAPH_CLIENT_ID` / `MSGRAPH_TENANT_ID` in `.env.local`, and approval of the scope list. No client secret is needed and none should be created.
+
+**Also fixed here: two ADRs both numbered 013.** RATA-009 (local speech to text) and session continuity both landed on 2026-08-17 and both claimed 013. Session continuity merged first and keeps the number; the speech-to-text ADR moved to **ADR-018**, with a note at the top saying why. The two bare `ADR-013` citations in `conversation-memory.cjs` and `CODEMAP.md` now name session continuity explicitly, since a bare number was the only genuinely ambiguous reference.
+
 ### 2026-08-17 — RATA-009 — Local speech to text via Handy
 
 **Status:** DONE, awaiting review. Branch `claude/RATA-009-handy-stt`.

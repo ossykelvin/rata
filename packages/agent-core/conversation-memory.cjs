@@ -7,7 +7,8 @@ const DEFAULT_MAX_CHARS = 8_000
 
 /**
  * In-memory session transcript. History is data, not authority: it cannot
- * grant tools, skip policy, or rewrite the current user request. ADR-013.
+ * grant tools, skip policy, or rewrite the current user request.
+ * See ADR-013-session-continuity.
  */
 function createConversationMemory({
   maxTurns = DEFAULT_MAX_TURNS,
