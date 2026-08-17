@@ -21,7 +21,9 @@ const IPC = Object.freeze({
   overlayMessage: 'rata:overlay-message',
   startVoiceListening: 'rata:voice-start',
   stopVoiceListening: 'rata:voice-stop',
-  voiceTranscript: 'rata:voice-transcript'
+  voiceTranscript: 'rata:voice-transcript',
+  // Renderer-recorded audio transcribed locally by Handy. RATA-009.
+  transcribeAudio: 'rata:transcribe-audio'
 })
 
 module.exports = { IPC }

@@ -24,4 +24,6 @@ export type RataBridge = {
   startVoiceListening(): Promise<{ ok: boolean }>
   stopVoiceListening(): Promise<{ ok: boolean }>
   onVoiceTranscript(callback: (payload: { transcript: string; error?: string }) => void): () => void
+  /** Sends a 16 kHz mono WAV for local transcription. RATA-009. */
+  transcribeAudio(audio: Uint8Array): Promise<{ transcript: string }>
 }
