@@ -9,6 +9,8 @@ export const CHARACTER_STATES = [
   'working',
   'success',
   'error',
+  'blocked',
+  'unavailable',
   'sleeping',
   // Derived in the renderer by idlePresence.ts, never sent by the agent.
   'bored',

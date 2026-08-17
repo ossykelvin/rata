@@ -81,7 +81,18 @@ test('mock agent executes calculator through policy and reports missing skill to
   assert.equal(calc.state, 'success')
   assert.match(calc.message, /504/)
 
-  const missing = await agent.handle('scan my C drive and tell me what is taking space')
+  // This used to ask about scanning a drive, because `filesystem-scan` was the
+  // nearest skill with no registered tools. RATA-SKILL-007 registered all three
+  // of its tools, so the honest-refusal path needs a skill that is still
+  // blocked: `screenshot-inspector` needs screen capture and vision, which are
+  // a different lane entirely.
+  const missing = await agent.handle('what is on my screen?')
   assert.match(missing.message, /not registered yet/i)
+  assert.match(missing.message, /screen\.capture/)
   assert.equal(events.some(event => event[0] === 'Skill selected'), true)
+
+  // And the skill that moved must really have moved, or the change above would
+  // just be hiding a regression.
+  assert.equal(registry.summarize(registry.get('filesystem-scan')).status, 'ready')
+  assert.deepEqual(registry.summarize(registry.get('filesystem-scan')).missingTools, [])
 })

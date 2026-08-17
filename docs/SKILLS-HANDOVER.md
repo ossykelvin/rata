@@ -78,8 +78,10 @@ Implement a Windows-native keep-awake tool using the supported OS power API. Rel
 ### RATA-SKILL-006: File Search Index
 Implement cancellable filename/metadata search over approved roots with exclusions and result ranking.
 
-### RATA-SKILL-007: Filesystem Scanner
-Implement read-only disk/folder inventory, largest-file reporting and optional hash-confirmed duplicate analysis.
+### RATA-SKILL-007: Filesystem Scanner — done (tools registered)
+Read-only disk/folder inventory, largest-file/folder reporting and hash-confirmed duplicate analysis ship as `filesystem.scan`, `filesystem.diskUsage` and `filesystem.hash`. All three are `risk: read`, confined to the ADR-010 roots by the same `resolveWithinRoots` gate, and never return file contents. See `docs/decisions/ADR-014-filesystem-inventory-boundary.md`.
+
+Two parts of the skill's declared contract are **not** delivered and are honestly outstanding: cancellable background jobs (RATA-SKILL-004 — a scan is bounded by time and entry caps instead, but cannot be cancelled mid-flight) and user-configured exclusions beyond the ADR-010 denied-name and denied-directory lists. Whole-volume and protected-location scanning is refused rather than confirmed, which is deliberate and stronger than the skill's declared `confirm_if_scope_is_entire_system_or_protected`.
 
 ### RATA-SKILL-008: Web Search Adapter
 Add an external search provider behind a provider interface. Retrieved pages are untrusted data and must not become instructions.
