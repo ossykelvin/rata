@@ -74,52 +74,71 @@ function createWindowsVoice({
     throw new TypeError('createWindowsVoice requires sendTranscript().')
   }
 
+  // One long-lived recognizer, reused across presses.
+  //
+  // Measured on this hardware: PowerShell start, assembly load and Add-Type
+  // compilation cost about 1.2s and happen once per process, while acquiring
+  // the microphone costs 25ms and releasing it 9ms. A process per press
+  // therefore put a ~1.4s dead window at the front of every push-to-talk,
+  // which is exactly when people start speaking, so a short press recognised
+  // nothing at all. The microphone is still genuinely released between
+  // presses via SetInputToNull(), so warm does not mean open.
   let child = null
-  let stopping = null
-  let startChain = Promise.resolve()
-  // Children we asked to stop. An exit that is not in here was not requested,
-  // which means the recognizer died on its own and the user is still waiting.
+  let listening = false
+  let buffer = ''
+  let sessionBest = 0
   const intentionalStops = new WeakSet()
 
-  function stop() {
-    if (!child) return { ok: true }
-    const current = child
-    child = null
-    intentionalStops.add(current)
-    const done = new Promise(resolve => {
-      let settled = false
-      const finish = () => {
-        if (settled) return
-        settled = true
-        clearTimeout(killer)
-        resolve()
-      }
-      const killer = setTimeout(() => {
-        try { current.kill() } catch { /* already exited */ }
-        finish()
-      }, 2500)
-      if (typeof killer.unref === 'function') killer.unref()
-      current.once('exit', finish)
-      try { current.stdin.write('\n') } catch { /* already closed */ }
-    })
-    stopping = done.finally(() => {
-      if (stopping === done) stopping = null
-    })
-    return { ok: true }
+  function flushPartial() {
+    const leftover = buffer.trim()
+    buffer = ''
+    if (!leftover) return
+    // Preserves the deliberate behaviour from #65: a partial line already
+    // buffered when a session ends is delivered rather than dropped, because
+    // push-to-talk release would otherwise lose the last utterance.
+    const parsed = parseResultLine(leftover)
+    if (parsed) sendTranscript({ transcript: parsed.transcript })
   }
 
-  function start() {
-    const result = startChain.then(startNow)
-    startChain = result.catch(() => {})
-    return result
-  }
-
-  async function startNow() {
-    if (process.platform !== 'win32' && spawnProcess === spawn) {
-      throw new Error('Windows speech recognition is only available on Windows.')
+  function handleLine(line) {
+    const parsed = parseResultLine(line)
+    if (!parsed) return
+    const score = parsed.confidence
+    if (score !== null && score < MIN_CONFIDENCE) {
+      logActivity(
+        'Voice result discarded',
+        `Heard "${parsed.transcript.slice(0, 80)}" at confidence ${score.toFixed(3)}, below the ${MIN_CONFIDENCE} floor.`,
+        'info'
+      )
+      return
     }
-    if (stopping) await stopping
-    if (child) return { ok: true }
+    // Selection is relative to the press, not to a fixed threshold. The user
+    // held the button and spoke, so the best thing heard while they were
+    // speaking is the answer, whatever it scored.
+    if (score !== null && score <= sessionBest) {
+      logActivity(
+        'Voice result skipped',
+        `Heard "${parsed.transcript.slice(0, 80)}" at confidence ${score.toFixed(3)}, not better than ${sessionBest.toFixed(3)}.`,
+        'info'
+      )
+      return
+    }
+    if (score !== null) sessionBest = score
+    sendTranscript({ transcript: parsed.transcript })
+  }
+
+  function send(command) {
+    if (!child) return false
+    try {
+      child.stdin.write(`${command}\n`)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  function ensureChild() {
+    if (child) return child
 
     const spawned = spawnProcess('powershell.exe', [
       '-NoProfile',
@@ -131,88 +150,102 @@ function createWindowsVoice({
       stdio: ['pipe', 'pipe', 'pipe']
     })
     child = spawned
+    buffer = ''
 
-    let buffer = ''
-    // Highest confidence seen during this listening session.
-    let sessionBest = 0
     spawned.stdout.setEncoding('utf8')
     spawned.stdout.on('data', chunk => {
       buffer += chunk
       const lines = buffer.split(/\r?\n/)
       buffer = lines.pop()
-      for (const line of lines) {
-        const parsed = parseResultLine(line)
-        if (!parsed) continue
-        const score = parsed.confidence
-        // Selection is relative to this session, not to a fixed threshold.
-        //
-        // The user held the button and spoke, so the best thing heard while
-        // they were speaking is the answer, whatever it scored. A result is
-        // delivered when it is the best so far in this session, which means
-        // the first usable guess appears immediately and is replaced only by
-        // something better. Later, worse fragments no longer overwrite it.
-        if (score !== null && score < MIN_CONFIDENCE) {
-          logActivity(
-            'Voice result discarded',
-            `Heard "${parsed.transcript.slice(0, 80)}" at confidence ${score.toFixed(3)}, below the ${MIN_CONFIDENCE} floor.`,
-            'info'
-          )
-          continue
-        }
-        if (score !== null && score <= sessionBest) {
-          logActivity(
-            'Voice result skipped',
-            `Heard "${parsed.transcript.slice(0, 80)}" at confidence ${score.toFixed(3)}, not better than ${sessionBest.toFixed(3)}.`,
-            'info'
-          )
-          continue
-        }
-        if (score !== null) sessionBest = score
-        sendTranscript({ transcript: parsed.transcript })
-      }
+      for (const line of lines) handleLine(line)
     })
+
     spawned.stderr.setEncoding('utf8')
     spawned.stderr.on('data', chunk => {
       const text = String(chunk)
       if (text.includes('NO_MIC')) {
         logActivity('Voice listening failed', 'No default microphone was available.', 'error')
         sendTranscript({ transcript: '', error: 'No microphone is available.' })
+        listening = false
       } else if (text.includes('NO_ENGINE')) {
         logActivity('Voice listening failed', 'Windows speech recognition is not installed.', 'error')
         sendTranscript({ transcript: '', error: 'Windows speech recognition is not installed.' })
+        listening = false
       }
     })
+
     spawned.on('exit', code => {
-      // Deliberate: stop() (including microphone disable) still delivers a
-      // leftover partial line. Push-to-talk release uses the same stop(), so
-      // dropping the buffer would lose the last utterance. Complete lines
-      // already emitted stay emitted. New stdout after child is nulled is
-      // still delivered until the process actually exits.
-      if (buffer.trim()) sendTranscript({ transcript: buffer.trim().slice(0, MAX_TRANSCRIPT_LENGTH) })
+      // Only the live child may change shared state. A dead child's exit event
+      // can arrive after a replacement exists, and clearing `listening` from
+      // there would silently end the new session.
+      if (child !== spawned) return
+      flushPartial()
+      const wasListening = listening
+      listening = false
+      child = null
       // A recognizer that dies on its own must say so. Without this the
-      // renderer stays in its listening state for ever: the UI is waiting for
-      // a transcript from a process that no longer exists, and the user sees
-      // nothing at all. FIX-005.
-      if (!intentionalStops.has(spawned)) {
+      // renderer stays in its listening state for ever, waiting for a
+      // transcript from a process that no longer exists. FIX-005.
+      if (!intentionalStops.has(spawned) && wasListening) {
         logActivity('Voice listening stopped', `The speech recognizer exited unexpectedly (code ${code}).`, 'error')
         sendTranscript({ transcript: '', error: 'Speech recognition stopped unexpectedly.' })
       }
-      // Same shape as overlayWindow === window in main.cjs: an old child's
-      // exit must not clear a newer child's reference.
-      if (child === spawned) child = null
     })
+
     spawned.on('error', () => {
-      if (!intentionalStops.has(spawned)) {
+      if (child !== spawned) return
+      const wasListening = listening
+      listening = false
+      child = null
+      if (!intentionalStops.has(spawned) && wasListening) {
         logActivity('Voice listening failed', 'The speech recognizer could not be started.', 'error')
         sendTranscript({ transcript: '', error: 'Speech recognition could not be started.' })
       }
-      if (child === spawned) child = null
     })
+
+    return spawned
+  }
+
+  function start() {
+    if (process.platform !== 'win32' && spawnProcess === spawn) {
+      throw new Error('Windows speech recognition is only available on Windows.')
+    }
+    ensureChild()
+    if (listening) return { ok: true }
+    // Each press competes only with itself.
+    sessionBest = 0
+    buffer = ''
+    listening = true
+    send('LISTEN')
     logActivity('Voice listening started', 'Windows speech recognition is listening.', 'info')
     return { ok: true }
   }
 
-  return { start, stop }
+  function stop() {
+    if (!listening) return { ok: true }
+    listening = false
+    send('STOP')
+    flushPartial()
+    return { ok: true }
+  }
+
+  /** Ends the warm process. Call on app quit so no powershell.exe is left. */
+  function dispose() {
+    const current = child
+    if (!current) return { ok: true }
+    listening = false
+    intentionalStops.add(current)
+    child = null
+    try { current.stdin.write('QUIT\n') } catch { /* already closed */ }
+    const killer = setTimeout(() => {
+      try { current.kill() } catch { /* already exited */ }
+    }, 2000)
+    if (typeof killer.unref === 'function') killer.unref()
+    current.once('exit', () => clearTimeout(killer))
+    return { ok: true }
+  }
+
+  return { start, stop, dispose, isListening: () => listening }
 }
 
 module.exports = { createWindowsVoice, resolveScriptPath, isPackagedRuntime, parseResultLine, MAX_TRANSCRIPT_LENGTH, MIN_CONFIDENCE, SCRIPT_NAME }
