@@ -281,7 +281,18 @@ function resolveWritableTarget(input, roots, fsApi = fs) {
   const { parent, basename } = splitParentAndBasename(input)
   assertWritableBasename(basename)
   if (!parent) {
-    throw new FileAccessError('A file path is required.', 'invalid-path')
+    // A bare filename ("memo.md") lands in the first configured root, which is
+    // Documents. Path composition stays here, where the roots are, so a caller
+    // that only knows a filename never builds a path of its own — and a bare
+    // name cannot select a directory. FIX-011.
+    if (!roots.length) {
+      throw new FileAccessError('No readable folders are configured.', 'no-roots')
+    }
+    const target = path.join(roots[0], basename)
+    if (!isWithin(roots[0], target)) {
+      throw new FileAccessError('That path is outside the folders Rata may read.', 'outside-roots')
+    }
+    return { parent: roots[0], basename, target }
   }
   const resolvedParent = resolveWithinRoots(parent, roots, fsApi)
   let parentInfo
