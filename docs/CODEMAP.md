@@ -25,7 +25,7 @@ src/views (React UI)
 | `src/` | Overlay, Control Center, character presentation | Node, Electron, OS, tools |
 | `src/hooks/useVoice.ts` | Push-to-talk UI and transcript display | Audio capture, Node, OS speech |
 | `electron/voice-win.cjs` | Windows speech recognition adapter | Generic shell, model-generated commands |
-| `electron/file-access.cjs` | Root containment, denied names, bounded reads, and `file.save` writes. `resolveWithinRoots()` is the single path gate; writes resolve the parent through it and validate the basename separately (ADR-016) | Move, rename, delete, writing outside the roots, creating executables or denied names |
+| `electron/file-access.cjs` | Root containment, denied names, bounded reads, `file.save`, `folder.create`, `file.move` and `file.rename`. `resolveWithinRoots()` is the single path gate; writes resolve the parent through it and validate the basename separately (ADR-016, ADR-017) | Delete, writing outside the roots, creating or moving-to executables or denied names, recursive mkdir, directory move, cross-volume copy |
 | `electron/filesystem-scan.cjs` | Bounded metadata inventory, volume totals and file digests over the same roots (ADR-014) | Its own path validator, file contents in any return value, deriving its own roots |
 | `electron/weather-client.cjs` | Bound WeatherAPI capability, response mapping, credential-safe errors | The key in any log, error or return value |
 | `electron/handy-stt.cjs` | Local transcription: fixed executable path and arguments, temp-file lifecycle | Renderer-supplied paths or flags, transcripts in the audit log |
@@ -72,6 +72,7 @@ src/views (React UI)
 - `web.fetch` — keyless, bounded public-page retrieval; confirmation configurable
 - `file.search` / `file.stat` / `file.readText` / `file.searchContent` / `file.reveal` — read-only, root-confined local access
 - `file.save` — write Markdown/HTML text inside the same roots; overwrite always confirms; executables and denied names refused
+- `folder.create` / `file.move` / `file.rename` — organize files inside the same roots; non-recursive mkdir; files-only move/rename; overwrite always confirms; executable destinations refused
 - `document.create` / `presentation.create` / `presentation.render` — Markdown or self-contained HTML generation; no I/O; not .docx/.pptx
 - `filesystem.scan` / `filesystem.diskUsage` / `filesystem.hash` — read-only storage inventory over the same roots; metadata and digests only, never file contents; confirmation configurable
 - `weather.current` — WeatherAPI current conditions and air quality; confirmation configurable

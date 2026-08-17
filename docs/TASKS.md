@@ -115,3 +115,22 @@ Acceptance:
 - caps drop oldest turns; quit clears the transcript
 - deterministic routes and confirmation still win
 - communicatorEnabled still gates only communicator stages
+
+## RATA-014 - File organize writes
+
+**Owner suggestion:** Cursor implementation, Claude review
+**Depends on:** RATA-013 (`file.save` containment and `fileWriteConfirm`)
+
+Register `folder.create`, `file.move` and `file.rename` so File Organizer can run. Same roots and basename rules as `file.save`. See ADR-017.
+
+Acceptance:
+- all three tools registered with `risk: 'safe-write'` and `fileWriteConfirm`
+- parent resolved through existing `resolveWithinRoots`; roots not widened
+- non-recursive mkdir; fail closed if the name exists
+- rename cannot change directories
+- files-only move/rename; folders-only create
+- same-volume rename; cross-volume fails closed
+- overwrite requires `overwrite: true` and always confirms
+- executable and denied-name destinations refused
+- `file.delete` stays disabled
+- `file-organizer` reports available
