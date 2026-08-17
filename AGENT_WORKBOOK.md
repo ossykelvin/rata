@@ -511,6 +511,8 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 **Files currently touching:** `packages/agent-core/conversation-memory.cjs`, `packages/agent-core/mock-agent.cjs`, `tests/conversation-memory.test.cjs`, `docs/decisions/ADR-013-session-continuity.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/ARCHITECTURE.md`, `docs/VALIDATION.md`, `docs/TASKS.md`.
 
+**Validation:** `npm run verify` 349/349.
+
 ---
 
 ### 2026-08-17 — RATA-008 — Communicator (understanding + voice)

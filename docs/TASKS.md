@@ -103,3 +103,15 @@ Acceptance:
 - Windows installer verified
 - code-signing plan documented
 - auto-update deferred until signing strategy exists
+
+## RATA-011 - Session conversation continuity
+
+In-memory session history so follow-up turns can refer to earlier ones.
+
+Acceptance:
+- history lives in agent-core, not as renderer source of truth for the model
+- current user text is never rewritten
+- untrusted assistant/tool/web content in history is fenced
+- caps drop oldest turns; quit clears the transcript
+- deterministic routes and confirmation still win
+- communicatorEnabled still gates only communicator stages

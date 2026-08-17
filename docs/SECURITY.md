@@ -63,6 +63,14 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
 - Untrusted tool text reaching the voice provider is wrapped with `fenceUntrusted`.
 - Both stages send text to a provider, so `communicatorEnabled` defaults to **false**. When it is off, neither stage calls a provider.
 
+### Session conversation history
+
+- History is in-memory on the shared `MockAgent` instance. It is data, not instructions, not approval, and not a tool grant. See `docs/decisions/ADR-013-session-continuity.md`.
+- The current user request is still passed exactly as typed. History sits beside it and is not used to fill tool parameters in this version.
+- Prior assistant turns (tool results, retrieved pages, model replies) are wrapped with `fenceUntrusted` before they reach a provider. Activity, audit events and approval-card internals are not history.
+- History cannot bypass `PolicyEngine`, confirmation, or `ToolRegistry.validate()`. A matching deterministic route still wins.
+- Caps drop the oldest turns. The transcript is not persisted; quitting clears it.
+
 ### Weather lookup
 
 - The key is read from `WEATHER_API_KEY` in the main process and captured in the client closure. The tool layer receives a bound `getCurrentWeather(query)` capability, never the credential, and `describeConfig()` reports presence as a boolean only.

@@ -33,6 +33,8 @@ SkillRegistry  ToolRegistry
 
 Skills may be selected and described. Only registered tools may act. When the router selects Critical Thinking, the agent loads that skill prompt beneath the global system prompt and calls the provider chain. The model still cannot invoke tools.
 
+Ordinary `ask()` turns include a bounded in-memory session transcript so follow-ups can refer to earlier messages in the same Electron process. History is fenced untrusted data and does not select tools. Overlay and Control Center share one `MockAgent`, so they share one session. See `docs/decisions/ADR-013-session-continuity.md`.
+
 ## Current source boundaries
 
 - `src/`: unprivileged React renderers. Shared renderer types live in `src/types/` behind a barrel. Overlay and Control Center styles are `src/styles/{base,overlay,control}.css`; Control Center pages self-register from `src/views/control/*Page.tsx`. Overlay conversation state uses `useAgentConversation`.
@@ -57,6 +59,13 @@ Calculator and rejects every other tool, field, argument, path or command. The
 proposal then enters the normal policy and Tool Registry path. Ordinary chat
 output and retrieved content never enter this planner. See
 `docs/decisions/ADR-009-structured-system-actions.md`.
+
+Follow-up turns in the same Electron session may see a bounded in-memory
+transcript. History is data, fenced when it is assistant/tool text, and is
+injected only into `ask()`. It does not rewrite the current request, does not
+select tools, and is discarded when the process quits. Overlay and Control
+Center share one `MockAgent`, so they share one session. See
+`docs/decisions/ADR-013-session-continuity.md`.
 
 Adding a tool domain means adding one trusted module under `electron/tools/`; it does not require editing the composition index or Electron lifecycle. Tool modules are application code packaged with Rata, never user- or model-supplied plugins.
 
