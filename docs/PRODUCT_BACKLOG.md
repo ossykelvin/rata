@@ -167,7 +167,7 @@ Done when: unit tests cover policy decisions; agent/tool integration tests exist
 
 ### Lane S — Skill capabilities · Cursor
 
-From `docs/SKILLS-HANDOVER.md`. SKILL-001/002/003 are done. Remaining: SKILL-004 background job manager, SKILL-005 keep-awake native tool, SKILL-006 file search index, SKILL-007 filesystem scanner, SKILL-008 web search adapter, SKILL-009 presentation artifact adapter, SKILL-010 Skills Control Center (partial — toggles, last-run status and background task controls remain).
+From `docs/SKILLS-HANDOVER.md`. SKILL-001/002/003 and SKILL-007 (filesystem scanner) are done. Remaining: SKILL-004 background job manager, SKILL-005 keep-awake native tool, SKILL-006 file search index, SKILL-008 web search adapter, SKILL-009 presentation artifact adapter, SKILL-010 Skills Control Center (partial — toggles, last-run status and background task controls remain).
 
 Each new tool declares risk and confirmation policy and routes through `ToolRegistry.execute()`.
 

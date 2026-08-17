@@ -51,6 +51,22 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
 - Reading content is confirmed by default (`fileReadConfirm`) because the text leaves the machine for a provider; searching by *name* is automatic.
 - See `docs/decisions/ADR-010-readonly-local-file-access.md`.
 
+### Storage inventory
+
+- Read-only. `filesystem.scan`, `filesystem.diskUsage` and `filesystem.hash` never write, move, rename, delete, quarantine or compress. There is no bulk-hash and no write verb in the domain at all.
+- **No tool in this domain returns file contents.** `filesystem.scan` returns names, relative paths, sizes, modified times and an is-directory flag. `filesystem.hash` opens a read-only handle, folds fixed 64KB chunks into a digest and discards them, and returns the hex digest, a byte count and a name. Reading text is `file.readText`, a different tool with a different contract.
+- Path confinement is the *same* gate as local file retrieval: `resolveWithinRoots` in `electron/file-access.cjs`. There is one place that decides which paths Rata may touch, and both domains call it. `main.cjs` supplies both capabilities from one `userFolderRoots()` list.
+- A stricter syntax gate runs first and refuses, without touching the filesystem: non-string, empty and whitespace-only input, NUL bytes, over-length paths, device namespaces (`\\.\`, `\\?\`), UNC shares, drive-relative and relative paths, and any surviving `..` segment.
+- Whole-volume and protected scanning is **refused, not confirmed**. `C:\Windows`, `C:\Program Files`, other system directories and bare drive roots are outside the allow-list and fail closed. The skill declares `confirm_if_scope_is_entire_system_or_protected`; refusing exceeds that rather than weakening it.
+- Containment is checked inside `validateInput`, which runs before `PolicyEngine`, so a forbidden path never produces an approval card the user could accept.
+- Everything is capped and truncation is reported by name: depth 6, 20,000 entries visited, 200 entries returned, 50 folder aggregates, 15 seconds, and 16MB per hash. Directory entries are sorted before the walk and results are sorted largest-first, so a truncated result is reproducible rather than arbitrary.
+- A file above the hash cap is refused rather than hashed in part: a prefix digest is indistinguishable from a whole-file digest and would produce confident, wrong duplicate claims. The cap is re-checked against bytes actually read.
+- Credential-shaped names are not inventoried at all, and credential/VCS directories are not descended into — a name and a size is already more than this surface needs to disclose about `~/Documents/.env`.
+- **Scan output is untrusted input.** Results carry `trust: 'untrusted-external'`; a file name can carry a prompt injection exactly like a web page. Control characters and bidirectional overrides are stripped from every name, so a name cannot forge structure inside a fence or spoof an extension. Any stage that forwards these results to a provider must fence them with `fenceUntrusted`.
+- Audit records the scope and the counts, never a directory listing: `MockAgent` builds audit detail from `result.summary`, and the per-file list lives only in the user-facing `message`.
+- Confirmed by default under the existing `fileReadConfirm` setting rather than a second overlapping switch. A bulk inventory of file names is at least as revealing as the text of one file, and it leaves the machine the same way.
+- See `docs/decisions/ADR-014-filesystem-inventory-boundary.md`.
+
 ### Weather lookup
 
 - The key is read from `WEATHER_API_KEY` in the main process and captured in the client closure. The tool layer receives a bound `getCurrentWeather(query)` capability, never the credential, and `describeConfig()` reports presence as a boolean only.
