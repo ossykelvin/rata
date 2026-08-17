@@ -68,6 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
+| Cursor | RATA-SKILL-007 filesystem scan tools | `cursor/SKILL-007-filesystem-scan-tools` | DONE, PR #74 |
 | Cursor | FIX overlay Hide and compact drag | `cursor/FIX-overlay-hide-compact` | IN PROGRESS |
 | Cursor | FIX overlay min/close | `cursor/FIX-overlay-min-close` | DONE, PR #60 |
 | Cursor | FIX voice mid-transcript disable | `cursor/FIX-voice-mid-transcript-disable` | DONE, PR #65 |
@@ -504,14 +505,28 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ### 2026-08-17 — RATA-SKILL-007 — Filesystem Scan tools
 
-**Status:** IN PROGRESS
+**Status:** DONE, PR #74
 **Branch:** `cursor/SKILL-007-filesystem-scan-tools`
 
-**Scope:** `skills/filesystem-scan/` declares `filesystem.scan`, `filesystem.diskUsage` and `filesystem.hash`. None is registered, so the Control Center Skills page reports the skill `unavailable`. Register all three as `risk: 'read'` tools that never write, move, rename or delete, confine every path to the RATA-006 roots by reusing `resolveWithinRoots` from `electron/file-access.cjs` rather than adding a second validator, and never return file contents.
+**Done:** Registered `filesystem.scan`, `filesystem.diskUsage` and `filesystem.hash`, the three ids `skills/filesystem-scan/skill.json` has always declared. The skill now reports `ready` with an empty `missingTools`; ready skills go 9 → 10 of 21. The skill files were not edited — the ids match them character for character. ADR-014.
 
-**Files currently touching:** `electron/filesystem-scan.cjs` (new), `electron/tools/filesystem.cjs` (new), `electron/file-access.cjs` (optional injected `fsApi` parameter only), `electron/main.cjs` (composition only), `tests/filesystem-scan.test.cjs` (new), `tests/tool-composition.test.cjs` (pinned tool surface), `docs/CODEMAP.md`, `docs/SECURITY.md`, `docs/VALIDATION.md`, `docs/decisions/ADR-014-filesystem-scan.md` (new).
+**The decision worth recording.** I did not write a path validator. `electron/file-access.cjs` already owns `resolveWithinRoots`, and a second validator would have started identical and ended different, at which point the *weaker* of the two becomes the real policy. Instead `normalizeRoots` and `resolveWithinRoots` gained an optional `fs` parameter (behaviour with real `node:fs` unchanged), and the new module calls them. `main.cjs` now has one `userFolderRoots()` feeding both `createFileAccess` and `createFilesystemScan`, so "which folders may Rata look at" has one answer instead of two that can drift.
 
-**Not touching:** `packages/agent-core/` or `mock-agent.cjs` (PR #70, PR #73), `packages/contracts/ipc-validation.cjs`, `electron/store.cjs`, `src/types/settings.ts`, `src/views/control/PermissionsPage.tsx` (PR #70). No new setting is introduced; the existing `fileReadConfirm` gate is reused.
+What the new module *does* add is a **stricter** gate in front of that one, never a looser one: device namespaces (`\\.\`, `\\?\`), UNC shares, drive-relative and relative paths, surviving `..` segments, NUL bytes and over-length input are refused before anything reaches `realpath`. `resolveWithinRoots` would already neutralise `..` and symlinks; the value of refusing earlier is that no device handle is opened and a dead network share cannot block a scan.
+
+**No file contents, structurally.** `scan` never opens a file. `hash` opens a read-only handle, folds 64KB chunks into the digest and drops them, and returns a hex string. A file above the 16MB cap is **refused, not partly hashed** — a prefix digest is indistinguishable from a whole-file digest to whoever receives it and would produce confident, wrong duplicate claims, which is exactly what the skill's own prompt rules 7–8 are trying to prevent. Paths come back relative to the scanned root, so the Windows user name is not in every row of output.
+
+**Confirmation reuses `fileReadConfirm`; no new setting.** A bulk inventory of file names is at least as revealing as the text of one file and leaves the machine the same way. A second overlapping switch would let a user have one on and the other off. This is deliberately stricter than ADR-010's own reasoning for `file.search` being automatic — an unrequested inventory of everything is a different act from looking for one named file. No edits to `ipc-validation.cjs`, `store.cjs`, `settings.ts` or `PermissionsPage.tsx`, which keeps this clear of PR #70.
+
+**Where I did not satisfy the skill's declared contract, and did not force it.** The skill declares `confirm_if_scope_is_entire_system_or_protected` and its first trigger is "Scan my C drive". Whole-volume and protected scanning is **refused**, not confirmed — `C:\Windows`, `C:\Program Files` and bare drive roots are outside the allow-list and fail closed. Refusing exceeds the declared policy rather than weakening it, so I did not add a confirmation path for it; a dialog is not a substitute for an allow-list, and the request originates in model-adjacent prompt text. Also outstanding and stated plainly rather than papered over: **cancellable background jobs** (the skill declares `background_capable: true`; there is no job manager — RATA-SKILL-004 — so a scan is bounded by time/entry caps but cannot be cancelled mid-flight) and **user-configured exclusions** (only the ADR-010 denied-name/denied-directory lists are honoured). Both are recorded in ADR-014 and `docs/SKILLS-HANDOVER.md`.
+
+**Files touched:** `electron/filesystem-scan.cjs` (new), `electron/tools/filesystem.cjs` (new), `electron/file-access.cjs`, `electron/main.cjs`, `tests/filesystem-scan.test.cjs` (new), `tests/tool-composition.test.cjs`, `tests/skills-registry.test.cjs`, `docs/decisions/ADR-014-filesystem-inventory-boundary.md` (new), `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/VALIDATION.md`, `docs/SKILLS-HANDOVER.md`, `docs/PRODUCT_BACKLOG.md`.
+
+**Validation:** `npm run verify` exit 0, **352/352**, 86 CommonJS files. `tests/filesystem-scan.test.cjs` adds 37 tests, all against an injected in-memory disk with no real filesystem walk, no real volume, no real Electron, and no hashing of a real file. The fake is what makes it possible to assert on device paths and junction escapes that cannot be created safely on a test machine. Registry proof with a composed tool registry: `filesystem-scan ready available=["filesystem.scan","filesystem.diskUsage","filesystem.hash"] missing=[]`.
+
+**Two pinned surfaces moved deliberately.** `EXPECTED_TOOL_IDS` in `tests/tool-composition.test.cjs` went 12 → 15; that list is the privileged tool surface and should only move in a commit that says why. And `tests/skills-registry.test.cjs` used `filesystem-scan` as its example of a skill with *no* registered tools, so it started failing on the honest-refusal assertion — correctly, because the fixture is what changed. It now uses `screenshot-inspector` (needs `screen.capture`/`vision.analyze`, a different lane) and additionally asserts `filesystem-scan` is `ready`, so swapping the fixture cannot hide a regression.
+
+**Coordination:** Claude security review requested — this touches `electron/` and reads the user's filesystem. Nothing under `packages/agent-core/` or `mock-agent.cjs` was touched, so this does not collide with PR #70 or PR #73. Scan output does **not** reach a provider in this PR; it carries `trust: 'untrusted-external'` so that whichever stage first forwards it has to fence it with `fenceUntrusted`. Follow-up, not done here: the Permissions page still describes this under its existing "Confirm reading file contents" row, because PR #70 is open against that file — a dedicated row belongs in a later change.
 
 ---
 
