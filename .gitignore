@@ -8,3 +8,9 @@ release/
 !.env.example
 .DS_Store
 Thumbs.db
+
+# Third-party source trees kept beside the app for reference, not vendored.
+# Handy (MIT, github.com/cjpais/Handy) is the local speech-to-text engine
+# RATA-009 integrates with. Rata calls the installed binary; it does not build
+# or ship this source, so it must not live in our history. See ADR-013.
+Handy-main/

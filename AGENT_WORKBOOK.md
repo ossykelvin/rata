@@ -104,6 +104,36 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ## Claude
 
+### 2026-08-17 — RATA-006/007 — Graph scope proposal, and an ADR number collision
+
+**Status:** ADR-017 written, **blocked on the user**. Branch `claude/RATA-006-graph-scope-proposal`.
+
+`docs/decisions/ADR-017-microsoft-graph-scopes.md` decides the parts that cannot be changed later without asking the user to consent again: the scope list, the auth flow and token storage. It does not implement anything.
+
+**Scopes are split across the two existing tickets**, which is the point rather than a formality. RATA-006 requests `openid profile offline_access User.Read Mail.Read Calendars.Read`. RATA-007 requests `Mail.ReadWrite Mail.Send Calendars.ReadWrite` **incrementally at the first write**, so a user who never sends mail never consents to sending as themselves. Asking for everything at sign-in would be simpler and would defeat doing the tickets in order.
+
+**Auth:** public client, authorization code with PKCE, system browser via `shell.openExternal` with a loopback redirect. Explicitly not an embedded `BrowserWindow` — Microsoft blocks embedded webviews, and a Microsoft credential form inside Rata's own chrome is the shape of a phishing attack.
+
+**Tokens:** Electron `safeStorage` (DPAPI) ciphertext in `userData`, never `rata-store.json`. `docs/SECURITY.md` already says that store holds only non-secret preferences; this is the first credential that has to honour it. Tools receive a bound capability, never the token, exactly as `web.search` receives a bound Serper capability.
+
+**The asymmetry worth noting:** reads are confirmable but writes cannot opt out. `mail.send`, `calendar.create` and `calendar.update` are `external-write` and always confirm; `calendar.delete` is `destructive` and should cancel rather than delete. The approval card shows the actual recipients, subject and body preview, and the executed payload must equal the approved one.
+
+**Not requested, each needing its own ADR if wanted:** `Mail.Read.Shared`, `Calendars.Read.Shared`, `MailboxSettings.Read` (would make `findAvailability` respect working hours, but reads more than it appears to), `Files.*`, `Contacts.*`, `People.Read`, `Directory.Read.All`, and any application permission.
+
+**Amended after review, before acceptance.** The user narrowed it on all four open points: mail reads drop to `Mail.ReadBasic` (no bodies), `MailboxSettings.Read` added for working hours, `Mail.Send` removed entirely, calendar deletion removed, and account types fixed at multitenant including personal Microsoft accounts.
+
+Three interactions would have quietly defeated those choices, so the ADR now states each rather than leaving it to be discovered:
+
+1. **`Mail.ReadWrite` re-grants body access.** Graph has no draft-only mail scope, so `mail.createDraft` requires `Mail.ReadWrite`, which includes full body read. The `Mail.ReadBasic` narrowing therefore holds only until RATA-007 ships. RATA-007 must pick explicitly between accepting that, dropping drafting too, or holding the line in code.
+2. **Removing a tool is not removing a capability.** A skill is unavailable if *any* declared tool is missing, so simply not implementing `mail.send` and `calendar.delete` would leave both skills blocked — the opposite of the point. Both are now **registered and disabled**, following the `file.delete` precedent.
+3. **`Calendars.ReadWrite` permits deletion at the API level.** There is no create-and-update-only calendar scope, so refusing `calendar.delete` is a code restriction, not a scope one. Stated plainly rather than implying the token cannot delete.
+
+Also recorded: email-assistant is now weaker than its own description. Without body access it can triage by subject and sender but cannot summarise a message, and its `SKILL.md` must say so rather than promising something it cannot do.
+
+**Blocked on the user:** an Entra app registration (public client, `http://localhost` redirect, allow public client flows, multitenant + personal), `MSGRAPH_CLIENT_ID` and `MSGRAPH_TENANT_ID=common` in `.env.local`. No client secret is needed and none should be created.
+
+**Also fixed here: two ADRs both numbered 013.** RATA-009 (local speech to text) and session continuity both landed on 2026-08-17 and both claimed 013. Session continuity merged first and keeps the number; the speech-to-text ADR moved to **ADR-018**, with a note at the top saying why. The two bare `ADR-013` citations in `conversation-memory.cjs` and `CODEMAP.md` now name session continuity explicitly, since a bare number was the only genuinely ambiguous reference.
+
 ### 2026-08-17 — RATA-009 — Local speech to text via Handy
 
 **Status:** DONE, awaiting review. Branch `claude/RATA-009-handy-stt`.

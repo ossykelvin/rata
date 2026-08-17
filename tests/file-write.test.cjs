@@ -24,7 +24,12 @@ const fileModule = require('../electron/tools/file.cjs')
 // leftover temp files are exactly what a mock would paper over.
 
 async function sandbox() {
-  const base = await fsp.mkdtemp(path.join(os.tmpdir(), 'rata-write-'))
+  // Realpath'd on purpose. saveTextFile returns the resolved path,
+  // because resolving before comparing is what makes containment work.
+  // A CI runner's temp directory is reached through an 8.3 short name
+  // (C:\Users\RUNNER~1\...), so an un-resolved base makes every path
+  // assertion fail there and pass on a developer machine.
+  const base = await fsp.realpath(await fsp.mkdtemp(path.join(os.tmpdir(), 'rata-write-')))
   const root = path.join(base, 'root')
   const outside = path.join(base, 'outside')
   await fsp.mkdir(path.join(root, 'sub'), { recursive: true })

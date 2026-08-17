@@ -123,7 +123,7 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
 - Audio is validated twice, at the IPC edge and again before a process is spawned: the renderer is not a boundary. Oversized or non-WAV payloads are refused before anything touches disk.
 - The recording is the user's voice: it is written to a randomly named temp file and removed in a `finally` on every path. The transcript is never written to an audit event, and failure messages are fixed strings because the transcriber's stderr carries model and machine detail.
 - Transcription is fully offline and adds no network egress, so unlike file reads and weather it needs no confirmation setting.
-- See `docs/decisions/ADR-013-local-speech-to-text.md`.
+- See `docs/decisions/ADR-018-local-speech-to-text.md`.
 - Validate settings, messages and approval identifiers in the main process before use. Preload and TypeScript types are developer ergonomics, not a trust boundary.
 - Settings loaded from disk pass through the same runtime validators as IPC
   writes. Unknown and invalid values are rejected and audited; invalid
