@@ -7,8 +7,10 @@
   "typing": { "file": "expressions/21_loading.png", "label": "working" },
   "success": { "file": "expressions/23_task_complete.png", "label": "success" },
   "error": { "file": "expressions/22_error.png", "label": "error" },
+  "blocked": { "file": "expressions/13_skeptical.png", "label": "blocked" },
+  "unavailable": { "file": "expressions/12_confused.png", "label": "unavailable" },
   "sleeping": { "file": "expressions/09_asleep.png", "label": "asleep" },
-  "bored": { "file": "expressions/13_skeptical.png", "label": "bored" },
+  "bored": { "file": "expressions/01_neutral.png", "label": "bored" },
   "peeking": { "file": "expressions/05_peeking.png", "label": "peeking" },
   "sleepy": { "file": "expressions/08_sleepy.png", "label": "sleepy" },
   "excited": { "file": "expressions/19_celebrating.png", "label": "excited" }

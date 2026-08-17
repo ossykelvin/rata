@@ -429,7 +429,7 @@ class MockAgent {
     if (routed.missingTools.length) {
       return {
         message: `${routed.skill?.name || skillId} is installed, but its tools are not registered yet (${routed.missingTools.join(', ')}). Skills cannot bypass the Tool Registry.`,
-        state: 'idle'
+        state: 'unavailable'
       }
     }
 
@@ -449,13 +449,14 @@ class MockAgent {
       } catch (error) {
         const reason = error instanceof Error ? error.message : 'Invalid tool input.'
         this.activity('Blocked action', `${id}: ${reason}`, 'warning')
-        return { message: `I blocked that action: ${reason}`, state: 'error' }
+        // A refusal, not a failure: Rata is working correctly when it declines.
+        return { message: `I blocked that action: ${reason}`, state: 'blocked' }
       }
     }
     const decision = this.policy.evaluate(tool, validatedInput, this.settings())
     if (decision.decision === 'deny') {
       this.activity('Blocked action', `${id}: ${decision.reason}`, 'warning')
-      return { message: `I blocked that action: ${decision.reason}`, state: 'error' }
+      return { message: `I blocked that action: ${decision.reason}`, state: 'blocked' }
     }
     if (decision.decision === 'confirm') {
       const pendingId = crypto.randomUUID()

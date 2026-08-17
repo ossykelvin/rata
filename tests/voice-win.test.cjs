@@ -100,7 +100,12 @@ test('disabling the microphone mid-session stops the recognizer', async () => {
   assert.deepEqual(stopped, ['stop'])
 })
 
-test('start during stop waits for the old child and does not spawn a second powershell', async () => {
+test('repeated start and stop never spawns a second powershell', async () => {
+  // Was: "start during stop waits for the old child and does not spawn a
+  // second powershell". That race guarded a design where every press spawned
+  // its own process. The recognizer is now one warm process that acquires and
+  // releases the microphone on command, so a second spawn is structurally
+  // impossible rather than merely avoided. FIX-008.
   const spawned = []
   const voice = createWindowsVoice({
     spawnProcess: () => {
@@ -114,14 +119,23 @@ test('start during stop waits for the old child and does not spawn a second powe
   await voice.start()
   assert.equal(spawned.length, 1)
   voice.stop()
-  const restart = voice.start()
-  assert.equal(spawned.length, 1, 'second start must wait for the old child to exit')
-  spawned[0].emit('exit', 0)
-  await restart
-  assert.equal(spawned.length, 2)
+  await voice.start()
+  voice.stop()
+  await voice.start()
+  assert.equal(spawned.length, 1, 'a press spawned another powershell.exe')
+
+  // The microphone is still released between presses: STOP calls
+  // SetInputToNull() in the script, so warm does not mean an open mic.
+  assert.deepEqual(
+    spawned[0].stdinWrites,
+    ['LISTEN\n', 'STOP\n', 'LISTEN\n', 'STOP\n', 'LISTEN\n']
+  )
 })
 
-test('an old child exit does not clear a newer child reference', async () => {
+test('a replacement recognizer is not clobbered by the old one exiting', async () => {
+  // The warm process only respawns after it has died, so the stale-callback
+  // hazard is narrower than before but still real: the old child's exit event
+  // can arrive after a replacement has been created.
   const spawned = []
   const voice = createWindowsVoice({
     spawnProcess: () => {
@@ -129,19 +143,21 @@ test('an old child exit does not clear a newer child reference', async () => {
       spawned.push(child)
       return child
     },
-    sendTranscript: () => {}
+    sendTranscript: () => {},
+    logActivity: () => {}
   })
 
   await voice.start()
   const first = spawned[0]
-  voice.stop()
-  const restart = voice.start()
-  first.emit('exit', 0)
-  await restart
+  first.emit('exit', 1)          // died on its own
+  await voice.start()            // respawns
   const second = spawned[1]
-  first.emit('exit', 0)
+  assert.equal(spawned.length, 2)
+
+  first.emit('exit', 1)          // late duplicate from the dead child
   voice.stop()
-  assert.deepEqual(second.stdinWrites, ['\n'])
+  // The replacement is still the live child and still receives commands.
+  assert.deepEqual(second.stdinWrites, ['LISTEN\n', 'STOP\n'])
 })
 
 test('voice channels are declared on the shared contract', () => {
@@ -342,6 +358,67 @@ test('a confident result is delivered to the renderer', async () => {
   assert.deepEqual(transcripts, [{ transcript: 'open notepad' }])
 })
 
+test("the user's own measured speech is delivered, not discarded", async () => {
+  // Ten consecutive spoken results on the reporting user's hardware scored
+  // 0.003 to 0.167. Gates of 0.4 and then 0.2 sat above every one of them, so
+  // every word was discarded and the feature looked dead while working.
+  const measured = [0.003, 0.012, 0.051, 0.060, 0.088, 0.101, 0.122, 0.125, 0.151, 0.167]
+  const transcripts = []
+  const child = fakeChild()
+  const voice = createWindowsVoice({
+    spawnProcess: () => child,
+    sendTranscript: payload => transcripts.push(payload),
+    logActivity: () => {}
+  })
+  await voice.start()
+  for (const score of measured) {
+    child.stdout.emit('data', `${score.toFixed(3)}|utterance at ${score}
+`)
+  }
+  assert.ok(transcripts.length > 0, 'real measured speech was discarded again')
+  // The last thing delivered is the best heard, not the last heard.
+  assert.match(transcripts[transcripts.length - 1].transcript, /0\.167/)
+})
+
+test('only an improvement on the session best is delivered', async () => {
+  const transcripts = []
+  const child = fakeChild()
+  const voice = createWindowsVoice({
+    spawnProcess: () => child,
+    sendTranscript: payload => transcripts.push(payload),
+    logActivity: () => {}
+  })
+  await voice.start()
+  child.stdout.emit('data', '0.120|first guess\n')
+  child.stdout.emit('data', '0.090|worse fragment\n')
+  child.stdout.emit('data', '0.300|much better\n')
+  child.stdout.emit('data', '0.100|trailing noise\n')
+  assert.deepEqual(
+    transcripts.map(payload => payload.transcript),
+    ['first guess', 'much better'],
+    'a worse later fragment overwrote a better transcript'
+  )
+})
+
+test('a new session starts its own best, so a quiet utterance still lands', async () => {
+  const transcripts = []
+  const children = [fakeChild(), fakeChild()]
+  let index = 0
+  const voice = createWindowsVoice({
+    spawnProcess: () => children[index++],
+    sendTranscript: payload => transcripts.push(payload),
+    logActivity: () => {}
+  })
+  await voice.start()
+  children[0].stdout.emit('data', '0.400|loud first session\n')
+  voice.stop()
+  children[0].emit('exit', 0)
+  await voice.start()
+  transcripts.length = 0
+  children[1].stdout.emit('data', '0.090|quiet second session\n')
+  assert.deepEqual(transcripts.map(p => p.transcript), ['quiet second session'])
+})
+
 test('a low-confidence result is audited rather than discarded in silence', async () => {
   // "Heard nothing" and "heard something and threw it away" are different
   // problems. They used to be indistinguishable from outside the recognizer,
@@ -356,11 +433,11 @@ test('a low-confidence result is audited rather than discarded in silence', asyn
   })
   await voice.start()
   events.length = 0
-  child.stdout.emit('data', '0.120|and if were\n')
+  child.stdout.emit('data', '0.012|and if were\n')
 
-  assert.equal(transcripts.length, 0, 'a low-confidence guess reached the input box')
+  assert.equal(transcripts.length, 0, 'an artefact reached the input box')
   assert.equal(events.length, 1, 'the discard was not audited')
-  assert.match(events[0].detail, /0\.120/)
+  assert.match(events[0].detail, /0\.012/)
   assert.match(events[0].detail, /and if were/)
 })
 
@@ -368,7 +445,9 @@ test('the gate is low enough not to swallow ordinary speech', () => {
   // A first attempt at 0.4 was tuned partly on synthesised audio scoring
   // 0.681, which is far cleaner than a real microphone in a real room, and it
   // silently swallowed genuine speech.
-  assert.ok(MIN_CONFIDENCE <= 0.25, `MIN_CONFIDENCE ${MIN_CONFIDENCE} is high enough to drop real speech`)
+  // The reporting user's speech peaked at 0.167. Anything at or above that
+  // discards every word they say.
+  assert.ok(MIN_CONFIDENCE < 0.167, `MIN_CONFIDENCE ${MIN_CONFIDENCE} discards real measured speech`)
 })
 
 test('the recognizer script emits confidence with every result', () => {

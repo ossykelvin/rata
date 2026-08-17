@@ -23,6 +23,7 @@ const { createWindowsVoice } = require('./voice-win.cjs')
 const { IPC } = require('../packages/contracts/ipc-channels.cjs')
 const { createSkillRegistry, createSkillRouter, createSkillLoader } = require('../packages/skills/index.cjs')
 const { createFileAccess } = require('./file-access.cjs')
+const { createFilesystemScan } = require('./filesystem-scan.cjs')
 
 let overlayWindow
 let controlWindow
@@ -33,6 +34,7 @@ let skillRuntime
 let security
 let runtimeConfig
 let providers
+let voice
 
 const isDev = !app.isPackaged
 const APP_ID = 'uk.koptechnology.rata'
@@ -50,6 +52,22 @@ const PRELOAD_BUNDLE = path.join(PROJECT_ROOT, 'dist-electron', 'preload.cjs')
 function rendererTarget(route) {
   if (isDev) return `${DEV_URL}#/${route}`
   return `${PACKAGED_ENTRY}#/${route}`
+}
+
+/**
+ * The user-scoped folders Rata may read. Every filesystem capability is bound
+ * to this one list, decided here in the composition root: no tool module, skill
+ * or model input can name a root, so none can widen the surface. System
+ * directories and arbitrary drive roots are absent on purpose.
+ */
+function userFolderRoots() {
+  return ['documents', 'downloads', 'desktop'].map(name => {
+    try {
+      return app.getPath(name)
+    } catch {
+      return ''
+    }
+  })
 }
 
 /**
@@ -280,7 +298,7 @@ if (!hasSingleInstanceLock) {
     // REVIEW-001 M4 / Codex b1d9c52: renderer `microphoneEnabled` is not a
     // boundary. Deny media unless the setting is on; deny every other permission.
     applySessionPermissionHandler(session.defaultSession, () => store.getSettings())
-    const voice = createWindowsVoice({
+    voice = createWindowsVoice({
       sendTranscript: payload => {
         for (const win of BrowserWindow.getAllWindows()) win.webContents.send(IPC.voiceTranscript, payload)
       },
@@ -296,15 +314,11 @@ if (!hasSingleInstanceLock) {
         // Read-only local file access, bound to three user folders. The roots
         // are decided here and closed over, so no discovered tool module can
         // widen them. RATA-006.
-        fileAccess: createFileAccess({
-          roots: ['documents', 'downloads', 'desktop'].map(name => {
-            try {
-              return app.getPath(name)
-            } catch {
-              return ''
-            }
-          })
-        }),
+        fileAccess: createFileAccess({ roots: userFolderRoots() }),
+        // Read-only storage inventory over exactly the same roots, so there is
+        // one answer to "which folders may Rata look at" rather than two.
+        // RATA-SKILL-007.
+        filesystemScan: createFilesystemScan({ roots: userFolderRoots() }),
         revealItem: target => shell.showItemInFolder(target),
         // Bound capability again: the WeatherAPI key stays in the client
         // closure and never enters the dependency bag. RATA-007.
@@ -378,7 +392,12 @@ if (!hasSingleInstanceLock) {
     })
   })
 
-  app.on('before-quit', () => { app.isQuitting = true })
+  app.on('before-quit', () => {
+    app.isQuitting = true
+    // The recognizer is a long-lived warm process now, so it has to be told
+    // to exit or a powershell.exe is left behind after Rata quits.
+    voice?.dispose?.()
+  })
   app.on('window-all-closed', event => {
     event?.preventDefault?.()
   })
