@@ -1,4 +1,8 @@
-# ADR-013: Local speech to text via Handy
+# ADR-018: Local speech to text via Handy
+
+> Renumbered from ADR-013. RATA-009 and the session-continuity work both landed
+> on 2026-08-17 and both claimed 013. Session continuity merged first and keeps
+> the number; this one moved rather than leaving two ADR-013s in the sequence.
 
 Status: Proposed — requires Claude security review before acceptance
 
