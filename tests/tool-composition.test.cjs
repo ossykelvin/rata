@@ -28,9 +28,11 @@ const TOOLS_DIR = path.join(__dirname, '..', 'electron', 'tools')
 // presentation.render and file.save so the document and presentation skills
 // can generate Markdown/HTML and save it. RATA-014 added folder.create,
 // file.move and file.rename so File Organizer can create a folder and move
-// or rename files inside the same roots. Updated deliberately: this list is
-// the privileged tool surface, and it must only change when a tool is
-// consciously added.
+// or rename files inside the same roots. RATA-015 added screen.capture and
+// vision.analyze so Screenshot Inspector can capture the primary display
+// and send the approved image to a vision provider. Updated deliberately:
+// this list is the privileged tool surface, and it must only change when a
+// tool is consciously added.
 const EXPECTED_TOOL_IDS = [
   'calculator.evaluate',
   'clipboard.write',
@@ -50,6 +52,7 @@ const EXPECTED_TOOL_IDS = [
   'folder.create',
   'presentation.create',
   'presentation.render',
+  'screen.capture',
   'system.info',
   'system.keepAwake.start',
   'system.keepAwake.status',
@@ -57,6 +60,7 @@ const EXPECTED_TOOL_IDS = [
   'system.openApp',
   'system.processSummary',
   'system.storage',
+  'vision.analyze',
   'weather.current',
   'web.fetch',
   'web.search'

@@ -7,7 +7,7 @@ const { spawn } = require('node:child_process')
 const crypto = require('node:crypto')
 const { JsonStore } = require('./store.cjs')
 const { PolicyEngine } = require('../packages/agent-core/policy-engine.cjs')
-const { MockAgent } = require('../packages/agent-core/mock-agent.cjs')
+const { MockAgent, SYSTEM_PROMPT } = require('../packages/agent-core/mock-agent.cjs')
 const { createToolRegistry } = require('./tools/index.cjs')
 const { createWindowsVolumeLister, createWindowsProcessLister } = require('./tools/system.cjs')
 const { createSerperSearch } = require('./serper-client.cjs')
@@ -27,6 +27,7 @@ const { createSkillRegistry, createSkillRouter, createSkillLoader } = require('.
 const { createFileAccess } = require('./file-access.cjs')
 const { createHandyTranscriber, candidateExecutables } = require('./handy-stt.cjs')
 const { createFilesystemScan } = require('./filesystem-scan.cjs')
+const { createScreenCapture } = require('./screen-capture.cjs')
 
 let overlayWindow
 let controlWindow
@@ -88,6 +89,58 @@ function logActivity(action, detail, status = 'info') {
   for (const win of BrowserWindow.getAllWindows()) win.webContents.send(IPC.activity, event)
 }
 
+function protectFromCapture(window) {
+  try {
+    window.setContentProtection(true)
+  } catch {
+    // Some platforms cannot exclude this window from a screen capture.
+  }
+}
+
+function ownWindowSourceIds() {
+  return BrowserWindow.getAllWindows()
+    .filter(win => !win.isDestroyed())
+    .map(win => {
+      try {
+        return win.getMediaSourceId()
+      } catch {
+        return null
+      }
+    })
+    .filter(Boolean)
+}
+
+function createDesktopScreenCapture() {
+  return createScreenCapture({
+    getSources: async () => {
+      const { desktopCapturer } = require('electron')
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: 1920, height: 1920 }
+      })
+      return sources.map(source => {
+        const size = source.thumbnail.getSize()
+        return {
+          id: source.id,
+          displayId: source.display_id,
+          width: size.width,
+          height: size.height,
+          png: source.thumbnail.toPNG()
+        }
+      })
+    },
+    getPrimaryDisplayId: () => String(screen.getPrimaryDisplay().id),
+    ownWindowSourceIds,
+    resizePng: ({ png, width, height, maxWidth }) => {
+      const image = nativeImage.createFromBuffer(png)
+      const scaledHeight = Math.max(1, Math.round((height * maxWidth) / width))
+      const resized = image.resize({ width: maxWidth, height: scaledHeight, quality: 'best' })
+      const size = resized.getSize()
+      return { png: resized.toPNG(), width: size.width, height: size.height }
+    }
+  })
+}
+
 function windowPreferences() {
   if (!existsSync(PRELOAD_BUNDLE)) {
     throw new Error('Sandboxed preload bundle is missing. Run npm run build:preload before starting Rata.')
@@ -122,6 +175,7 @@ function createOverlay() {
   })
   overlayWindow = window
   security.applyWindowGuards(window)
+  protectFromCapture(window)
   window.setAlwaysOnTop(settings.alwaysOnTop, 'floating')
   window.loadURL(rendererTarget('overlay'))
   window.once('ready-to-show', () => {
@@ -163,6 +217,7 @@ function createControlCenter() {
     webPreferences: windowPreferences()
   })
   security.applyWindowGuards(controlWindow)
+  protectFromCapture(controlWindow)
   controlWindow.loadURL(rendererTarget('control'))
   controlWindow.once('ready-to-show', () => controlWindow.show())
   controlWindow.on('show', () => controlWindow.setSkipTaskbar(false))
@@ -324,6 +379,8 @@ if (!hasSingleInstanceLock) {
       },
       logActivity
     })
+    providers = createProviders()
+    const screenCapture = createDesktopScreenCapture()
     const registry = createToolRegistry({
       dependencies: {
         spawnProcess: spawn,
@@ -355,10 +412,18 @@ if (!hasSingleInstanceLock) {
         weatherCurrent: createWeatherClient({
           apiKey: runtimeConfig.weather.apiKey,
           ...(runtimeConfig.weather.baseUrl ? { endpoint: runtimeConfig.weather.baseUrl } : {})
+        }),
+        screenCapture,
+        screenCaptureEnabled: () => store.getSettings().screenCaptureEnabled === true,
+        visionGenerate: async ({ question, image }) => providers.generate({
+          prompt: question,
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: question, image }
+          ]
         })
       }
     })
-    providers = createProviders()
     const policy = new PolicyEngine()
     skillRuntime = createSkillRuntime(registry)
     agent = new MockAgent({

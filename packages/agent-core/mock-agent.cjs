@@ -449,6 +449,13 @@ class MockAgent {
       return this.ask(text, { skillId, preferredProvider: 'openrouter' })
     }
 
+    if (skillId === 'screenshot-inspector' && routed.missingTools.length === 0) {
+      return this.runTool('screen.capture', {}, 'Capture the primary display', {
+        kind: 'inspect-screenshot',
+        question: text
+      })
+    }
+
     if (routed.missingTools.length) {
       return {
         message: `${routed.skill?.name || skillId} is installed, but its tools are not registered yet (${routed.missingTools.join(', ')}). Skills cannot bypass the Tool Registry.`,
@@ -495,6 +502,7 @@ class MockAgent {
       const pendingId = crypto.randomUUID()
       this.rememberPending(pendingId, { id, input: validatedInput, title, continuation })
       this.activity('Approval requested', `${title} requires approval.`, 'warning')
+      const previewImage = this.registry.previewImage?.(id, validatedInput)
       return {
         message: 'I can do that, but this action needs your approval.',
         state: 'awaiting_approval',
@@ -502,7 +510,8 @@ class MockAgent {
           id: pendingId,
           title,
           detail: continuation?.approvalDetail || this.registry.preview(id, validatedInput),
-          risk: tool.risk
+          risk: tool.risk,
+          ...(typeof previewImage === 'string' ? { previewImage } : {})
         }
       }
     }
@@ -547,6 +556,12 @@ class MockAgent {
       }
       if (continuation?.kind === 'trivia-search') {
         return this.answerTriviaWithSearch(continuation.question, result)
+      }
+      if (continuation?.kind === 'inspect-screenshot') {
+        return this.runTool('vision.analyze', {
+          handle: result.handle,
+          question: continuation.question
+        }, 'Analyse this screenshot')
       }
       return { message: result.message, state: 'success' }
     } catch (error) {

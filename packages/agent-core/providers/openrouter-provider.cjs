@@ -29,7 +29,22 @@ function createOpenRouterProvider({
     if (typeof fetchImpl !== 'function') throw new ProviderError('No fetch implementation available.', { provider: 'openrouter' })
 
     const { system, turns } = buildPrompt(messages)
-    const chatMessages = system ? [{ role: 'system', content: system }, ...turns] : turns
+    const chatTurns = turns.map(turn => {
+      if (!turn.image) return { role: turn.role, content: turn.content }
+      return {
+        role: turn.role,
+        content: [
+          { type: 'text', text: turn.content },
+          {
+            type: 'image_url',
+            image_url: {
+              url: `data:${turn.image.mimeType};base64,${turn.image.data}`
+            }
+          }
+        ]
+      }
+    })
+    const chatMessages = system ? [{ role: 'system', content: system }, ...chatTurns] : chatTurns
 
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
@@ -85,6 +100,7 @@ function createOpenRouterProvider({
     id: 'openrouter',
     label: 'OpenRouter',
     model,
+    supportsVision: true,
     isConfigured: () => configured,
     generate
   }

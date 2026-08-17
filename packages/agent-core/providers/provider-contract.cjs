@@ -18,9 +18,30 @@
  * `messages` is `[{ role: 'system'|'user'|'assistant'|'context', content }]`.
  * The `context` role carries retrieved material (web results, file text). It
  * is rendered to the model as explicitly untrusted data — see buildPrompt().
+ *
+ * A user turn may carry an optional sibling `image: { mimeType, data }`.
+ * `content` stays a non-empty string — it is never an array of parts.
+ * See docs/decisions/ADR-020-screen-capture-and-vision.md.
  */
 
 const ROLES = Object.freeze(['system', 'user', 'assistant', 'context'])
+const IMAGE_MIME_TYPES = Object.freeze(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'])
+
+function assertImage(image) {
+  if (!image || typeof image !== 'object' || Array.isArray(image)) {
+    throw new ProviderError('Message image must be an object.')
+  }
+  if (typeof image.mimeType !== 'string' || !IMAGE_MIME_TYPES.includes(image.mimeType)) {
+    throw new ProviderError('Message image mimeType is not supported.')
+  }
+  if (typeof image.data !== 'string' || !image.data.trim()) {
+    throw new ProviderError('Message image data must be a non-empty string.')
+  }
+  if (image.data.startsWith('data:')) {
+    throw new ProviderError('Message image data must be raw base64, not a data URL.')
+  }
+  return { mimeType: image.mimeType, data: image.data }
+}
 
 class ProviderError extends Error {
   constructor(message, { provider, status, retryable = false } = {}) {
@@ -43,8 +64,22 @@ function assertMessages(messages) {
     if (typeof message.content !== 'string' || !message.content.trim()) {
       throw new ProviderError('Each message must carry non-empty text.')
     }
+    if (Object.prototype.hasOwnProperty.call(message, 'image')) {
+      if (message.role !== 'user') {
+        throw new ProviderError('Only user turns may include an image.')
+      }
+      assertImage(message.image)
+    }
   }
   return messages
+}
+
+function messageHasImage(message) {
+  return Boolean(message && Object.prototype.hasOwnProperty.call(message, 'image'))
+}
+
+function messagesWantVision(messages) {
+  return Array.isArray(messages) && messages.some(messageHasImage)
 }
 
 /**
@@ -80,7 +115,11 @@ function buildPrompt(messages) {
       turns.push({ role: 'user', content: fenceUntrusted(message.content) })
       continue
     }
-    turns.push({ role: message.role, content: message.content })
+    const turn = { role: message.role, content: message.content }
+    if (message.role === 'user' && message.image) {
+      turn.image = { mimeType: message.image.mimeType, data: message.image.data }
+    }
+    turns.push(turn)
   }
   return { system: system.join('\n\n'), turns }
 }
@@ -94,4 +133,15 @@ function safeErrorMessage(error) {
     .slice(0, 300)
 }
 
-module.exports = { ROLES, ProviderError, assertMessages, buildPrompt, fenceUntrusted, safeErrorMessage }
+module.exports = {
+  ROLES,
+  IMAGE_MIME_TYPES,
+  ProviderError,
+  assertMessages,
+  assertImage,
+  buildPrompt,
+  fenceUntrusted,
+  safeErrorMessage,
+  messageHasImage,
+  messagesWantVision
+}

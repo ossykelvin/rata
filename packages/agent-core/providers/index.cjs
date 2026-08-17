@@ -1,6 +1,6 @@
 'use strict'
 
-const { ProviderError, safeErrorMessage } = require('./provider-contract.cjs')
+const { ProviderError, safeErrorMessage, messagesWantVision } = require('./provider-contract.cjs')
 const { createMockProvider } = require('./mock-provider.cjs')
 const { createGeminiProvider } = require('./gemini-provider.cjs')
 const { createOpenRouterProvider } = require('./openrouter-provider.cjs')
@@ -75,6 +75,7 @@ function createProviderChain({
         id: provider.id,
         label: provider.label,
         model: provider.model,
+        supportsVision: provider.supportsVision === true,
         // Whether a credential is present. Never the credential itself.
         configured: provider.isConfigured()
       }))
@@ -85,7 +86,16 @@ function createProviderChain({
    * @returns {{text, model, provider, attempts: Array<{provider, error}>}}
    */
   async function generate({ messages, signal, prompt = '', preferredProvider = null }) {
-    const candidates = plan(prompt, { preferredProvider })
+    let candidates = plan(prompt, { preferredProvider })
+    if (messagesWantVision(messages)) {
+      candidates = candidates.filter(provider => provider.supportsVision === true)
+      if (candidates.length === 0) {
+        throw new ProviderError(
+          'No vision-capable provider is configured. Screen analysis cannot run as text-only.',
+          { provider: 'chain' }
+        )
+      }
+    }
     const attempts = []
     let lastError = null
 

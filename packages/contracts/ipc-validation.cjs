@@ -39,7 +39,10 @@ const settingValidators = Object.assign(Object.create(null), {
   weatherConfirm: value => typeof value === 'boolean',
   // Communicator sends the user's request and Rata's reply to a provider.
   // Opt-in; a fresh install performs no extra egress. ADR-012.
-  communicatorEnabled: value => typeof value === 'boolean'
+  communicatorEnabled: value => typeof value === 'boolean',
+  // Master switch for screen.capture and vision.analyze. Off by default.
+  // Confirmation is always, independent of this setting. ADR-020.
+  screenCaptureEnabled: value => typeof value === 'boolean'
 })
 
 /** The complete set of writable settings. Use this rather than `key in obj`. */
