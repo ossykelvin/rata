@@ -578,7 +578,7 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 **Done:** Registered `folder.create`, `file.move` and `file.rename`. Same containment as `file.save`: Documents, Downloads, Desktop; parent through existing `resolveWithinRoots`; basename rules; denied names and executable destinations refused. v1 is files-only for move/rename, folders-only for folder.create, non-recursive mkdir, same-volume rename. `file.rename` cannot change directories. Overwrite always confirms. A denied-name source may be renamed to a safe name. `file.delete` stays disabled. Skill files and planner/communicator enums were not edited.
 
-**Files touched:** `electron/file-access.cjs`, `electron/tools/file.cjs`, `tests/file-organize.test.cjs`, `tests/file-access-security.test.cjs`, `tests/tool-composition.test.cjs`, `docs/decisions/ADR-017-file-organize-writes.md`, `docs/decisions/ADR-016-file-write-boundary.md`, `docs/decisions/ADR-010-readonly-local-file-access.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/VALIDATION.md`, `docs/TASKS.md`.
+**Files touched:** `electron/file-access.cjs`, `electron/tools/file.cjs`, `tests/file-organize.test.cjs`, `tests/file-access-security.test.cjs`, `tests/tool-composition.test.cjs`, `docs/decisions/ADR-019-file-organize-writes.md`, `docs/decisions/ADR-016-file-write-boundary.md`, `docs/decisions/ADR-010-readonly-local-file-access.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/VALIDATION.md`, `docs/TASKS.md`.
 
 **Validation:** `npm run verify` exit 0, **476/476**. Registry proof with a composed tool registry: `file-organizer ready available=["file.search","folder.create","file.move","file.rename"] missing=[]`.
 

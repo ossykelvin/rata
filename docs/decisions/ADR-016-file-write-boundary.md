@@ -4,7 +4,7 @@ Status: Proposed — requires Claude security review before acceptance
 
 Supersedes nothing. Completes the write half that ADR-010 deferred. Organize
 verbs (`file.move`, `file.rename`, `folder.create`) are specified in
-`docs/decisions/ADR-017-file-organize-writes.md`.
+`docs/decisions/ADR-019-file-organize-writes.md`.
 
 ## Context
 

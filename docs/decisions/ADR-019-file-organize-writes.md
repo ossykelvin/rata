@@ -1,4 +1,7 @@
-# ADR-017: File organize writes
+# ADR-019: File organize writes
+
+> Renumbered from ADR-017, which was already taken by the Microsoft Graph
+> scope decision. Second number collision in two days; see the note at the end.
 
 Status: Proposed — requires Claude security review before acceptance
 

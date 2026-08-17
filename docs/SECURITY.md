@@ -62,7 +62,7 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
 - `file.rename` cannot change directories; that is `file.move`. v1 moves and renames files only, not folders. Cross-volume rename fails closed (no copy-then-delete). The move/rename approval card names resolved absolute source and destination, and whether it overwrites.
 - `file.delete` stays registered and disabled.
 - `document.create`, `presentation.create` and `presentation.render` generate Markdown or self-contained HTML only — not `.docx` or PowerPoint. They do no I/O. Every interpolated HTML value is escaped; `javascript:` / `data:` URLs and `onerror=` do not survive.
-- See `docs/decisions/ADR-016-file-write-boundary.md` and `docs/decisions/ADR-017-file-organize-writes.md`.
+- See `docs/decisions/ADR-016-file-write-boundary.md` and `docs/decisions/ADR-019-file-organize-writes.md`.
 
 ### Storage inventory
 
