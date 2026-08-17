@@ -101,6 +101,24 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ## Claude
 
+### 2026-08-17 — RATA-010 — Expression mapping
+
+**Status:** DONE, awaiting review. Branch `claude/RATA-010-expression-mapping`.
+
+24 expressions shipped in RATA-003; 11 were mapped. Three real problems, fixed by mapping to triggers that already exist rather than by inventing states:
+
+1. **A refusal wore the failure face.** `runTool` returned `state: 'error'` both when a tool genuinely failed and when the policy engine or a validator *declined* it. Rata blocking a destructive action is Rata working correctly, and it looked like a crash. New `blocked` state -> `13_skeptical`.
+2. **A skill with unregistered tools returned `idle`**, so "installed, but its tools are not registered yet" showed a resting face. New `unavailable` state -> `12_confused`.
+3. **`sleeping` was unreachable.** It was in the type and had artwork, but the idle drift stopped at `sleepy` and nothing else ever set it. Added a fourth stage at ten minutes, so the arc is bored -> peeking -> sleepy -> asleep. `bored` moved to `01_neutral`, which also makes that progression read as a sequence.
+
+Mapped is now 13 of 24. **The remaining 11 are deliberately unmapped and pinned by a test**, because wiring an expression to a state nothing sets is worse than leaving it on disk: it looks connected and never appears. Changing that list is now a conscious edit.
+
+Candidates if someone wants to wire them: `14_worried` for provider fallback (the Gemini 429 -> OpenRouter case already logs an activity event, but the reply state stays `success`, so it needs threading through), `20_encouraging` for critical-thinking replies, `24_coffee_activated` for keep-awake once RATA-005 lands.
+
+**Left alone deliberately:** `idle` still uses `rata-concept.png`, the 477x727 full-body art, rather than `01_neutral` at 256px. It is pinned by a test and it is a visual product decision, not a mapping bug, so it is flagged to the user rather than changed.
+
+**Validation.** `npm run verify` 319/319. Four new tests: every mapped state points at a distinct existing asset, a refusal and a failure never share a face, the drift reaches `sleeping`, and the unused set is pinned. One existing policy test updated deliberately, since it asserted `state === 'error'` for a blocked destructive tool.
+
 ### 2026-08-17 — FIX-006 — My confidence gate swallowed real speech
 
 **Status:** DONE, awaiting review. Branch `claude/FIX-006-voice-confidence-visibility`.

@@ -21,7 +21,11 @@ import type { CharacterState } from '../../types'
 export const IDLE_STAGES = [
   { after: 60_000, state: 'bored' },
   { after: 120_000, state: 'peeking' },
-  { after: 180_000, state: 'sleepy' }
+  { after: 180_000, state: 'sleepy' },
+  // Fully asleep after ten quiet minutes. Without this last stage the
+  // 'sleeping' state and its artwork were unreachable: nothing in the app ever
+  // set it, so the asset shipped but never appeared. RATA-010.
+  { after: 600_000, state: 'sleeping' }
 ] as const satisfies readonly { after: number; state: CharacterState }[]
 
 /** How long the wake-up celebration lasts before returning to idle. */
