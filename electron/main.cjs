@@ -1,5 +1,6 @@
-const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, Notification, clipboard, session, shell } = require('electron')
-const { existsSync } = require('node:fs')
+const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, Notification, clipboard, session, shell, powerSaveBlocker } = require('electron')
+const { existsSync, statfsSync } = require('node:fs')
+const os = require('node:os')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const { spawn } = require('node:child_process')
@@ -8,6 +9,7 @@ const { JsonStore } = require('./store.cjs')
 const { PolicyEngine } = require('../packages/agent-core/policy-engine.cjs')
 const { MockAgent } = require('../packages/agent-core/mock-agent.cjs')
 const { createToolRegistry } = require('./tools/index.cjs')
+const { createWindowsVolumeLister, createWindowsProcessLister } = require('./tools/system.cjs')
 const { createSerperSearch } = require('./serper-client.cjs')
 const { createWeatherClient } = require('./weather-client.cjs')
 const { loadRuntimeConfig, describeConfig } = require('./config.cjs')
@@ -326,6 +328,16 @@ if (!hasSingleInstanceLock) {
       dependencies: {
         spawnProcess: spawn,
         clipboardApi: clipboard,
+        osApi: os,
+        listStorage: createWindowsVolumeLister(statfsSync),
+        listProcesses: createWindowsProcessLister(spawn),
+        powerSaveBlocker,
+        clock: {
+          now: () => Date.now(),
+          setTimer: setTimeout,
+          clearTimer: clearTimeout,
+          onQuit: handler => app.on('before-quit', handler)
+        },
         // A bound capability, not the credential. The key stays inside the
         // client closure, so no discovered module can read it.
         webSearch: createSerperSearch({ apiKey: runtimeConfig.serper.apiKey }),

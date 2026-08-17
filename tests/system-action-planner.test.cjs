@@ -17,13 +17,33 @@ const {
 // places that matter: the parser must accept nothing but the one fixed shape,
 // and a rejected plan must spawn no process at all.
 
+function nativeSystemDeps(spawnProcess) {
+  return {
+    spawnProcess,
+    osApi: {
+      type: () => 'Windows_NT',
+      platform: () => 'win32',
+      release: () => '10.0',
+      version: () => 'Windows 10',
+      arch: () => 'x64',
+      totalmem: () => 0,
+      freemem: () => 0,
+      uptime: () => 0
+    },
+    listStorage: async () => [],
+    listProcesses: async () => [],
+    powerSaveBlocker: { start: () => 1, stop: () => true },
+    clock: { now: () => 0, setTimer: () => 0, clearTimer: () => {} }
+  }
+}
+
 function harness({ text = '{"version":1,"action":"none"}', spawnCalls = [] } = {}) {
   const registry = new ToolRegistry()
   const spawnProcess = (exe, args, options) => {
     spawnCalls.push({ exe, args, options })
     return { unref() {} }
   }
-  for (const definition of systemModule.create({ spawnProcess })) {
+  for (const definition of systemModule.create(nativeSystemDeps(spawnProcess))) {
     registry.register(definition)
   }
   const provider = { generate: async () => ({ text, attempts: [] }) }
@@ -161,7 +181,7 @@ test('the deterministic path never consults the provider', async () => {
     spawnCalls.push({ exe, args, options })
     return { unref() {} }
   }
-  for (const definition of systemModule.create({ spawnProcess })) registry.register(definition)
+  for (const definition of systemModule.create(nativeSystemDeps(spawnProcess))) registry.register(definition)
   let consulted = false
   const agent = new MockAgent({
     registry,

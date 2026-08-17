@@ -54,5 +54,8 @@ Then verify:
 21. Activity page records the scan as counts and a scope (for example `filesystem.scan: Scanned Documents: 412 file(s), 1.3 GB`) and **not** as a list of file names.
 22. “Think critically about this…” loads the Critical Thinking skill prompt and answers through the provider chain (OpenRouter first in `auto` mode, then Gemini). It must not reply that the mock agent has no live provider. Mock remains the terminal fallback if live providers are unset or fail; `RATA_AI_PROVIDER=auto` (or a stored non-mock provider) is required for Gemini/OpenRouter.
 23. In one session, a follow-up such as “what colour did I mention?” after “my favourite colour is teal” is answered with that earlier fact. `weather in Leeds` still runs the weather tool. Quitting Rata clears the transcript.
+24. “Think critically about this…” loads the Critical Thinking skill prompt and answers through the provider chain (OpenRouter first in `auto` mode, then Gemini). It must not reply that the mock agent has no live provider. Mock remains the terminal fallback if live providers are unset or fail; `RATA_AI_PROVIDER=auto` (or a stored non-mock provider) is required for Gemini/OpenRouter.
+25. “How much RAM do I have?” / “How much disk space is free?” use `system.info` and `system.storage`. Process summaries must not show command lines or window titles.
+26. “Keep my PC awake for two hours” holds one sleep blocker and auto-releases. “Stop keeping the computer awake” is safe even if nothing was held. Quit Rata from the tray also releases the blocker.
 
 The Control Center window, Windows taskbar, and system tray use `public/24_dialog_avatar_reply.png`. Packaged Windows builds take the same file as `win.icon`.

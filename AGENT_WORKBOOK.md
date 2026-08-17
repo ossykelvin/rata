@@ -68,6 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
+| Cursor | RATA-005 system status tools | `cursor/RATA-005-system-status` | DONE, PR #67 |
 | Cursor | RATA-SKILL-007 filesystem scan tools | `cursor/SKILL-007-filesystem-scan-tools` | DONE, PR #75 |
 | Cursor | FIX overlay Hide and compact drag | `cursor/FIX-overlay-hide-compact` | IN PROGRESS |
 | Cursor | FIX overlay min/close | `cursor/FIX-overlay-min-close` | DONE, PR #60 |
@@ -538,6 +539,16 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Cursor
 
+### 2026-08-16 — RATA-005 — System status and keep-awake tools
+
+**Status:** DONE, PR #67
+**Branch:** `cursor/RATA-005-system-status`
+
+**Done:** Extended `electron/tools/system.cjs` with `system.info`, `system.storage`, `system.processSummary`, and `system.keepAwake.start/stop/status`. Native `os`, volume/process listers and `powerSaveBlocker` are injected via `create(deps)`. Process summaries never include command lines, arguments or window titles. Keep-awake holds one bounded blocker (4-hour cap, auto-release, quit release). Skills `system-info` and `keep-awake` report `ready` against a composed registry. SKILL.md files were not edited.
+
+**Files touched:** `electron/tools/system.cjs`, `electron/tools/index.cjs`, `electron/main.cjs`, `tests/system-status.test.cjs`, `tests/tool-composition.test.cjs`, `tests/system-action-planner.test.cjs`, `docs/CODEMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/VALIDATION.md`.
+
+**Validation:** `npm run verify` passed (315 tests). Injected tests only; no Electron or live machine state.
 ### 2026-08-17 — RATA-011 — Session conversation continuity
 
 **Status:** DONE, PR #73
