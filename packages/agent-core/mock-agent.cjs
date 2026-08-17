@@ -165,6 +165,31 @@ class MockAgent {
       if (query) return this.runTool('file.searchContent', { query }, `Search your files for “${query}”`)
     }
 
+    // "save that as memo.md" writes Rata's own last reply to a file.
+    //
+    // The filename is extracted here and the content is the previous assistant
+    // turn, so neither is chosen by a model: the user names the file, and the
+    // bytes are text they have already read on screen. file.save resolves a
+    // bare name against the first allowed root, so nothing here composes a
+    // path. FIX-011.
+    const saveMatch = text.match(
+      /^(?:save|write|put)\s+(?:that|this|it|the\s+\w+)\s+(?:to\s+a\s+file\s+)?(?:as|to|in)\s+(.+)$/i
+    )
+    if (saveMatch && this.registry.has?.('file.save')) {
+      const name = saveMatch[1].replace(/[?.!]+$/, '').replace(/^["']|["']$/g, '').trim()
+      const previous = [...this.memory.snapshot()].reverse().find(turn => turn.role === 'assistant')
+      if (!name) {
+        return { message: 'What should I call the file?', state: 'idle' }
+      }
+      if (!previous?.content?.trim()) {
+        return {
+          message: 'There is nothing to save yet. Ask me to draft something first, then say “save that as notes.md”.',
+          state: 'idle'
+        }
+      }
+      return this.runTool('file.save', { path: name, content: previous.content }, `Save ${name}`)
+    }
+
     const fileNameMatch = text.match(
       /^(?:find|list|show|locate)\s+(?:me\s+)?(?:all\s+)?(?:the\s+|my\s+)?files?\s+(?:called|named|matching|with\s+the\s+name)\s+(.+)$/i
     )
