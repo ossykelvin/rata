@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createAudioRecorder, type AudioRecorder } from './useAudioRecorder'
 
 export type VoicePermissionState = 'off' | 'unavailable' | 'prompt' | 'granted' | 'denied'
 
@@ -21,6 +22,15 @@ export function useVoice(options: {
   const listeningRef = useRef(false)
   const heardRef = useRef(false)
   const pressAtRef = useRef(0)
+  // RATA-009: record locally and transcribe with Handy when it is installed.
+  // The Windows recognizer stays as the fallback, so a machine without Handy
+  // behaves exactly as before.
+  // Lazily constructed: `useRef(createAudioRecorder())` would build and discard
+  // a recorder on every render, since the argument is evaluated each time even
+  // though only the first value is kept.
+  const recorderRef = useRef<AudioRecorder | null>(null)
+  if (!recorderRef.current) recorderRef.current = createAudioRecorder()
+  const localRef = useRef(false)
   const [listening, setListening] = useState(false)
   const [permission, setPermission] = useState<VoicePermissionState>(
     microphoneEnabled ? 'prompt' : 'off'
@@ -52,7 +62,10 @@ export function useVoice(options: {
   }, [onError, onMessage, onTranscript])
 
   useEffect(() => {
+    const recorder = recorderRef.current
     return () => {
+      // Releases the microphone tracks as well as the recognizer.
+      recorder?.cancel()
       void window.rata.stopVoiceListening()
     }
   }, [])
@@ -66,6 +79,18 @@ export function useVoice(options: {
       heardRef.current = false
       setListen(true)
       onMessage?.("I'm listening…")
+
+      // Prefer local transcription. getUserMedia is refused by the main
+      // process when the microphone setting is off, so this path is gated by
+      // the same boundary as the recognizer.
+      try {
+        await recorderRef.current!.start()
+        localRef.current = true
+        return
+      } catch {
+        localRef.current = false
+      }
+
       try {
         await window.rata.startVoiceListening()
       } catch {
@@ -76,6 +101,32 @@ export function useVoice(options: {
     }
 
     async function stopSession() {
+      if (localRef.current) {
+        localRef.current = false
+        setListen(false)
+        const audio = await recorderRef.current!.stop()
+        if (!audio) {
+          onMessage?.("I didn't catch that. Click the microphone and speak, then click it again.")
+          return
+        }
+        onMessage?.('Transcribing…')
+        try {
+          const { transcript } = await window.rata.transcribeAudio(audio)
+          const text = transcript?.trim()
+          if (!text) {
+            onMessage?.("I didn't catch that. Click the microphone and speak, then click it again.")
+            return
+          }
+          heardRef.current = true
+          onTranscript(text)
+        } catch {
+          // Handy missing or failing must not look like a dead microphone.
+          onMessage?.("I couldn't transcribe that. Check that local speech to text is installed.")
+          onError?.()
+        }
+        return
+      }
+
       await window.rata.stopVoiceListening()
       const heard = heardRef.current
       setListen(false)
@@ -84,7 +135,12 @@ export function useVoice(options: {
 
     async function cancel() {
       if (!listeningRef.current) return
-      await window.rata.stopVoiceListening()
+      if (localRef.current) {
+        localRef.current = false
+        recorderRef.current!.cancel()
+      } else {
+        await window.rata.stopVoiceListening()
+      }
       setListen(false)
       onMessage?.('Listening cancelled.')
     }

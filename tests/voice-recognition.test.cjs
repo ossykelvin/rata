@@ -32,9 +32,33 @@ test('push-to-talk starts on press, stops on release, and can be cancelled', () 
   assert.match(hook, /try \{[\s\S]*await window\.rata\.startVoiceListening\(\)[\s\S]*\} catch \{/)
 })
 
-test('the voice hook keeps only the transcript string', () => {
-  assert.doesNotMatch(hook, /getUserMedia|MediaRecorder|audioChunks|audioBuffer/)
+test('the voice hook hands the app a transcript, never raw audio', () => {
+  // Was: the hook must not contain getUserMedia at all, because the Windows
+  // recognizer captured audio in the main process and only text ever reached
+  // the renderer.
+  //
+  // RATA-009 changes that deliberately. Local transcription needs a recording,
+  // and Electron has no dependency-free way to capture a microphone in the
+  // main process, which is why the PowerShell recognizer existed in the first
+  // place. Capture now happens in the renderer through getUserMedia, which is
+  // gated by decideRendererPermission() in electron/security.cjs -- the same
+  // boundary, not a second one. A compromised renderer could call getUserMedia
+  // regardless of what this hook contains, so the permission handler is what
+  // protects the microphone, not the absence of the call.
+  //
+  // The property worth keeping is narrower and is what this asserts: audio
+  // leaves the hook only through the declared transcription channel, and what
+  // reaches the rest of the app is still a plain string.
+  assert.match(hook, /createAudioRecorder/, 'recording should live in its own module')
+  assert.match(hook, /window\.rata\.transcribeAudio\(audio\)/, 'audio must go through the declared channel')
+  assert.doesNotMatch(hook, /MediaRecorder/, 'MediaRecorder produces WebM, not the PCM the transcriber needs')
   assert.match(hook, /onTranscript\(transcript\)/)
+  assert.match(hook, /onTranscript\(text\)/)
+
+  // Raw audio must not escape through any other renderer surface.
+  const recorder = readFileSync(path.join(root, 'src', 'hooks', 'useAudioRecorder.ts'), 'utf8')
+  assert.match(recorder, /getTracks\(\)\.forEach\(track => track\.stop\(\)\)/, 'the microphone must be released')
+  assert.doesNotMatch(recorder, /fetch\(|XMLHttpRequest|WebSocket/, 'a recording must never leave over the network')
 })
 
 test('Control Center exposes the microphone setting that main enforces', () => {

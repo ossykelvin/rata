@@ -99,5 +99,7 @@ module.exports = {
   SystemActionPlanError,
   looksLikeSystemActionRequest,
   parseSystemActionPlan,
-  planSystemAction
+  planSystemAction,
+  stripSingleJsonFence,
+  hasExactKeys
 }

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "order": 21,
+  "id": "communicator",
+  "name": "Communicator",
+  "path": "skills/communicator/SKILL.md",
+  "category": "conversation",
+  "risk": "none",
+  "background_capable": false,
+  "permissions": [],
+  "tools": [],
+  "confirmation": "none",
+  "triggers": [],
+  "selectable": false
+}

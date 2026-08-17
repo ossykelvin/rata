@@ -67,6 +67,26 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
 - Confirmed by default under the existing `fileReadConfirm` setting rather than a second overlapping switch. A bulk inventory of file names is at least as revealing as the text of one file, and it leaves the machine the same way.
 - See `docs/decisions/ADR-014-filesystem-inventory-boundary.md`.
 
+### Communicator (understanding and voice)
+
+- Communicator is not a routed skill. It cannot grant tools, change policy or approve actions. See `docs/decisions/ADR-012-communicator.md` and ADR-003.
+- The user's request text is never rewritten. Understanding produces a validated interpretation; voice rewrites only conversational replies.
+- Understanding sits last, after every deterministic route, the skill router and the ADR-009 planner. It cannot override a match those stages already made.
+- The model returns a fixed intent enum (`weather`, `webSearch`, `fileSearch`, `none`). It never names a tool. `intent → toolId` is a literal in trusted code. Extracted parameters are untrusted and still pass `ToolRegistry.validate()` and the tool's own validator.
+- The stage cannot reach destructive or external-write tools. Confirmation policy is unchanged.
+- Invalid JSON, an unknown intent, a missing parameter, a provider error or a timeout fall through to ordinary `ask()`. The user never sees an error that exists only because this stage ran.
+- Voice never rewrites approval cards (including `detail`/`title`), `awaiting_approval` replies, audit/activity text, or refusal reasons (`I blocked that action:`). A rewrite that drops a number, path, URL or quoted string is discarded.
+- Untrusted tool text reaching the voice provider is wrapped with `fenceUntrusted`.
+- Both stages send text to a provider, so `communicatorEnabled` defaults to **false**. When it is off, neither stage calls a provider.
+
+### Session conversation history
+
+- History is in-memory on the shared `MockAgent` instance. It is data, not instructions, not approval, and not a tool grant. See `docs/decisions/ADR-013-session-continuity.md`.
+- The current user request is still passed exactly as typed. History sits beside it and is not used to fill tool parameters in this version.
+- Prior assistant turns (tool results, retrieved pages, model replies) are wrapped with `fenceUntrusted` before they reach a provider. Activity, audit events and approval-card internals are not history.
+- History cannot bypass `PolicyEngine`, confirmation, or `ToolRegistry.validate()`. A matching deterministic route still wins.
+- Caps drop the oldest turns. The transcript is not persisted; quitting clears it.
+
 ### Weather lookup
 
 - The key is read from `WEATHER_API_KEY` in the main process and captured in the client closure. The tool layer receives a bound `getCurrentWeather(query)` capability, never the credential, and `describeConfig()` reports presence as a boolean only.
@@ -85,6 +105,12 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
 - Preload exposes named functions only.
 - Never expose raw `ipcRenderer`, `fs`, `child_process`, shell execution or generic file APIs.
 - Microphone capture is gated by `isMicrophoneEnabled()` in `electron/security.cjs`. Chromium `media`/`microphone` permissions and the Windows speech child process both consult it. Turning the setting off stops an in-flight recognizer. A leftover partial transcript already buffered from that session is still delivered to the renderer; it is not dropped.
+- Local speech to text (RATA-009) records in the renderer through `getUserMedia`, so it passes the same `decideRendererPermission()` gate. The gate is re-checked in the IPC handler at transcription time, because a renderer could hold a recording made before the setting was turned off.
+- The transcriber executable path is resolved in the main process from known install locations, never supplied by the renderer or a model. Arguments are a fixed list whose only variable is a temp path the main process created, and `execFile` is used rather than a shell.
+- Audio is validated twice, at the IPC edge and again before a process is spawned: the renderer is not a boundary. Oversized or non-WAV payloads are refused before anything touches disk.
+- The recording is the user's voice: it is written to a randomly named temp file and removed in a `finally` on every path. The transcript is never written to an audit event, and failure messages are fixed strings because the transcriber's stderr carries model and machine detail.
+- Transcription is fully offline and adds no network egress, so unlike file reads and weather it needs no confirmation setting.
+- See `docs/decisions/ADR-013-local-speech-to-text.md`.
 - Validate settings, messages and approval identifiers in the main process before use. Preload and TypeScript types are developer ergonomics, not a trust boundary.
 - Settings loaded from disk pass through the same runtime validators as IPC
   writes. Unknown and invalid values are rejected and audited; invalid

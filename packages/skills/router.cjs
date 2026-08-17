@@ -45,7 +45,9 @@ function createSkillRouter({ registry, toolRegistry = null } = {}) {
     }
 
     const lower = text.toLowerCase()
-    const scored = registry.list().map(skill => {
+    const scored = registry.list()
+      .filter(skill => skill.selectable !== false)
+      .map(skill => {
       let score = Math.max(0, ...skill.triggers.map(trigger => triggerScore(lower, trigger)))
       if (lower.includes(skill.id.replaceAll('-', ' ')) || lower.includes(skill.name.toLowerCase())) {
         score += 0.35

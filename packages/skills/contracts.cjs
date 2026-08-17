@@ -25,8 +25,11 @@ function requireRecord(value, label) {
   return value
 }
 
-function requireStringArray(value, label, pattern) {
-  if (!Array.isArray(value) || value.length === 0 || value.some(item => typeof item !== 'string' || !item.trim())) {
+function requireStringArray(value, label, pattern, { allowEmpty = false } = {}) {
+  if (!Array.isArray(value) || value.some(item => typeof item !== 'string' || !item.trim())) {
+    throw new TypeError(`${label} must be a string array.`)
+  }
+  if (!allowEmpty && value.length === 0) {
     throw new TypeError(`${label} must be a non-empty string array.`)
   }
   if (pattern && value.some(item => !pattern.test(item))) {
@@ -66,7 +69,11 @@ function validateSkillDefinition(raw, source = 0) {
   if (typeof value.confirmation !== 'string' || !value.confirmation.trim()) {
     throw new TypeError(`Skill ${value.id} must declare a confirmation policy.`)
   }
+  if (Object.hasOwn(value, 'selectable') && typeof value.selectable !== 'boolean') {
+    throw new TypeError(`Skill ${value.id} selectable must be a boolean.`)
+  }
 
+  const selectable = value.selectable !== false
   return Object.freeze({
     id: value.id,
     name: value.name.trim(),
@@ -76,9 +83,10 @@ function validateSkillDefinition(raw, source = 0) {
     risk: value.risk,
     backgroundCapable: value.background_capable,
     confirmation: value.confirmation.trim(),
-    permissions: Object.freeze(requireStringArray(value.permissions, `Skill ${value.id} permissions`, PERMISSION_ID)),
-    tools: Object.freeze(requireStringArray(value.tools, `Skill ${value.id} tools`, TOOL_ID)),
-    triggers: Object.freeze(requireStringArray(value.triggers, `Skill ${value.id} triggers`))
+    selectable,
+    permissions: Object.freeze(requireStringArray(value.permissions, `Skill ${value.id} permissions`, PERMISSION_ID, { allowEmpty: !selectable })),
+    tools: Object.freeze(requireStringArray(value.tools, `Skill ${value.id} tools`, TOOL_ID, { allowEmpty: !selectable })),
+    triggers: Object.freeze(requireStringArray(value.triggers, `Skill ${value.id} triggers`, undefined, { allowEmpty: !selectable }))
   })
 }
 
@@ -140,6 +148,7 @@ function toPublicSkill(skill, { availableTools = [], missingTools = [] } = {}) {
     permissions: [...skill.permissions],
     tools: [...skill.tools],
     triggers: [...skill.triggers],
+    selectable: skill.selectable !== false,
     availableTools,
     missingTools,
     status: ready ? 'ready' : partial ? 'partial' : 'unavailable'

@@ -9,7 +9,9 @@ src/views (React UI)
   → generated dist-electron/preload.cjs from electron/preload.cjs + electron/bridge/*.cjs
   → electron/main.cjs + electron/ipc/*.cjs (auto-registered handlers)
   → packages/agent-core/mock-agent.cjs
-  → packages/skills/router.cjs (selects a skill id)
+  → packages/skills/router.cjs (selects a skill id; skips selectable:false packs)
+  → packages/agent-core/communicator.cjs (last-chance intent, then voice on the way out)
+  → packages/agent-core/conversation-memory.cjs (session history injected into ask() only)
   → packages/agent-core/policy-engine.cjs
   → packages/agent-core/tool-registry.cjs
   → electron/tools/index.cjs + electron/tools/*.cjs (auto-composed allow-listed adapters)
@@ -26,6 +28,8 @@ src/views (React UI)
 | `electron/file-access.cjs` | Root containment, denied names, bounded read-only file access. `resolveWithinRoots()` is the single path gate for every filesystem domain | Any write, move, rename or delete |
 | `electron/filesystem-scan.cjs` | Bounded metadata inventory, volume totals and file digests over the same roots (ADR-014) | Its own path validator, file contents in any return value, deriving its own roots |
 | `electron/weather-client.cjs` | Bound WeatherAPI capability, response mapping, credential-safe errors | The key in any log, error or return value |
+| `electron/handy-stt.cjs` | Local transcription: fixed executable path and arguments, temp-file lifecycle | Renderer-supplied paths or flags, transcripts in the audit log |
+| `src/hooks/useAudioRecorder.ts` | Microphone capture, 16 kHz mono WAV encoding | Sending audio anywhere except the declared IPC channel |
 | `src/types/` | Renderer domain types and barrel | Privileged contracts or Electron APIs |
 | `src/styles/` | `base.css`, `overlay.css`, `control.css`, plus per-component sheets | Privileged styling or Node imports |
 | `src/views/control/` | Self-registered Control Center pages (`controlPage` + `import.meta.glob`) | Editing `ControlCenter.tsx` or `model.ts` to add a page |
@@ -42,10 +46,13 @@ src/views (React UI)
 | `electron/mvp-tools.cjs` | Compatibility export for existing consumers | New tool registration logic |
 | `electron/store.cjs` | Non-secret JSON preferences + audit metadata | Tokens / secrets |
 | `packages/contracts/` | IPC channel names and payload validation | Native I/O |
-| `packages/agent-core/` | Mock agent, policy, tool registry, calculator parser | Provider SDKs in UI |
+| `packages/agent-core/` | Mock agent, policy, tool registry, calculator parser, communicator | Provider SDKs in UI |
+| `packages/agent-core/communicator.cjs` | Always-on understanding parser and voice sanitiser (ADR-012) | Tool execution, request rewriting, routed skill selection |
+| `packages/agent-core/conversation-memory.cjs` | In-memory session transcript for `ask()` (ADR-013) | Persistence, tool grants, rewriting the current request |
 | `packages/skills/` | Per-fragment validation/load, prompt extract, deterministic router | Executing skill files |
 | `skills/<id>/skill.json` | Independently validated routing/permission metadata | Authority, code, credentials |
 | `skills/<id>/SKILL.md` | Declarative prompt text loaded only for a selected skill | Code, credentials |
+| `skills/communicator/` | Always-on understanding and voice prompts (`selectable: false`) | Authority, routed matching, tool names |
 | `tests/` | Policy, IPC, skill, calculator regressions | Live network or real OS side effects |
 | `docs/` | Architecture, security, tasks, ADRs | Implementation secrets |
 | `AGENT_WORKBOOK.md` | Cross-agent work log (read and update each session) | Architecture contracts (those stay in `AGENTS.md`) |

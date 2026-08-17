@@ -102,6 +102,23 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 ## Claude
 
+### 2026-08-17 — RATA-009 — Local speech to text via Handy
+
+**Status:** DONE, awaiting review. Branch `claude/RATA-009-handy-stt`.
+
+Four fixes (FIX-005 to FIX-008) made the Windows recognizer *work*; none could make it *accurate*. It returned "eat one C" for "open notepad", and real speech (0.003-0.167 confidence) overlapped ambient noise (0.085-0.323), so the engine could not distinguish a phrase from a quiet room. That is a limit of the recognizer, not of the code around it.
+
+Handy, MIT and fully offline, returned "Open notepad and check the weather in Preston." exactly, on the same audio. Installed 0.9.5 per-user (the MSI is `ALLUSERS=1` and needs elevation I cannot grant; the NSIS installer from the same signed release is per-user) plus Whisper Small English, 257 MB.
+
+**Measured, after correcting my own error.** I first reported 20.4s per transcription and called it too slow for push-to-talk. That was a single cold run including one-time Vulkan shader compilation. Steady state on this hardware: NVIDIA 248ms, Intel Iris Xe 268ms, CPU 2172ms, all transcribing perfectly. A fresh process per press is ~2.1s wall, of which ~350ms is inference, ~450ms model load and ~1.3s Handy's own application start.
+
+**Design.** Headless batch mode only (`--transcribe-file ... --json`); no UI, shortcut or clipboard paste. Handy is optional and the Windows recognizer stays as the fallback. The executable path and argument list are fixed in the main process, `execFile` not a shell, and the only variable is a temp path we created. Audio is validated at the IPC edge *and* again before spawning, because the renderer is not a boundary. The temp WAV is deleted in a `finally` on every path, the transcript is never audited, and failure messages are fixed strings since Handy's stderr carries model paths. The model is warmed at startup so the first press is not the 20s one.
+
+**One architectural reversal, deliberate.** Recording now happens in the renderer via `getUserMedia`, which breaks Cursor's pin that the renderer never touches audio. Electron has no dependency-free main-process capture, which is why the PowerShell recognizer existed at all. Capture is gated by the same `decideRendererPermission()` boundary, and a compromised renderer could call `getUserMedia` regardless of what our hook contains, so the permission handler is the protection and the absence of the call never was. I rewrote that test to pin the narrower property that still matters: audio leaves the hook only through the declared channel, the microphone is released, and nothing in the recorder can reach the network.
+
+**Validation.** `npm run verify` 333/333. 18 new tests, none of which run handy.exe. Verified live through the real module: "Open notepad and check the weather in Preston." in 408ms of inference.
+
+**Note for the user:** 371 files of Handy source (79,223 lines) are committed to this repo under `Handy-main/`, swept in by a `git add -A` of mine in `f2dda9c`. It should be gitignored and untracked; purging it from history needs a rewrite and is their call.
 ### 2026-08-17 — RATA-010 — Expression mapping
 
 **Status:** DONE, awaiting review. Branch `claude/RATA-010-expression-mapping`.
@@ -532,6 +549,31 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 **Files touched:** `electron/tools/system.cjs`, `electron/tools/index.cjs`, `electron/main.cjs`, `tests/system-status.test.cjs`, `tests/tool-composition.test.cjs`, `tests/system-action-planner.test.cjs`, `docs/CODEMAP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/VALIDATION.md`.
 
 **Validation:** `npm run verify` passed (315 tests). Injected tests only; no Electron or live machine state.
+### 2026-08-17 — RATA-011 — Session conversation continuity
+
+**Status:** DONE, PR #73
+**Branch:** `cursor/RATA-011-session-continuity`
+
+**Done:** In-memory session history so follow-up `ask()` turns can refer to earlier ones. History is data, not authority. Safer v1: history is passed only into `ask()`, not the communicator intent stage. No pronoun resolution for tools. Cap 16 turns / 8,000 characters; drop oldest. Quit clears. Overlay and Control Center share one MockAgent. Claude review requested on `packages/agent-core/`.
+
+**Files touched:** `packages/agent-core/conversation-memory.cjs`, `packages/agent-core/mock-agent.cjs`, `tests/conversation-memory.test.cjs`, `docs/decisions/ADR-013-session-continuity.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/ARCHITECTURE.md`, `docs/VALIDATION.md`, `docs/TASKS.md`.
+
+**Validation:** `npm run verify` 349/349.
+
+**Coordination:** Stacked on #70. Retarget to `main` after Communicator merges.
+
+---
+
+### 2026-08-17 — RATA-008 — Communicator (understanding + voice)
+
+**Status:** DONE, PR #70
+**Branch:** `cursor/RATA-008-communicator`
+
+**Done:** Always-on communicator, not a routed skill (`selectable: false`). Understanding sits last after deterministic routes, the skill router and ADR-009; it maps a fixed intent enum onto existing tools. Voice rewrites conversational replies through one `presentReply` seam. `communicatorEnabled` defaults to false. Claude review requested on `packages/agent-core/`.
+
+**Files touched:** `packages/agent-core/communicator.cjs`, `packages/agent-core/mock-agent.cjs`, `packages/skills/{router,loader,contracts,index}.cjs`, `skills/communicator/`, `packages/contracts/ipc-validation.cjs`, `electron/store.cjs`, `src/types/settings.ts`, `src/views/control/PermissionsPage.tsx`, `tests/communicator.test.cjs`, `tests/skill-fragments.test.cjs`, `docs/decisions/ADR-012-communicator.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`.
+
+**Validation:** `npm run verify` 337/337 after merging current `origin/main`.
 ### 2026-08-17 — RATA-SKILL-007 — Filesystem Scan tools
 
 **Status:** DONE, PR #75

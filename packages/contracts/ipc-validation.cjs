@@ -33,7 +33,10 @@ const settingValidators = Object.assign(Object.create(null), {
   fileReadConfirm: value => typeof value === 'boolean',
   // A weather lookup sends the named location to a third party. Confirmed by
   // default, like every other outbound request. RATA-007.
-  weatherConfirm: value => typeof value === 'boolean'
+  weatherConfirm: value => typeof value === 'boolean',
+  // Communicator sends the user's request and Rata's reply to a provider.
+  // Opt-in; a fresh install performs no extra egress. ADR-012.
+  communicatorEnabled: value => typeof value === 'boolean'
 })
 
 /** The complete set of writable settings. Use this rather than `key in obj`. */
@@ -80,13 +83,41 @@ function parseApprovalRequest(payload) {
   return { id: value.id }
 }
 
+/** Ten megabytes of 16kHz mono PCM is about five minutes of speech. */
+const MAX_AUDIO_BYTES = 10 * 1024 * 1024
+
+/**
+ * Validates a renderer recording before it reaches the transcriber.
+ *
+ * The renderer is not a boundary, so the size cap and the RIFF/WAVE check
+ * happen here as well as in electron/handy-stt.cjs. A malformed or oversized
+ * payload must be refused before anything is written to disk or a process is
+ * spawned. RATA-009.
+ */
+function parseAudioForTranscription(payload) {
+  const value = requireRecord(payload, 'Audio')
+  const audio = value.audio
+  const isBinary = audio instanceof Uint8Array || Array.isArray(audio) || ArrayBuffer.isView(audio)
+  if (!isBinary) throw new TypeError('Audio must be a byte array.')
+  const bytes = audio instanceof Uint8Array ? audio : Uint8Array.from(audio)
+  if (bytes.length <= 44) throw new TypeError('Audio is too short to transcribe.')
+  if (bytes.length > MAX_AUDIO_BYTES) throw new TypeError('Audio exceeds the transcription size limit.')
+  const header = Buffer.from(bytes.buffer, bytes.byteOffset, 12)
+  if (header.toString('ascii', 0, 4) !== 'RIFF' || header.toString('ascii', 8, 12) !== 'WAVE') {
+    throw new TypeError('Audio must be a WAV recording.')
+  }
+  return { audio: bytes }
+}
+
 module.exports = {
+  MAX_AUDIO_BYTES,
   MAX_MESSAGE_LENGTH,
   PROVIDER_IDS,
   SETTING_KEYS,
   isKnownSetting,
   parseAgentMessage,
   parseApprovalRequest,
+  parseAudioForTranscription,
   parseSettingChange,
   validateSettingValue
 }
