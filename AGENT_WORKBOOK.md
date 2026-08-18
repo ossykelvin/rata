@@ -78,6 +78,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Cursor | FIX overlay min/close | `cursor/FIX-overlay-min-close` | DONE, PR pending |
 | Cursor | FIX voice permission gate | `cursor/FIX-voice-permission-gate` | DONE, PR #62 |
 | Cursor | FIX critical-thinking provider | `cursor/FIX-critical-thinking-provider` | DONE, PR pending |
+| Claude | FIX-015 skill routing accuracy | `claude/FIX-015-skill-routing` | READY FOR REVIEW |
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, merged as #2 |
 | Codex | P0-1 modular IPC | `codex/P0-1-modular-ipc-boundary` | DRAFT PR #4 |
 | Cursor | RATA-003 character animation | `cursor/rata-003-character-animation-9241` | DONE, PR #5 |
@@ -888,6 +889,29 @@ What the new module *does* add is a **stricter** gate in front of that one, neve
 **Validation:** `npm run verify` passed (`check:node`, 23 tests, `typecheck`, `vite build`). GUI smoke still blocked: `window.rata` is undefined until Codex P0-1.
 
 **Blocked on:** preload/`window.rata` for Electron smoke. Real character art remains BLOCKED-ON-HUMAN. Lane C (RATA-004) waits on Lane A streaming.
+
+---
+
+### 2026-08-18 — FIX-015 — Skill routing accuracy
+
+**Status:** READY FOR REVIEW
+**Branch:** `claude/FIX-015-skill-routing`
+
+**Scope:** the fourth routing defect, fixed at the cause rather than by another boost. Three compounding faults in `packages/skills/router.cjs`:
+
+1. `triggerScore` fell back to `message.includes(word)` — a raw substring test with no word boundary, so a trigger word matched inside any longer word. Screenshot Inspector triggers on "at", which is inside "what", "that" and "create". Measured effect: ordinary conversation loaded skill prompts. "I am not sure what that means" and "is that the same as what we saw" both selected Critical Thinking.
+2. Function words counted in the denominator, so a trigger describing its skill well scored *worse* than a vague one. File Organizer's "Move these reports into folders by year" scored 0.33 and fell under the 0.34 threshold; Calendar Assistant's "Move my meeting" scored 0.50 on "move" alone and won.
+3. The router ignored whether a skill could run. "Move the invoice into the archive folder" selected Calendar Assistant — all four of its tools missing — and dead-ended on "installed, but its tools are not registered yet", while File Organizer sat available.
+
+**Fixes:** word-boundary matching with a prefix rule for morphology ("files"/"file", both sides ≥4 chars, ≤3 difference); function words and apostrophe fragments added to `STOP_WORDS`; a 0.02 subtractive tie-break preferring a runnable skill. The tie-break is deliberately tiny — sized as a multiplier it flipped "find the latest email from Sarah" from Email Assistant to Web Search, which would have sent a private request to Serper as a public search query. It orders candidates and never gates them, so an unavailable skill that is the best match is still selected and still reported honestly.
+
+**Files touched:** `packages/skills/router.cjs`, `tests/skill-routing.test.cjs` (new).
+
+**Validation:** `npm run verify` 523/523, exit 0. Measured on a corpus of realistic phrasings: 17/19 → 19/19. Self-routing (every skill's own documented triggers): 81/81 both before and after. The new tests were checked against the pre-fix router and fail 2 of 8 there, so they discriminate.
+
+**Known limitation, not fixed here:** a two-word trigger whose only match is a generic verb still scores 0.50 and clears the threshold. "Create a presentation about..." reduces to `[create, presentation]`, so "can you name the document I created that afternoon" selects Presentation Builder. This is trigger data, not router logic — the fix is to give ellipsis triggers their noun, across the affected `SKILL.md` files. Tuning the router further would mean re-tuning the app-launcher and calculator boosts, which deserves its own measured change rather than being bolted on here.
+
+**Note for Cursor:** a stash containing your `FIX-overlay-hide-compact` workbook update (marking it DONE, PR #64) was accidentally popped during this session and re-stashed intact as `stash@{0}`, labelled "recovered: Cursor FIX-overlay-hide-compact workbook update". It was never committed. Nothing was lost; apply it when convenient.
 
 ---
 
