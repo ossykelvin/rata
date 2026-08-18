@@ -25,6 +25,28 @@ function looksLikeCalculation(message) {
   return /(\d+\s*%\s*(of\s+)?\d+)|(\d+\s*[+\-*/x×]\s*\d+)/i.test(message)
 }
 
+/**
+ * An explicit instruction to write a document.
+ *
+ * `triggerScore` counts how many of a trigger's words appear in the message,
+ * and falls back to a substring test, so a trigger made of short common words
+ * scores well against any long message. "Draft a memo about the project
+ * status" selected Document Assistant, and the same request with a sentence of
+ * technical detail after it selected Web Search — which then sent the whole
+ * memo request to Serper as a search query and saved the results as the
+ * document.
+ *
+ * The verb is what the user meant; the nouns after it are the subject matter.
+ * This is the same shape as the calculator and app-launcher boosts below:
+ * an unambiguous intent gets weighted rather than left to word overlap.
+ */
+function looksLikeDrafting(message) {
+  const noun = '(?:memo|report|document|letter|brief|briefing|proposal|summary|note|notes|sop|handover|minutes|agenda)'
+  return new RegExp(`^(?:please\\s+)?(?:draft|write|prepare|compose|create|put\\s+together)\\s+(?:me\\s+)?(?:a|an|the|some)?\\s*(?:short|quick|brief|one[- ]page)?\\s*${noun}\\b`, 'i').test(message) ||
+    new RegExp(`\\bturn\\s+(?:these|this|those|my|the)\\b[\\s\\S]{0,60}\\binto\\s+(?:a|an)?\\s*${noun}\\b`, 'i').test(message) ||
+    new RegExp(`^summari[sz]e\\b[\\s\\S]{0,80}\\binto\\s+(?:a|an)?\\s*${noun}\\b`, 'i').test(message)
+}
+
 function createSkillRouter({ registry, toolRegistry = null } = {}) {
   if (!registry || typeof registry.list !== 'function') {
     throw new TypeError('Skill router requires a registry.')
@@ -53,6 +75,9 @@ function createSkillRouter({ registry, toolRegistry = null } = {}) {
         score += 0.35
       }
       if (skill.id === 'calculator' && looksLikeCalculation(lower)) score += 0.85
+      // "Draft a memo about X" is a drafting request whatever X mentions. The
+      // subject matter must not decide the skill. FIX-014.
+      if (skill.id === 'document-assistant' && looksLikeDrafting(lower)) score += 0.85
       if (skill.id === 'app-launcher' && /\b(open|launch|start)\b/.test(lower)) score += 0.25
       if (skill.id === 'clipboard-assistant' && /\bcopy\b/.test(lower)) score += 0.2
       return { skill, score }
