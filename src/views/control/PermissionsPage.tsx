@@ -7,6 +7,8 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
     ['Read local context', 'read', 'Automatic'],
     ['Evaluate arithmetic', 'read', 'Automatic'],
     ['Open approved Windows apps', 'safe-write', 'Automatic'],
+    ['Launch a catalogued application', 'safe-write', 'Always ask'],
+    ['Focus a running application', 'safe-write', settings.appFocusConfirm ? 'Ask every time' : 'Automatic'],
     ['Write to clipboard', 'safe-write', settings.clipboardConfirm ? 'Ask every time' : 'Automatic'],
     ['Find files by name', 'read', 'Automatic'],
     ['Read file contents', 'read', settings.fileReadConfirm ? 'Ask every time' : 'Automatic'],
@@ -15,7 +17,7 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
     ['Capture the screen and send it to your AI provider', 'read', settings.screenCaptureEnabled ? 'Always ask' : 'Off'],
     ['Send email / invite attendees', 'external-write', 'Always ask'],
     ['Delete files / cancel meetings', 'destructive', 'Always ask']
-  ], [settings.clipboardConfirm, settings.fileReadConfirm, settings.fileWriteConfirm, settings.weatherConfirm, settings.screenCaptureEnabled])
+  ], [settings.clipboardConfirm, settings.fileReadConfirm, settings.fileWriteConfirm, settings.weatherConfirm, settings.screenCaptureEnabled, settings.appFocusConfirm])
 
   return (
     <section className="panel page-panel">
@@ -51,6 +53,10 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
       <label className="setting-row">
         <div><strong>Screen capture</strong><span>Off by default. Turning it on allows Rata to capture the screen and send images to your AI provider. Every capture and every analysis still asks, and the approval card shows the exact image.</span></div>
         <input type="checkbox" checked={settings.screenCaptureEnabled} onChange={e => setSetting('screenCaptureEnabled', e.target.checked)} />
+      </label>
+      <label className="setting-row">
+        <div><strong>Confirm focusing an app</strong><span>Bring an already-running catalogued application to the front. Launching an application always asks, even when this is off. The approval card for a launch names the real executable path.</span></div>
+        <input type="checkbox" checked={settings.appFocusConfirm} onChange={e => setSetting('appFocusConfirm', e.target.checked)} />
       </label>
       <label className="setting-row">
         <div><strong>Microphone</strong><span>Allow speech-to-text from the overlay and Chat. Main process denies media permission when this is off.</span></div>

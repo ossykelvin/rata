@@ -68,6 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
+| Cursor | RATA-016 application launcher | `cursor/RATA-016-app-launcher` | DONE, PR #91 |
 | Cursor | RATA-014 file organize writes | `cursor/RATA-014-file-organize` | DONE, PR #80 |
 | Cursor | RATA-013 document create + file.save | `cursor/RATA-013-document-and-save` | DONE, PR #79 |
 | Cursor | RATA-005 system status tools | `cursor/RATA-005-system-status` | DONE, PR #67 |
@@ -570,6 +571,21 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 ---
 
 ## Cursor
+
+### 2026-08-18 — RATA-016 — Application launcher (app.find, app.launch, app.focus)
+
+**Status:** DONE, PR #91
+**Branch:** `cursor/RATA-016-app-launcher` (from origin/main)
+
+**Done:** Registered `app.find`, `app.launch` and `app.focus` so Application Launcher can run. The model names a catalog id, never an executable path. Start Menu discovery is the allow-list. LOLBins including PowerShell/cmd are refused at catalog-build even when the shortcut label is innocuous ("System Tools"). Launch uses `execFile` with no args and `shell: false`; confirmation is always; the resolved path is only on the approval card. `app.focus` does not start a second instance. Skill files, ADR-009 planner enum, and communicator intent enum were not edited. `system.openApp` is unchanged. ADR-021 (origin/main highest was ADR-020).
+
+**Files touched:** `electron/app-catalog.cjs`, `electron/tools/app.cjs`, `electron/main.cjs`, `electron/windows/list-process-executables.ps1`, `electron/windows/focus-pid.ps1`, `electron/store.cjs`, `packages/contracts/ipc-validation.cjs`, `src/types/settings.ts`, `src/views/control/PermissionsPage.tsx`, `package.json`, `tests/app-launcher.test.cjs`, `tests/tool-composition.test.cjs`, `tests/settings-validation.test.cjs`, `tests/skills-registry.test.cjs`, `docs/decisions/ADR-021-application-launch-boundary.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/VALIDATION.md`, `docs/TASKS.md`.
+
+**Validation:** `npm run verify` exit 0, **536/536**. Registry proof with a composed tool registry: `app-launcher ready available=["app.find","app.focus","app.launch"] missing=[]`.
+
+**Coordination:** Claude review requested on PR #91 (`@claude` comment). Did not touch communicator intent enum or ADR-009 planner enum. Ticket said `local-write`; the tool registry has no such class, so launch/focus are `safe-write` with launch confirmation `always`.
+
+---
 
 ### 2026-08-17 — RATA-015 — Screen capture and vision
 

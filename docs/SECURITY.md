@@ -112,6 +112,18 @@ Email, webpages, documents, calendar descriptions, clipboard text and UI text ar
 - Audit records that a capture happened, plus dimensions and byte count. It never records image bytes.
 - See `docs/decisions/ADR-020-screen-capture-and-vision.md`.
 
+### Application launch
+
+- The model never names an executable. `app.find`, `app.launch` and `app.focus` accept a catalog id (or a name query for find). Paths, UNC, traversal, extra fields and any argument list are refused. See `docs/decisions/ADR-021-application-launch-boundary.md`.
+- The Start Menu catalog **is** the allow-list. `electron/app-catalog.cjs` discovers `.lnk` files under the machine and user Start Menus, resolves them in-process by parsing the Shell Link binary, and keeps only regular `.exe` targets that survive the rejection checks. A path that is not in the catalog cannot be launched.
+- Discovery skips symlinks and junctions, the same as `walkRoots`. Depth and entry count are capped. The catalog is built once at startup and refreshed only explicitly.
+- Interpreters and LOLBins are refused by **target basename**, not shortcut label. A shortcut named "System Tools" that points at `powershell.exe` or `cmd.exe` never enters the catalog and cannot be launched. Uninstallers, repair/setup/installer names, scripts, installers and missing/symlinked targets are refused at catalog-build so they cannot be selected.
+- `app.launch` is `safe-write` with confirmation `always`. The tool registry has no `local-write` risk class; `safe-write` plus always-confirm is the mapping, not a weakening. Launch uses `execFile` with an empty argument array and `shell: false`. No elevation.
+- The resolved target path belongs **only** on the launch approval card (`describeInput`). Return values, summaries and audit events record the application name and outcome, not the path, not window titles, not document names. Execute looks the id up again so a refresh cannot swap the target after approval.
+- `app.focus` finds a running process whose executable equals the catalog target and focuses it. If that is not possible it says so and does not start a second instance. Any PowerShell used for `SetForegroundWindow` is a repo-owned `-File` script; the PID is a validated positive integer passed as a separate argument.
+- `system.openApp` is unchanged: Notepad and Calculator only, no paths, no arguments. It is a different tool with a different id.
+- ADR-009 and the communicator intent enum are not extended. Catalog launch is not a model-authored shell.
+
 ### Weather lookup
 
 - The key is read from `WEATHER_API_KEY` in the main process and captured in the client closure. The tool layer receives a bound `getCurrentWeather(query)` capability, never the credential, and `describeConfig()` reports presence as a boolean only.

@@ -22,7 +22,9 @@ const defaults = {
     // Opt-in. Both communicator stages send text to a provider. ADR-012.
     communicatorEnabled: false,
     // Master switch. Off by default; confirmation stays always when on. ADR-020.
-    screenCaptureEnabled: false
+    screenCaptureEnabled: false,
+    // Focusing a catalogued app is confirmed by default. Launch stays always. ADR-021.
+    appFocusConfirm: true
   },
   activity: []
 }
@@ -41,7 +43,8 @@ const safeDiskFallbackSettings = Object.freeze({
   fileWriteConfirm: true,
   weatherConfirm: true,
   communicatorEnabled: false,
-  screenCaptureEnabled: false
+  screenCaptureEnabled: false,
+  appFocusConfirm: true
 })
 
 function isRecord(value) {
