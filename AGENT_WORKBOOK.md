@@ -78,6 +78,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Cursor | FIX overlay min/close | `cursor/FIX-overlay-min-close` | DONE, PR pending |
 | Cursor | FIX voice permission gate | `cursor/FIX-voice-permission-gate` | DONE, PR #62 |
 | Cursor | FIX critical-thinking provider | `cursor/FIX-critical-thinking-provider` | DONE, PR pending |
+| Claude | FIX-016 tool reachability (ADR-022) | `claude/FIX-016-tool-routes` | READY FOR REVIEW |
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, merged as #2 |
 | Codex | P0-1 modular IPC | `codex/P0-1-modular-ipc-boundary` | DRAFT PR #4 |
 | Cursor | RATA-003 character animation | `cursor/rata-003-character-animation-9241` | DONE, PR #5 |
@@ -888,6 +889,32 @@ What the new module *does* add is a **stricter** gate in front of that one, neve
 **Validation:** `npm run verify` passed (`check:node`, 23 tests, `typecheck`, `vite build`). GUI smoke still blocked: `window.rata` is undefined until Codex P0-1.
 
 **Blocked on:** preload/`window.rata` for Electron smoke. Real character art remains BLOCKED-ON-HUMAN. Lane C (RATA-004) waits on Lane A streaming.
+
+---
+
+### 2026-08-18 — FIX-016 — Tool reachability (ADR-022)
+
+**Status:** READY FOR REVIEW
+**Branch:** `claude/FIX-016-tool-routes`
+
+**Found by:** an end-to-end pass over the shipped stack (real registry, policy, router, agent; only the machine edges instrumented). 23/27 checks passed and every security boundary held, but reachability did not.
+
+**Scope:** 19 of 30 registered tools had no route from any user phrase. Nothing between a sentence and `ToolRegistry.execute()` comes from the model — the ADR-009 planner proposes `system.openApp` and nothing else — so those tools could not run at all. Worse, the request did not stop: it fell through to `ask()` and, with a provider connected, the model answered from general knowledge with `state: 'success'`. "How much RAM do I have?" returned a confident wrong figure, and **"keep my PC awake for two hours" replied "I have kept your PC awake" while no blocker was held**. That is an action falsely reported as done, which is why this became an ADR rather than a bug fix.
+
+**Changes:**
+
+- `packages/agent-core/tool-routes.cjs` (new) — one ordered route table. Every existing inline route migrated verbatim, plus routes for `system.info`, `system.storage`, `system.processSummary`, `system.keepAwake.start/stop/status`, `filesystem.scan`, `filesystem.diskUsage`, `folder.create`, `file.move`, `file.rename`.
+- A forbidden scan scope (`C:\`, whole computer, `\\server\share`, Program Files) is now refused *before* an approval card exists. It would have been refused by the tool, but only after the user was asked to approve a scan that was always going to fail.
+- `INTENTIONALLY_UNROUTED` records the eight tools with no route and why; a test fails the build if a tool is registered with neither a route nor a reason.
+- `electron/file-access.cjs` — `resolveAgainstRoots()`. Bare names ("move report.md into Archive") resolved against the process working directory, so every relative path failed. `file.save` worked only because FIX-011 special-cased it. Composition stays in file-access; containment is unchanged and still runs after.
+- `electron/tools/file.cjs` — `file.rename` validation is now idempotent. See below.
+- Skills page reports `unroutableTools` separately from `missingTools`.
+
+**Latent bug found by routing:** giving `file.rename` a route ran it through the agent for the first time. The agent validates to build the approval card, then `ToolRegistry.execute()` validates again on purpose — but the tool took `path` and returned `source`, so the second pass rejected the first pass's output and the rename failed *after* the user approved. Fixed, with a test asserting idempotency across every write tool rather than only the one that broke.
+
+**Validation:** `npm run verify` 531/531, exit 0. Documented phrases reaching a tool: 4/16 → 13/16. Of the remainder, `presentation.create` is the documented host-side flow (deck text → `file.save`), one was a probe artefact, and `file.search` still needs the literal phrasing "find files named X" — recorded as a limitation, not fixed, because a broad `find X` route would hijack ordinary questions.
+
+**Not done, deliberately:** a runtime guard refusing provider answers for unrouted action skills. Once the routes existed, every demonstrated false claim was fixed at the cause, and the guard would have broken `document-assistant` and `presentation-builder`, which legitimately produce text that `file.save` writes. Reasoning recorded in ADR-022.
 
 ---
 
