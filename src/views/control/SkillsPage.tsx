@@ -27,6 +27,11 @@ export function SkillsPage({ ctx }: { ctx: ControlCenterContextValue }) {
               {skill.missingTools.length > 0 && (
                 <p className="skill-missing">Not registered yet: {skill.missingTools.join(', ')}</p>
               )}
+              {skill.unroutableTools.length > 0 && (
+                <p className="skill-missing">
+                  Registered but not yet reachable by asking: {skill.unroutableTools.join(', ')}
+                </p>
+              )}
             </article>
           ))}
         </div>

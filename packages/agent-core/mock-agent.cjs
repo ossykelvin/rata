@@ -12,6 +12,7 @@ const {
   toolTitle
 } = require('./communicator.cjs')
 const { createConversationMemory } = require('./conversation-memory.cjs')
+const { matchToolRoute } = require('./tool-routes.cjs')
 
 /**
  * How long a requested approval stays valid. An approval is a snapshot of user
@@ -120,112 +121,22 @@ class MockAgent {
 
   async dispatchRequest(message) {
     const text = message.trim()
-    const lower = text.toLowerCase()
     this.activity('User request', `Request received (${text.length} characters).`, 'info')
 
-    if (/\b(open|launch|start)\s+(notepad|calculator|calc)\b/i.test(text)) {
-      const appName = lower.includes('notepad') ? 'notepad' : 'calculator'
-      return this.runTool('system.openApp', { appName }, `Open ${appName}`)
-    }
+    // Every deterministic phrase → tool route lives in tool-routes.cjs. Adding
+    // one here instead would make the set uncountable again, and an uncounted
+    // route table is how five tools shipped registered but unreachable. The
+    // help reply below is not a tool and stays inline. FIX-016.
+    const help = /what can you do|help|commands|installed skills/i.test(text) ? this.help() : null
 
-    const copyMatch = text.match(/^copy\s+(.+?)(?:\s+to\s+(?:the\s+)?clipboard)?$/i)
-    if (copyMatch) {
-      const value = copyMatch[1].replace(/\s+to\s+(?:the\s+)?clipboard$/i, '').trim()
-      return this.runTool('clipboard.write', { text: value }, 'Write to clipboard')
-    }
+    const toolRoute = matchToolRoute(text, {
+      has: id => this.registry.has?.(id) !== false,
+      lastAssistantMessage: this.lastAssistantMessage()
+    })
+    if (toolRoute?.reply) return toolRoute.reply
+    if (toolRoute) return this.runTool(toolRoute.toolId, toolRoute.input, toolRoute.title, toolRoute.options)
 
-    // A URL is fetched only through the registered tool. If approved, its
-    // result is passed to the provider as `context`, which the provider
-    // contract fences as untrusted external data. Neither this agent nor the
-    // fetch tool receives a provider credential.
-    const fetchMatch = text.match(/^(?:fetch|read|summari[sz]e)\s+(https?:\/\/\S+)/i)
-    if (fetchMatch && this.registry.has?.('web.fetch')) {
-      return this.runTool('web.fetch', { url: fetchMatch[1] }, 'Fetch public web page', {
-        kind: 'synthesize-web',
-        question: text
-      })
-    }
-
-    if (/what can you do|help|commands|installed skills/i.test(text)) {
-      return this.help()
-    }
-
-    // Local file routes sit BEFORE the web-search route on purpose.
-    //
-    // "search my files for invoice" matches the web pattern below, which would
-    // send the phrase to Serper — the exact opposite of what was asked, and a
-    // local request leaving the machine. The file tools shipped in RATA-006
-    // with no deterministic route at all, so ordinary phrasing fell through to
-    // the skill router instead of running the tool that exists. FIX-010.
-    const fileContentMatch = text.match(
-      /^(?:search|grep|look)\s+(?:in\s+|inside\s+|through\s+)?(?:my\s+|the\s+)?(?:files?|documents?|notes?)\s+for\s+(.+)$/i
-    )
-    if (fileContentMatch && this.registry.has?.('file.searchContent')) {
-      const query = fileContentMatch[1].replace(/[?.!]+$/, '').trim()
-      if (query) return this.runTool('file.searchContent', { query }, `Search your files for “${query}”`)
-    }
-
-    // "save that as memo.md" writes Rata's own last reply to a file.
-    //
-    // The filename is extracted here and the content is the previous assistant
-    // turn, so neither is chosen by a model: the user names the file, and the
-    // bytes are text they have already read on screen. file.save resolves a
-    // bare name against the first allowed root, so nothing here composes a
-    // path. FIX-011.
-    const saveMatch = text.match(
-      /^(?:save|write|put)\s+(?:that|this|it|the\s+\w+)\s+(?:to\s+a\s+file\s+)?(?:as|to|in)\s+(.+)$/i
-    )
-    if (saveMatch && this.registry.has?.('file.save')) {
-      const name = saveMatch[1].replace(/[?.!]+$/, '').replace(/^["']|["']$/g, '').trim()
-      const previous = [...this.memory.snapshot()].reverse().find(turn => turn.role === 'assistant')
-      if (!name) {
-        return { message: 'What should I call the file?', state: 'idle' }
-      }
-      if (!previous?.content?.trim()) {
-        return {
-          message: 'There is nothing to save yet. Ask me to draft something first, then say “save that as notes.md”.',
-          state: 'idle'
-        }
-      }
-      return this.runTool('file.save', { path: name, content: previous.content }, `Save ${name}`)
-    }
-
-    const fileNameMatch = text.match(
-      /^(?:find|list|show|locate)\s+(?:me\s+)?(?:all\s+)?(?:the\s+|my\s+)?files?\s+(?:called|named|matching|with\s+the\s+name)\s+(.+)$/i
-    )
-    if (fileNameMatch && this.registry.has?.('file.search')) {
-      const query = fileNameMatch[1].replace(/[?.!]+$/, '').trim()
-      if (query) return this.runTool('file.search', { query }, `Find files named “${query}”`)
-    }
-
-    // Explicit search intent goes to the registered tool, so the query passes
-    // the policy engine before it leaves the machine.
-    const searchMatch = text.match(/^(?:search(?:\s+the\s+web)?(?:\s+for)?|google|look\s+up|find\s+online)\s+(.+)$/i)
-    if (searchMatch && this.registry.has?.('web.search')) {
-      return this.runTool('web.search', { query: searchMatch[1].trim() }, 'Research the web', {
-        kind: 'research-web',
-        question: text,
-        approvalDetail:
-          'Send this query to Serper, then fetch the first public result for AI synthesis. Each request leaves your machine.'
-      })
-    }
-
-    // Weather is a deterministic route: the location is extracted here, not
-    // chosen by a model, so no provider sees the request before the tool runs.
-    // RATA-007.
-    const weatherMatch = text.match(
-      /^(?:(?:can|could)\s+you\s+)?(?:please\s+)?(?:tell\s+me\s+|check\s+|do\s+you\s+know\s+|give\s+me\s+)?(?:what(?:'|’)?s|what\s+is|how(?:'|’)?s|how\s+is|hows)?\s*(?:the\s+)?(?:weather|temperature|air\s+quality)\b(?:\s+like)?(?:\s+(?:in|for|at|near))?\s*(.*)$/i
-    )
-    if (weatherMatch && this.registry.has?.('weather.current')) {
-      const place = weatherMatch[1].replace(/[?.!]+$/, '').replace(/\b(right now|now|today|currently|outside|please|like)\b/gi, '').trim()
-      if (place) {
-        return this.runTool('weather.current', { query: place }, `Check the weather in ${place}`)
-      }
-      return {
-        message: 'Which place should I check the weather for?',
-        state: 'idle'
-      }
-    }
+    if (help) return help
 
     const routed = this.skills?.router?.route(text)
     if (routed?.selectedSkillIds?.length) {
@@ -281,6 +192,12 @@ class MockAgent {
 
   resetConversation() {
     this.memory.reset()
+  }
+
+  /** Rata's own last reply, which is what "save that as notes.md" writes. */
+  lastAssistantMessage() {
+    const previous = [...this.memory.snapshot()].reverse().find(turn => turn.role === 'assistant')
+    return previous?.content?.trim() ? previous.content : ''
   }
 
   recordCompletedTurn(userText, reply) {
