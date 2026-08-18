@@ -96,3 +96,45 @@ test('mock agent executes calculator through policy and reports missing skill to
   assert.equal(registry.summarize(registry.get('filesystem-scan')).status, 'ready')
   assert.deepEqual(registry.summarize(registry.get('filesystem-scan')).missingTools, [])
 })
+
+// --- FIX-014: the subject matter must not decide the skill ---------------
+
+test('a drafting request routes to Document Assistant whatever it mentions', () => {
+  // Found by walking the GUI. "Draft a memo about the project status" selected
+  // Document Assistant, and the same request with a sentence of technical
+  // detail selected Web Search — which sent the entire memo request to Serper
+  // as a search query and saved the search results as the document.
+  const { createSkillRegistry, createSkillRouter } = require('../packages/skills/index.cjs')
+  const router = createSkillRouter({ registry: createSkillRegistry({ rootDir: path.join(__dirname, '..') }) })
+
+  const drafting = [
+    'Draft a memo about the Rata project status: voice input works using a local Whisper model, file search and saving are live, and Microsoft Graph is blocked on an app registration.',
+    'Draft a memo about the project status',
+    'write a short report on the Microsoft Graph integration and the app registration we still need',
+    'prepare a briefing about the latest documentation for Electron security',
+    'turn these notes into a document',
+    'summarize this file into a document'
+  ]
+  for (const text of drafting) {
+    assert.deepEqual(
+      router.route(text).selectedSkillIds,
+      ['document-assistant'],
+      `wrong skill for: ${text.slice(0, 60)}`
+    )
+  }
+})
+
+test('genuine search, calculation and launch requests are unaffected', () => {
+  const { createSkillRegistry, createSkillRouter } = require('../packages/skills/index.cjs')
+  const router = createSkillRouter({ registry: createSkillRegistry({ rootDir: path.join(__dirname, '..') }) })
+  const cases = [
+    ['search the internet for electron sandbox docs', 'web-search'],
+    ['find the latest documentation for Vulkan', 'web-search'],
+    ['look up current information about whisper models', 'web-search'],
+    ['what is 15% of 2400', 'calculator'],
+    ['open notepad', 'app-launcher']
+  ]
+  for (const [text, expected] of cases) {
+    assert.deepEqual(router.route(text).selectedSkillIds, [expected], `wrong skill for: ${text}`)
+  }
+})
