@@ -42,7 +42,10 @@ const settingValidators = Object.assign(Object.create(null), {
   communicatorEnabled: value => typeof value === 'boolean',
   // Master switch for screen.capture and vision.analyze. Off by default.
   // Confirmation is always, independent of this setting. ADR-020.
-  screenCaptureEnabled: value => typeof value === 'boolean'
+  screenCaptureEnabled: value => typeof value === 'boolean',
+  // Focusing a running catalogued app. Confirmed by default. Launch is always
+  // confirmed and is not this setting. ADR-021.
+  appFocusConfirm: value => typeof value === 'boolean'
 })
 
 /** The complete set of writable settings. Use this rather than `key in obj`. */

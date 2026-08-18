@@ -30,10 +30,15 @@ const TOOLS_DIR = path.join(__dirname, '..', 'electron', 'tools')
 // file.move and file.rename so File Organizer can create a folder and move
 // or rename files inside the same roots. RATA-015 added screen.capture and
 // vision.analyze so Screenshot Inspector can capture the primary display
-// and send the approved image to a vision provider. Updated deliberately:
-// this list is the privileged tool surface, and it must only change when a
-// tool is consciously added.
+// and send the approved image to a vision provider. RATA-016 added app.find,
+// app.launch and app.focus so Application Launcher can name a catalog id
+// rather than an executable. Updated deliberately: this list is the
+// privileged tool surface, and it must only change when a tool is
+// consciously added.
 const EXPECTED_TOOL_IDS = [
+  'app.find',
+  'app.focus',
+  'app.launch',
   'calculator.evaluate',
   'clipboard.write',
   'document.create',
@@ -333,6 +338,25 @@ test('shipped tools keep their risk and confirmation metadata', () => {
   assert.deepEqual(
     { risk: meta('system.openApp').risk, confirmation: meta('system.openApp').confirmation },
     { risk: 'safe-write', confirmation: 'never' }
+  )
+  assert.deepEqual(
+    { risk: meta('app.find').risk, confirmation: meta('app.find').confirmation },
+    { risk: 'read', confirmation: 'never' }
+  )
+  assert.deepEqual(
+    {
+      risk: meta('app.launch').risk,
+      confirmation: meta('app.launch').confirmation
+    },
+    { risk: 'safe-write', confirmation: 'always' }
+  )
+  assert.deepEqual(
+    {
+      risk: meta('app.focus').risk,
+      confirmation: meta('app.focus').confirmation,
+      setting: meta('app.focus').confirmationSetting
+    },
+    { risk: 'safe-write', confirmation: 'configurable', setting: 'appFocusConfirm' }
   )
   assert.deepEqual(
     { risk: meta('system.info').risk, confirmation: meta('system.info').confirmation },
