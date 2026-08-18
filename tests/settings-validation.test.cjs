@@ -138,6 +138,17 @@ test('corrupt JSON restores fail-closed security settings and records recovery',
   assert.match(store.getActivity()[0].detail, /unreadable/)
 })
 
+test('invalid screenCaptureEnabled falls back off, the safe direction', () => {
+  const store = storeFromDisk({ settings: { screenCaptureEnabled: 'true' } })
+  assert.equal(store.getSettings().screenCaptureEnabled, false)
+  assert.match(store.getActivity()[0].detail, /screenCaptureEnabled/)
+})
+
+test('a fresh store ships screen capture off', () => {
+  const store = freshStore()
+  assert.equal(store.getSettings().screenCaptureEnabled, false)
+})
+
 test('invalid microphone and confirmation settings cannot loosen policy from disk', () => {
   const store = storeFromDisk({
     settings: {

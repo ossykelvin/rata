@@ -12,9 +12,10 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
     ['Read file contents', 'read', settings.fileReadConfirm ? 'Ask every time' : 'Automatic'],
     ['Save a local file', 'safe-write', settings.fileWriteConfirm ? 'Ask every time' : 'Automatic'],
     ['Look up weather', 'read', settings.weatherConfirm ? 'Ask every time' : 'Automatic'],
+    ['Capture the screen and send it to your AI provider', 'read', settings.screenCaptureEnabled ? 'Always ask' : 'Off'],
     ['Send email / invite attendees', 'external-write', 'Always ask'],
     ['Delete files / cancel meetings', 'destructive', 'Always ask']
-  ], [settings.clipboardConfirm, settings.fileReadConfirm, settings.fileWriteConfirm, settings.weatherConfirm])
+  ], [settings.clipboardConfirm, settings.fileReadConfirm, settings.fileWriteConfirm, settings.weatherConfirm, settings.screenCaptureEnabled])
 
   return (
     <section className="panel page-panel">
@@ -46,6 +47,10 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
       <label className="setting-row">
         <div><strong>Communicator</strong><span>Off by default. When on, unmatched requests and conversational replies are sent to your AI provider so Rata can interpret phrasing the built-in routes miss and speak more naturally. Your original request is never rewritten. Approval cards, refusals and tool result values stay exactly as produced.</span></div>
         <input type="checkbox" checked={settings.communicatorEnabled} onChange={e => setSetting('communicatorEnabled', e.target.checked)} />
+      </label>
+      <label className="setting-row">
+        <div><strong>Screen capture</strong><span>Off by default. Turning it on allows Rata to capture the screen and send images to your AI provider. Every capture and every analysis still asks, and the approval card shows the exact image.</span></div>
+        <input type="checkbox" checked={settings.screenCaptureEnabled} onChange={e => setSetting('screenCaptureEnabled', e.target.checked)} />
       </label>
       <label className="setting-row">
         <div><strong>Microphone</strong><span>Allow speech-to-text from the overlay and Chat. Main process denies media permission when this is off.</span></div>

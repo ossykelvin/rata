@@ -571,6 +571,21 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Cursor
 
+### 2026-08-17 — RATA-015 — Screen capture and vision
+
+**Status:** DONE, PR #86
+**Branch:** `cursor/RATA-015-screen-vision` (from origin/main)
+
+**Done:** Registered `screen.capture` and `vision.analyze` so Screenshot Inspector can run. The user sees the exact PNG on the `vision.analyze` approval card before pixels leave the machine. Confirmation is always, not configurable. Master switch `screenCaptureEnabled` defaults off and falls back off. Capture is primary-display only, handle+TTL in memory, never disk, never bytes to the agent. Vision results are `untrusted-external` and fenced. Provider contract gained an additive `image` sibling field; mock never receives an image. Skill files, ADR-009 planner enum, and communicator intent enum were not edited. ADR-020.
+
+**Files touched:** `electron/screen-capture.cjs`, `electron/tools/screen.cjs`, `electron/main.cjs`, `electron/store.cjs`, `packages/agent-core/providers/provider-contract.cjs`, `packages/agent-core/providers/gemini-provider.cjs`, `packages/agent-core/providers/openrouter-provider.cjs`, `packages/agent-core/providers/mock-provider.cjs`, `packages/agent-core/providers/index.cjs`, `packages/agent-core/mock-agent.cjs`, `packages/agent-core/tool-registry.cjs`, `packages/contracts/ipc-validation.cjs`, `src/types/settings.ts`, `src/types/agent.ts`, `src/views/control/PermissionsPage.tsx`, `src/components/ApprovalActions.tsx`, `src/styles/overlay.css`, `src/styles/control.css`, `tests/screen-capture.test.cjs`, `tests/vision-analyze.test.cjs`, `tests/tool-composition.test.cjs`, `tests/skills-registry.test.cjs`, `tests/settings-validation.test.cjs`, `docs/decisions/ADR-020-screen-capture-and-vision.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/VALIDATION.md`.
+
+**Validation:** `npm run verify` exit 0, **502/502**. Registry proof with a composed tool registry: `screenshot-inspector ready available=["screen.capture","vision.analyze"] missing=[]`.
+
+**Coordination:** Claude review requested on PR #86 (`@claude` comment). Did not touch communicator intent enum or ADR-009 planner enum.
+
+---
+
 ### 2026-08-17 — RATA-014 — File organize writes (folder.create, file.move, file.rename)
 
 **Status:** DONE, PR #80

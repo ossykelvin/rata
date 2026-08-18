@@ -20,14 +20,17 @@ const defaults = {
     fileWriteConfirm: true,
     weatherConfirm: true,
     // Opt-in. Both communicator stages send text to a provider. ADR-012.
-    communicatorEnabled: false
+    communicatorEnabled: false,
+    // Master switch. Off by default; confirmation stays always when on. ADR-020.
+    screenCaptureEnabled: false
   },
   activity: []
 }
 
 // These are used only when a value read from an existing file is invalid.
-// Microphone access fails closed, while every configurable confirmation falls
-// back to enabled. Fresh-install product defaults remain unchanged above.
+// Microphone access and screen capture fail closed. Configurable
+// confirmation falls back to enabled. Fresh-install product defaults remain
+// unchanged above.
 const safeDiskFallbackSettings = Object.freeze({
   ...defaults.settings,
   microphoneEnabled: false,
@@ -37,7 +40,8 @@ const safeDiskFallbackSettings = Object.freeze({
   fileReadConfirm: true,
   fileWriteConfirm: true,
   weatherConfirm: true,
-  communicatorEnabled: false
+  communicatorEnabled: false,
+  screenCaptureEnabled: false
 })
 
 function isRecord(value) {

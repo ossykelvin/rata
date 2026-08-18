@@ -6,6 +6,8 @@ export type ApprovalRequest = {
   title: string
   detail: string
   risk: Risk
+  /** Data URL for the trusted renderer only. Never persisted or audited. */
+  previewImage?: string
 }
 
 export type AgentReply = {

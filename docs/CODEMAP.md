@@ -27,6 +27,8 @@ src/views (React UI)
 | `electron/voice-win.cjs` | Windows speech recognition adapter | Generic shell, model-generated commands |
 | `electron/file-access.cjs` | Root containment, denied names, bounded reads, `file.save`, `folder.create`, `file.move` and `file.rename`. `resolveWithinRoots()` is the single path gate; writes resolve the parent through it and validate the basename separately (ADR-016, ADR-017) | Delete, writing outside the roots, creating or moving-to executables or denied names, recursive mkdir, directory move, cross-volume copy |
 | `electron/filesystem-scan.cjs` | Bounded metadata inventory, volume totals and file digests over the same roots (ADR-014) | Its own path validator, file contents in any return value, deriving its own roots |
+| `electron/screen-capture.cjs` | Primary-display capture, in-memory handle store, PNG downscale and size cap (ADR-020) | Window targeting by name, writing images to disk, returning bytes to the agent |
+| `electron/tools/screen.cjs` | Sole owner of `screen.capture` and `vision.analyze` | Configurable confirmation, raw image input, silent recapture |
 | `electron/weather-client.cjs` | Bound WeatherAPI capability, response mapping, credential-safe errors | The key in any log, error or return value |
 | `electron/handy-stt.cjs` | Local transcription: fixed executable path and arguments, temp-file lifecycle | Renderer-supplied paths or flags, transcripts in the audit log |
 | `src/hooks/useAudioRecorder.ts` | Microphone capture, 16 kHz mono WAV encoding | Sending audio anywhere except the declared IPC channel |
@@ -76,6 +78,7 @@ src/views (React UI)
 - `document.create` / `presentation.create` / `presentation.render` — Markdown or self-contained HTML generation; no I/O; not .docx/.pptx
 - `filesystem.scan` / `filesystem.diskUsage` / `filesystem.hash` — read-only storage inventory over the same roots; metadata and digests only, never file contents; confirmation configurable
 - `weather.current` — WeatherAPI current conditions and air quality; confirmation configurable
+- `screen.capture` / `vision.analyze` — primary-display screenshot handle and vision analysis; confirmation always; master switch defaults off
 
 ## First safe changes for agents
 

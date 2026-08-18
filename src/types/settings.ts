@@ -25,4 +25,9 @@ export type RataSettings = {
    * stages send text off the machine.
    */
   communicatorEnabled: boolean
+  /**
+   * Master switch for capturing the screen and sending the image to a vision
+   * provider. Off by default. Confirmation is always when this is on.
+   */
+  screenCaptureEnabled: boolean
 }

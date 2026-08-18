@@ -30,10 +30,21 @@ function createGeminiProvider({
 
     const { system, turns } = buildPrompt(messages)
     const body = {
-      contents: turns.map(turn => ({
-        role: turn.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: turn.content }]
-      }))
+      contents: turns.map(turn => {
+        const parts = [{ text: turn.content }]
+        if (turn.image) {
+          parts.push({
+            inline_data: {
+              mime_type: turn.image.mimeType,
+              data: turn.image.data
+            }
+          })
+        }
+        return {
+          role: turn.role === 'assistant' ? 'model' : 'user',
+          parts
+        }
+      })
     }
     if (system) body.systemInstruction = { parts: [{ text: system }] }
 
@@ -100,6 +111,7 @@ function createGeminiProvider({
     id: 'gemini',
     label: 'Google Gemini',
     model,
+    supportsVision: true,
     isConfigured: () => configured,
     generate
   }

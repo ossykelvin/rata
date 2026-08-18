@@ -77,6 +77,23 @@ class ToolRegistry {
     }
   }
 
+  /**
+   * Short-lived image for the trusted renderer approval card. Never part of
+   * tool metadata, audit, or list(). A missing or non-data-URL preview is
+   * treated as absent rather than rendered.
+   */
+  previewImage(id, input) {
+    const tool = this.tools.get(id)
+    if (!tool || typeof tool.previewImage !== 'function') return undefined
+    try {
+      const value = tool.previewImage(input)
+      if (typeof value !== 'string' || !value.startsWith('data:image/')) return undefined
+      return value
+    } catch {
+      return undefined
+    }
+  }
+
   /** Security metadata for a tool. Never returns an executor. */
   describe(id) {
     const tool = this.tools.get(id)
