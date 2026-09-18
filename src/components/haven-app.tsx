@@ -14,7 +14,6 @@ import {
   Menu,
   ShieldAlert,
   Stethoscope,
-  TriangleAlert,
   Users,
   Wrench,
   X,

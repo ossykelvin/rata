@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assetSchema, incidentSchema, residentSchema } from '@/lib/schemas'
+import { assetSchema, incidentSchema, residentSchema } from '../src/lib/schemas'
 
 describe('Haven create form validation', () => {
   it('accepts a complete resident record', () => {

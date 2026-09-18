@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { complianceScore, incidentCounts, openActionCount, unreadNotificationCount } from '@/lib/metrics'
+import { complianceScore, incidentCounts, openActionCount, unreadNotificationCount } from '../src/lib/metrics'
 
 describe('Haven dashboard metrics', () => {
   it('recalculates compliance when a new check is added', () => {

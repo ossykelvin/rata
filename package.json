@@ -2,6 +2,7 @@
   "name": "haven-care-compliance",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Haven care-home CQC compliance dashboard",
   "scripts": {
     "dev": "next dev",

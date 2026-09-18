@@ -9,7 +9,7 @@ export const initialData: HavenData = {
       owner: 'Amelia Wright',
       dueDate: '2026-09-19',
       status: 'Action required',
-      progress: 72
+      progress: 88
     },
     {
       id: 'CHK-1047',
@@ -18,7 +18,7 @@ export const initialData: HavenData = {
       owner: 'Jack Thompson',
       dueDate: '2026-09-23',
       status: 'In progress',
-      progress: 64
+      progress: 92
     },
     {
       id: 'CHK-1046',
@@ -36,7 +36,7 @@ export const initialData: HavenData = {
       owner: 'Sophie Martin',
       dueDate: '2026-10-02',
       status: 'In progress',
-      progress: 48
+      progress: 85
     },
     {
       id: 'CHK-1044',
@@ -45,7 +45,7 @@ export const initialData: HavenData = {
       owner: 'Olivia Bennett',
       dueDate: '2026-09-16',
       status: 'Overdue',
-      progress: 80
+      progress: 87
     },
     {
       id: 'CHK-1043',

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Activity, ArrowUpRight, CheckCircle2, ClipboardCheck, ShieldCheck, TriangleAlert, Users } from 'lucide-react'
+import { ArrowUpRight, CheckCircle2, ClipboardCheck, ShieldCheck, TriangleAlert, Users } from 'lucide-react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { useHavenData } from '@/components/data-provider'
 import { PageHeader, StatCard, StatusBadge } from '@/components/shared'
@@ -11,7 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress'
 import { complianceTrend, incidentTrend, kloeScores } from '@/lib/mock-data'
 import { complianceScore, openActionCount } from '@/lib/metrics'
-import { formatDate } from '@/lib/utils'
 
 const chartTooltipStyle = {
   borderRadius: '10px',
@@ -157,62 +156,65 @@ export function DashboardPage() {
         <Card>
           <CardHeader className="flex-row items-center justify-between">
             <div>
-              <CardTitle>Priority compliance actions</CardTitle>
-              <CardDescription>Items needing attention from your team</CardDescription>
+              <CardTitle>Audit progress</CardTitle>
+              <CardDescription>Current quality assurance programme</CardDescription>
             </div>
             <Button asChild variant="ghost" size="sm">
-              <Link href="/compliance-checks">View all</Link>
+              <Link href="/audits">View all</Link>
             </Button>
           </CardHeader>
           <CardContent className="space-y-1">
-            {data.complianceChecks
-              .filter(check => check.status !== 'Compliant')
-              .slice(0, 4)
-              .map(check => (
-                <div key={check.id} className="flex items-center gap-3 rounded-lg px-2 py-3 hover:bg-slate-50">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-600">
-                    <Activity className="size-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-800">{check.title}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      {check.owner} · Due {formatDate(check.dueDate)}
-                    </p>
+            {data.audits.slice(0, 4).map(audit => (
+              <div key={audit.id} className="flex items-center gap-3 rounded-lg px-2 py-3 hover:bg-slate-50">
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-600">
+                  <ClipboardCheck className="size-4" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="truncate text-sm font-semibold text-slate-800">{audit.title}</p>
+                    <span className="text-xs font-semibold text-slate-500">
+                      {audit.status === 'Scheduled' ? 0 : audit.score}%
+                    </span>
                   </div>
-                  <StatusBadge value={check.status} />
+                  <Progress value={audit.status === 'Scheduled' ? 0 : audit.score} className="mt-2 h-1.5" />
                 </div>
-              ))}
+                <StatusBadge value={audit.status} />
+              </div>
+            ))}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex-row items-center justify-between">
             <div>
-              <CardTitle>Latest notifications</CardTitle>
-              <CardDescription>Recent updates across the home</CardDescription>
+              <CardTitle>Recent alerts</CardTitle>
+              <CardDescription>Latest risks and upcoming deadlines</CardDescription>
             </div>
             <Button asChild variant="ghost" size="sm">
               <Link href="/notifications">Open inbox</Link>
             </Button>
           </CardHeader>
           <CardContent className="space-y-1">
-            {data.notifications.slice(0, 4).map(notification => (
-              <div key={notification.id} className="flex gap-3 rounded-lg px-2 py-3 hover:bg-slate-50">
-                <span
-                  className={`mt-1 size-2 shrink-0 rounded-full ${
-                    notification.type === 'Alert'
-                      ? 'bg-rose-500'
-                      : notification.type === 'Warning'
-                        ? 'bg-amber-500'
-                        : 'bg-blue-500'
-                  }`}
-                />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-800">{notification.title}</p>
-                  <p className="mt-1 line-clamp-1 text-xs text-slate-500">{notification.message}</p>
+            {data.notifications
+              .filter(notification => notification.type !== 'Update')
+              .slice(0, 4)
+              .map(notification => (
+                <div key={notification.id} className="flex gap-3 rounded-lg px-2 py-3 hover:bg-slate-50">
+                  <span
+                    className={`mt-1 size-2 shrink-0 rounded-full ${
+                      notification.type === 'Alert'
+                        ? 'bg-rose-500'
+                        : notification.type === 'Warning'
+                          ? 'bg-amber-500'
+                          : 'bg-blue-500'
+                    }`}
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-slate-800">{notification.title}</p>
+                    <p className="mt-1 line-clamp-1 text-xs text-slate-500">{notification.message}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </CardContent>
         </Card>
       </div>
