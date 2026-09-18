@@ -68,7 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
-| Cursor | HAVEN-001 care-home compliance SaaS migration | `cursor/haven-compliance-dashboard-e8e2` | IN PROGRESS — replacing the Electron/Vite product with a Next.js dashboard |
+| Cursor | HAVEN-001 care-home compliance SaaS migration | `cursor/haven-compliance-dashboard-e8e2` | DONE — draft PR #92 |
 | Cursor | RATA-014 file organize writes | `cursor/RATA-014-file-organize` | DONE, PR #80 |
 | Cursor | RATA-013 document create + file.save | `cursor/RATA-013-document-and-save` | DONE, PR #79 |
 | Cursor | RATA-005 system status tools | `cursor/RATA-005-system-status` | DONE, PR #67 |
@@ -100,6 +100,20 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Cursor | ISSUE-34 overlay widget drag | `cursor/ISSUE-34-overlay-drag` | IN PROGRESS |
 | Cursor | ISSUE-29 overlay long-response scroll | `cursor/ISSUE-29-overlay-scroll` | DONE, PR #32 |
 | Cursor | ISSUE-17 restore character image | `cursor/ISSUE-17-restore-character-image` | DONE, PR #18 |
+
+---
+
+## Cursor
+
+### 2026-09-18 — HAVEN-001 — Care-home compliance dashboard
+
+**Status:** DONE. Branch `cursor/haven-compliance-dashboard-e8e2`, draft PR #92.
+
+**Implemented:** Replaced the Electron/Vite desktop product with a single Next.js App Router Haven application. Added Dashboard, Compliance Checks, Residents, Staff, Audits, Reports, Incidents, Assets, and Notifications; responsive/collapsible navigation; CQC KLOE assurance; Recharts line, area, bar, and pie views; searchable/filterable registers; validated create dialogs for six record types; immediate shared-state/localStorage updates; report export; and notification read/delete/filter actions. Removed the superseded Rata runtime, assets, tests, and documentation, and recorded the product replacement in ADR-001.
+
+**Validation:** `npm run verify` passed (ESLint, 6 Vitest tests, strict TypeScript, and Next.js production build). Browser smoke at 1280×800 passed all nine routes, sidebar collapse/expand, resident creation and search, incident creation, notification filtering/read state, asset category filtering, charts, and local state updates. Dashboard, Incidents, Assets, and Report incident dialog screenshots were captured with fictional demonstration records only.
+
+**Blockers / gaps:** None for the requested prototype. Browser localStorage is explicitly not a production care-record store; backend, authentication, tenancy, RBAC, and real CQC integrations remain deferred.
 
 ---
 
