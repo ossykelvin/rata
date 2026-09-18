@@ -68,6 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
+| Cursor | HAVEN-001 care-home compliance SaaS migration | `cursor/haven-compliance-dashboard-e8e2` | IN PROGRESS — replacing the Electron/Vite product with a Next.js dashboard |
 | Cursor | RATA-014 file organize writes | `cursor/RATA-014-file-organize` | DONE, PR #80 |
 | Cursor | RATA-013 document create + file.save | `cursor/RATA-013-document-and-save` | DONE, PR #79 |
 | Cursor | RATA-005 system status tools | `cursor/RATA-005-system-status` | DONE, PR #67 |

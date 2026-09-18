@@ -1,152 +1,38 @@
-# Rata Architecture
+# Haven architecture
 
-## Goal
+## Runtime
 
-Rata is a character-driven desktop assistant with a strict separation between **conversation** and **authority**.
-
-The language model may propose actions. Only registered tools may perform them.
-
-## MVP runtime
+Haven is a Next.js App Router application. The current release is a client-side demonstration: there is no server database or external care-record integration.
 
 ```text
-Overlay + Control Center (React)
-           │
-           ▼
-  electron/preload.cjs
-           │ narrow IPC
-           ▼
-  electron/main.cjs
-           │ validated IPC contracts
-           ▼
-       MockAgent
-           │
-    ┌──────┴──────┐
-    ▼             ▼
-SkillRouter   PolicyEngine
-    │             │
-    ▼             ▼
-SkillRegistry  ToolRegistry
-                  │
-                  ▼
-         Allow-listed OS / calculator tools
+src/app route
+  → HavenApp shell
+  → page component
+  → HavenDataProvider
+  → Zod-validated create action
+  → React state
+  → versioned localStorage snapshot
 ```
 
-Skills may be selected and described. Only registered tools may act. When the router selects Critical Thinking, the agent loads that skill prompt beneath the global system prompt and calls the provider chain. The model still cannot invoke tools.
+## Source boundaries
 
-Ordinary `ask()` turns include a bounded in-memory session transcript so follow-ups can refer to earlier messages in the same Electron process. History is fenced untrusted data and does not select tools. Overlay and Control Center share one `MockAgent`, so they share one session. See `docs/decisions/ADR-013-session-continuity.md`.
+- `src/app/`: root layout, global theme, and the catch-all App Router entry.
+- `src/components/haven-app.tsx`: responsive shell, sidebar, route selection, and header notification state.
+- `src/components/pages/`: one product page per operational area.
+- `src/components/ui/`: owned shadcn-style primitives.
+- `src/components/create-dialog.tsx`: validated create flows for six record types.
+- `src/components/data-provider.tsx`: client state, persistence, notification mutations, and immediate record insertion.
+- `src/lib/`: domain types, schemas, mock data, metrics, and helpers.
+- `tests/`: schema and derived-metric behaviour.
 
-## Current source boundaries
+The provider sits above the page shell in the root layout, so client-side navigation preserves state. The storage payload is checked for the expected top-level shape before use. Every form is parsed with its specific Zod schema before mutation.
 
-- `src/`: unprivileged React renderers. Shared renderer types live in `src/types/` behind a barrel. Overlay and Control Center styles are `src/styles/{base,overlay,control}.css`; Control Center pages self-register from `src/views/control/*Page.tsx`. Overlay conversation state uses `useAgentConversation`.
-- `electron/main.cjs`: Electron lifecycle and dependency composition only.
-- `electron/ipc/`: auto-discovered per-domain main-process handler modules. Each module declares the contract keys it owns and cannot register undeclared channels.
-- `electron/bridge/`: auto-discovered per-domain preload fragments. Duplicate bridge properties or channel ownership fail closed before exposure. The build generates one `dist-electron/preload.cjs` artifact containing every fragment because sandboxed Electron preloads cannot import local CommonJS modules at runtime.
-- `electron/tools/`: auto-discovered per-domain tool modules. Each module declares the tool IDs it owns and creates complete registry definitions from injected native dependencies. Composition fails closed on duplicate or undeclared IDs. `electron/mvp-tools.cjs` remains a compatibility export only.
-- `electron/public-web-client.cjs`: keyless, DNS-pinned public HTTP(S) reader used by the registered `web.fetch` tool. It rejects non-public destinations and returns bounded text marked as untrusted external content.
-- `packages/contracts/`: runtime validation at privileged IPC boundaries.
-- `packages/agent-core/`: provider-independent policy, tool registration and orchestration foundations.
-- `packages/skills/`: per-fragment skill registry, prompt loader and deterministic router. The registry scans `skills/<id>/skill.json` deterministically; an invalid fragment is excluded and reported without disabling valid skills.
-- `skills/`: declarative skill metadata and prompt packs. Each skill owns its `skill.json` and `SKILL.md`; neither is executable or grants authority.
+## Routing and design system
 
-Tool execution is centralized in `ToolRegistry.execute()`. A registered tool must declare its risk, confirmation policy and input validator before it can execute.
+The optional catch-all route renders the common application shell. Sidebar links expose stable URLs for all nine sections while avoiding duplicate shell markup.
 
-Web research keeps service authority separated: Serper supplies search results through `web.search`; `web.fetch` retrieves a validated public result without credentials; only then may provider-independent orchestration pass the text to the configured provider as fenced `context` data.
+Tailwind CSS v4 supplies theme tokens and responsive utilities. UI primitives follow the shadcn ownership model and use Radix for accessible dialog/label behaviour. Recharts provides line, area, bar, and pie visualisations.
 
-Explicit application-launch requests have one narrower provider-assisted path.
-After deterministic intent gating, the provider may return a versioned JSON
-proposal for `system.openApp`; a strict parser accepts only Notepad or
-Calculator and rejects every other tool, field, argument, path or command. The
-proposal then enters the normal policy and Tool Registry path. Ordinary chat
-output and retrieved content never enter this planner. See
-`docs/decisions/ADR-009-structured-system-actions.md`.
+## Future backend boundary
 
-Follow-up turns in the same Electron session may see a bounded in-memory
-transcript. History is data, fenced when it is assistant/tool text, and is
-injected only into `ask()`. It does not rewrite the current request, does not
-select tools, and is discarded when the process quits. Overlay and Control
-Center share one `MockAgent`, so they share one session. See
-`docs/decisions/ADR-013-session-continuity.md`.
-System status tools live in the same `electron/tools/system.cjs` module.
-`system.info`, `system.storage` and `system.processSummary` are read-only.
-`system.processSummary` returns a count and a short memory ranking; it must
-not include command lines, arguments or window titles. Keep-awake uses
-Electron `powerSaveBlocker` through `system.keepAwake.start/stop/status`: one
-blocker, a 4-hour cap, auto-release on expiry, and release on app quit.
-Native `os`, volume/process listers and `powerSaveBlocker` are injected at
-composition in `electron/main.cjs`.
-
-Adding a tool domain means adding one trusted module under `electron/tools/`; it does not require editing the composition index or Electron lifecycle. Tool modules are application code packaged with Rata, never user- or model-supplied plugins.
-
-Adding an IPC-backed capability extends the trusted boundary with a handler module and a preload bridge fragment instead of editing the shared main/preload hubs. `npm run build:preload` discovers and statically bundles new bridge fragments. Contract channel fragments are owned separately under `packages/contracts/`.
-
-## Target runtime
-
-```text
-User / microphone
-       ↓
-Conversation Manager
-       ↓
-Intent + Context
-       ↓
-Skill Router
-       ↓
-Planner / Orchestrator
-       ↓
-Policy Engine
-       ↓
-Approval when required
-       ↓
-Tool Registry
-       ↓
-┌──────────┬────────────┬────────────┬──────────────┐
-│ Windows  │ Microsoft  │ Web        │ Files/System │
-│ Bridge   │ Graph      │ Browser    │              │
-└──────────┴────────────┴────────────┴──────────────┘
-       ↓
-Verifier
-       ↓
-Audit + response + character state
-```
-
-## Window model
-
-Rata uses separate windows:
-
-- **Overlay**: transparent, frameless, draggable, always-on-top, `skipTaskbar`, small attack surface. Minimize collapses the widget to a small draggable icon; close hides the window without quitting.
-- **Control Center**: normal application window for settings, chat, permissions, integrations, memory and logs. Closing it hides the window (`skipTaskbar`) rather than quitting.
-- **Tray**: notification-area icon for the running process. Show/Hide overlay, Open Control Center, and Quit live here so a closed overlay does not leave a taskbar launch.
-
-The overlay must never gain privileged APIs that the Control Center does not need either. Both use the same restricted preload.
-
-## Character architecture
-
-The character consumes state/events only:
-
-```text
-idle → listening → thinking → awaiting_approval → working → success → idle
-```
-
-`sleeping` is also a presentation state. The renderer maps those events in `src/components/character/`; it does not choose tools. Idle uses `public/rata-concept.png`. Other states load matching art from `public/character/`. Missing assets fall back to a letter-mark silhouette.
-
-Production assets should be transparent WebM, Rive, Live2D or another state-driven renderer. Tool logic must not live in animation code.
-
-## Native Windows bridge target
-
-Create a C#/.NET process with authenticated local IPC for:
-
-- Windows UI Automation
-- window discovery/focus
-- keyboard/mouse
-- clipboard
-- screen capture
-- process launch/close
-- filesystem operations
-
-Use UI Automation first. Vision/coordinate automation is a fallback.
-
-## Connectors target
-
-- Microsoft Graph: delegated user permissions for Outlook Mail, Calendar, Contacts.
-- Browser: Playwright behind tool contracts.
-- AI: provider adapters for OpenAI, Anthropic, Gemini and local models.
-- Voice: dedicated STT and TTS adapters. Push-to-talk STT uses Windows speech recognition from `electron/voice-win.cjs` through `rata:voice-*` channels. The renderer only receives the transcript string. Chromium `media` permission and the Windows recognizer both consult `isMicrophoneEnabled()`; turning the setting off stops an in-flight child process, and a leftover partial transcript already buffered is still delivered. Cloud STT/TTS adapters still belong behind `packages/agent-core/voice/`.
+Authentication, multi-home tenancy, an audited database, role-based access control, attachment storage, and real CQC/provider integrations are deliberately out of scope. They must replace—not wrap—the browser persistence layer before Haven stores real care data.

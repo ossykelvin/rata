@@ -1,13 +1,12 @@
 ---
-description: Rata architecture and privilege boundaries
+description: Haven application architecture
 alwaysApply: true
 ---
 
-- Never place privileged operations in React components.
-- Renderer -> Preload IPC -> Agent -> Policy -> Tool -> Adapter/Native bridge.
-- Never bypass PolicyEngine for a state-changing action.
-- Every new tool needs an ID, typed/schema-validated input, risk classification, confirmation policy, audit events and tests.
-- Never expose generic `exec`, `eval`, shell or unrestricted filesystem APIs to the renderer or model.
-- Provider implementations must stay behind an interface and must not leak into UI components.
-- Character animations are presentation state only.
+- Use the Next.js App Router under `src/app/`.
+- Keep the common navigation shell in `src/components/haven-app.tsx`.
+- Keep product pages in `src/components/pages/` and owned primitives in `src/components/ui/`.
+- Route all mutable prototype data through `HavenDataProvider` and runtime schemas.
+- Do not add Node, shell, or unrestricted filesystem access to client components.
+- Real backend or authentication work requires a new architecture decision and replaces browser persistence.
 - Major architecture changes require an ADR.
