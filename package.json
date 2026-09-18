@@ -1,87 +1,45 @@
 {
-  "name": "rata-office-assistant-mvp",
-  "version": "0.1.0",
+  "name": "haven-care-compliance",
+  "version": "1.0.0",
   "private": true,
-  "description": "Rata Office Assistant - Windows-first draggable desktop AI assistant MVP",
-  "main": "electron/main.cjs",
+  "type": "module",
+  "description": "Haven care-home CQC compliance dashboard",
   "scripts": {
-    "build:preload": "node esbuild.preload.cjs",
-    "dev": "npm run build:preload && concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
-    "build": "vite build && npm run build:preload",
-    "start": "npm run build:preload && electron .",
-    "check:node": "node scripts/check-node.cjs",
-    "typecheck": "tsc --noEmit",
-    "test": "node --test tests/*.test.cjs",
-    "verify": "npm run check:node && npm run lint && npm test && npm run typecheck && npm run build",
-    "pack:win": "npm run build && electron-builder --win dir",
-    "dist:win": "npm run build && electron-builder --win nsis",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "lint": "eslint .",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
-  },
-  "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@types/node": "^26.2.0",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "@vitejs/plugin-react": "^6.0.5",
-    "concurrently": "^10.0.5",
-    "electron": "^43.4.0",
-    "electron-builder": "^26.15.3",
-    "esbuild": "0.28.2",
-    "eslint": "^10.8.1",
-    "eslint-config-prettier": "^10.1.8",
-    "globals": "^17.11.0",
-    "prettier": "^3.9.6",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "typescript": "^7.0.2",
-    "vite": "^8.2.1",
-    "wait-on": "^9.1.0"
-  },
-  "build": {
-    "appId": "uk.koptechnology.rata",
-    "productName": "Rata Office Assistant",
-    "directories": {
-      "output": "release"
-    },
-    "files": [
-      "dist/**/*",
-      "dist-electron/**/*",
-      "electron/**/*",
-      "packages/**/*",
-      "skills/**/*",
-      "package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "public/rata-concept.png",
-        "to": "rata-concept.png"
-      },
-      {
-        "from": "public/24_dialog_avatar_reply.png",
-        "to": "24_dialog_avatar_reply.png"
-      },
-      {
-        "from": "electron/voice-listen.ps1",
-        "to": "voice-listen.ps1"
-      }
-    ],
-    "win": {
-      "icon": "public/24_dialog_avatar_reply.png",
-      "target": [
-        "nsis"
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    }
+    "format:check": "prettier --check .",
+    "verify": "npm run lint && npm test && npm run typecheck && npm run build"
   },
   "engines": {
     "node": ">=22.12.0"
   },
   "dependencies": {
-    "parse5": "7.3.0"
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.47.0",
+    "next": "^16.3.5",
+    "radix-ui": "^1.6.7",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "recharts": "^3.10.1",
+    "tailwind-merge": "^3.7.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.6.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.5",
+    "prettier": "^3.9.8",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.1"
   }
 }

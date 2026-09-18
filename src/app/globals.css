@@ -1,0 +1,69 @@
+@import 'tailwindcss';
+
+:root {
+  --background: #f6f8fc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --primary: #2563eb;
+  --radius: 0.75rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-primary: var(--primary);
+  --font-sans: 'Inter', 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
+  --radius-sm: calc(var(--radius) * 0.75);
+  --radius-md: calc(var(--radius) * 0.875);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.35);
+}
+
+* {
+  border-color: #e2e8f0;
+}
+
+html {
+  min-width: 320px;
+  background: var(--background);
+}
+
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: #bfdbfe;
+  color: #172554;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: #cbd5e1;
+  background-clip: padding-box;
+}
+
+.recharts-wrapper,
+.recharts-surface {
+  outline: none;
+}

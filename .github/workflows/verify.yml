@@ -1,11 +1,4 @@
-# Runs the repository's own verification command on every pull request.
-#
-# Without this, the branch-per-ticket protocol in docs/PRODUCT_BACKLOG.md is
-# unenforced: branch protection can only require checks that actually exist.
-#
-# Runs on Windows because Rata is a Windows-first Electron application and the
-# packaging path is Windows-specific. Slower than ubuntu, but it tests the
-# platform users actually run.
+# Runs Haven's lint, tests, typecheck, and production build.
 name: verify
 
 on:
@@ -24,7 +17,7 @@ permissions:
 
 jobs:
   verify:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
@@ -42,7 +35,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # check:node -> test -> typecheck -> build
-      # Keep this a single call so CI and local runs cannot drift apart.
       - name: Verify
         run: npm run verify

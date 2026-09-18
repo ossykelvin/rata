@@ -1,110 +1,33 @@
-# Rata Office Assistant MVP
+# Haven
 
-Rata is a Windows-first draggable desktop assistant inspired by the spirit of Clippy, but designed as a modern permission-aware AI agent.
+Haven is a blue-forward care-home compliance dashboard for UK providers. It brings CQC KLOEs, checks, residents, workforce assurance, audits, incidents, assets, reports, and notifications into one operational view.
 
-This repository is the **first working vertical-slice MVP**. Source of truth: [github.com/ossykelvin/rata](https://github.com/ossykelvin/rata.git).
+## Run locally
 
-## What works now
-
-- Transparent, frameless, always-on-top Rata overlay.
-- Drag Rata around the desktop.
-- Speech bubble and quick chat input.
-- Microphone button with browser SpeechRecognition fallback when available.
-- Full Rata Control Center.
-- Persistent local settings using a JSON store in Electron `userData`.
-- Configurable overlay opacity and always-on-top behaviour.
-- System tray controls.
-- Agent runtime boundary with a `ToolRegistry` and `PolicyEngine`.
-- Risk-aware confirmation flow.
-- Working allow-listed Windows tools:
-  - `open notepad`
-  - `open calculator`
-  - `copy <text> to clipboard`
-- Safe calculator (`what is 36 * 14?`, `calculate 15% of 2400`) with no `eval`.
-- Skill registry, deterministic router, and Control Center Skills page.
-- Activity/audit log.
-- Destructive tools blocked in the MVP.
-- Secure Electron renderer boundary: context isolation enabled, Node integration disabled, preload exposes a narrow API.
-
-## Quick start on Windows
-
-Requirements for development only:
-
-- Node.js 22.12+ (Electron 43 requirement)
-- npm
+Requirements: Node.js 22.12+ and npm.
 
 ```bash
 npm install
-npm run verify
 npm run dev
 ```
 
-On Windows, `START_RATA_DEV.bat` performs the install/test/start sequence. Running it again while Rata is active focuses the existing Control Center instead of starting a conflicting Vite/Electron instance. Genuine startup failures remain visible in the launcher window.
+Open [http://localhost:3000](http://localhost:3000).
 
-To make a local Windows installer:
-
-```bash
-npm run dist:win
-```
-
-For a quicker unpacked Windows build:
+## Verify
 
 ```bash
-npm run pack:win
+npm run verify
 ```
 
-## Demo commands
+This runs ESLint, Vitest, strict TypeScript checking, and a production Next.js build.
 
-Type these into Rata:
+## Product behaviour
 
-```text
-open notepad
-open calculator
-copy Hello from Rata to clipboard
-what is 36 * 14?
-what can you do
-```
+- Next.js App Router, Tailwind CSS, shadcn-style owned UI components, and Recharts
+- Nine navigable dashboard pages with a collapsible responsive sidebar
+- Validated create dialogs for residents, staff, audits, checks, incidents, and assets
+- Searchable/filterable operational registers
+- Browser-local persistence so demo records survive refreshes
+- Notification read, mark-all-read, delete, priority, and type filtering
 
-Clipboard writes ask for approval by default so the permission flow can be demonstrated.
-
-## Architecture
-
-```text
-React renderer
-    ↓
-restricted preload IPC
-    ↓
-Electron main process
-    ↓
-MockAgent / future Orchestrator
-    ↓
-Skill Router
-    ↓
-PolicyEngine
-    ↓
-ToolRegistry
-    ↓
-Windows / Microsoft Graph / Browser / other connectors
-```
-
-**Never let a renderer component or model call privileged OS functionality directly.**
-
-## Handover order
-
-Before coding, AI agents should read:
-
-1. `AGENTS.md`
-2. `AGENT_WORKBOOK.md`
-3. `docs/CODEMAP.md`
-4. `docs/HANDOVER.md`
-5. `docs/ARCHITECTURE.md`
-6. `docs/SECURITY.md`
-7. `docs/TASKS.md`
-8. `docs/VALIDATION.md`
-9. `docs/AI-HANDOFF-PROMPTS.md`
-
-Claude should also read `CLAUDE.md`. Cursor loads rules from `.cursor/rules/`.
-
-## Character asset note
-
-The overlay character is event-driven. Idle uses `public/rata-concept.png`; other states swap images from `public/character/`. A missing file falls back to a letter-mark silhouette. See `docs/CHARACTER-ASSETS.md`.
+Haven currently uses realistic demonstration data only. It has no live backend, authentication, or CQC submission integration.

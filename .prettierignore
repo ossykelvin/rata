@@ -1,6 +1,5 @@
 node_modules
-dist
-dist-electron
-release
+.next
+out
+coverage
 package-lock.json
-public
