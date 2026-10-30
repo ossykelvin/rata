@@ -351,14 +351,21 @@ function create({ fileAccess, revealItem } = {}) {
       confirmationSetting: 'fileWriteConfirm',
       validateInput: input => {
         const value = requireObject(input, 'file.rename')
-        if (typeof value.path !== 'string' || !value.path.trim()) {
+        // Accepts its own output. The agent validates, then ToolRegistry
+        // .execute() validates again on purpose so a caller cannot skip it —
+        // but this tool takes `path` and returns `source`, so the second pass
+        // rejected the first pass's result and the rename failed with
+        // "requires a file path". Invisible until FIX-016 gave the tool a
+        // route: nothing had ever run it through the agent.
+        const target = typeof value.path === 'string' && value.path.trim() ? value.path : value.source
+        if (typeof target !== 'string' || !target.trim()) {
           throw new TypeError('file.rename requires a file path.')
         }
-        if (value.path.length > 4096 || value.path.includes('\0')) {
+        if (target.length > 4096 || target.includes('\0')) {
           throw new TypeError('file.rename received an invalid path.')
         }
         return access.prepareRename({
-          path: value.path,
+          path: target,
           name: value.name,
           destination: value.destination,
           overwrite: value.overwrite

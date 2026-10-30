@@ -27,7 +27,9 @@ const defaults = {
     // start talking. RATA-004.
     sttProvider: 'auto',
     ttsProvider: 'off',
-    speakReplies: false
+    speakReplies: false,
+    // Focusing a catalogued app is confirmed by default. Launch stays always. ADR-021.
+    appFocusConfirm: true
   },
   activity: []
 }
@@ -50,7 +52,8 @@ const safeDiskFallbackSettings = Object.freeze({
   // Corrupt settings must not leave Rata talking or recording.
   sttProvider: 'auto',
   ttsProvider: 'off',
-  speakReplies: false
+  speakReplies: false,
+  appFocusConfirm: true
 })
 
 function isRecord(value) {

@@ -68,6 +68,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 
 | Agent | Lane / ticket | Branch | Status |
 |---|---|---|---|
+| Cursor | RATA-016 application launcher | `cursor/RATA-016-app-launcher` | DONE, PR #91 |
 | Cursor | RATA-014 file organize writes | `cursor/RATA-014-file-organize` | DONE, PR #80 |
 | Cursor | RATA-013 document create + file.save | `cursor/RATA-013-document-and-save` | DONE, PR #79 |
 | Cursor | RATA-005 system status tools | `cursor/RATA-005-system-status` | DONE, PR #67 |
@@ -79,6 +80,8 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Cursor | FIX voice permission gate | `cursor/FIX-voice-permission-gate` | DONE, PR #62 |
 | Cursor | FIX critical-thinking provider | `cursor/FIX-critical-thinking-provider` | DONE, PR pending |
 | Claude | RATA-004 speech adapters (Lane C, taken over) | `claude/RATA-004-speech-adapters` | READY FOR REVIEW |
+| Claude | FIX-016 tool reachability (ADR-022) | `claude/FIX-016-tool-routes` | READY FOR REVIEW |
+| Claude | FIX-015 skill routing accuracy | `claude/FIX-015-skill-routing` | READY FOR REVIEW |
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, merged as #2 |
 | Codex | P0-1 modular IPC | `codex/P0-1-modular-ipc-boundary` | DRAFT PR #4 |
 | Cursor | RATA-003 character animation | `cursor/rata-003-character-animation-9241` | DONE, PR #5 |
@@ -572,6 +575,21 @@ Authoritative verification is CI on #20: clean `npm ci` + `npm run verify` on a 
 
 ## Cursor
 
+### 2026-08-18 — RATA-016 — Application launcher (app.find, app.launch, app.focus)
+
+**Status:** DONE, PR #91
+**Branch:** `cursor/RATA-016-app-launcher` (from origin/main)
+
+**Done:** Registered `app.find`, `app.launch` and `app.focus` so Application Launcher can run. The model names a catalog id, never an executable path. Start Menu discovery is the allow-list. LOLBins including PowerShell/cmd are refused at catalog-build even when the shortcut label is innocuous ("System Tools"). Launch uses `execFile` with no args and `shell: false`; confirmation is always; the resolved path is only on the approval card. `app.focus` does not start a second instance. Skill files, ADR-009 planner enum, and communicator intent enum were not edited. `system.openApp` is unchanged. ADR-021 (origin/main highest was ADR-020).
+
+**Files touched:** `electron/app-catalog.cjs`, `electron/tools/app.cjs`, `electron/main.cjs`, `electron/windows/list-process-executables.ps1`, `electron/windows/focus-pid.ps1`, `electron/store.cjs`, `packages/contracts/ipc-validation.cjs`, `src/types/settings.ts`, `src/views/control/PermissionsPage.tsx`, `package.json`, `tests/app-launcher.test.cjs`, `tests/tool-composition.test.cjs`, `tests/settings-validation.test.cjs`, `tests/skills-registry.test.cjs`, `docs/decisions/ADR-021-application-launch-boundary.md`, `docs/SECURITY.md`, `docs/CODEMAP.md`, `docs/VALIDATION.md`, `docs/TASKS.md`.
+
+**Validation:** `npm run verify` exit 0, **536/536**. Registry proof with a composed tool registry: `app-launcher ready available=["app.find","app.focus","app.launch"] missing=[]`.
+
+**Coordination:** Claude review requested on PR #91 (`@claude` comment). Did not touch communicator intent enum or ADR-009 planner enum. Ticket said `local-write`; the tool registry has no such class, so launch/focus are `safe-write` with launch confirmation `always`.
+
+---
+
 ### 2026-08-17 — RATA-015 — Screen capture and vision
 
 **Status:** DONE, PR #86
@@ -914,6 +932,49 @@ What the new module *does* add is a **stricter** gate in front of that one, neve
 **Caught in my own tests:** two of the first 28 were vacuous — one guarded on a `defaults` export that does not exist, the other compared an empty array with itself. Both replaced with real assertions (a `JsonStore` over an empty userData dir; the actual spawn argument vector).
 
 **Not done, by choice:** cloud STT/TTS adapters. The adapter seam exists and a cloud provider is now one more entry, but none is wired, so no audio leaves the machine. Adding one is an egress decision needing its own review.
+### 2026-08-18 — FIX-016 — Tool reachability (ADR-022)
+
+**Status:** READY FOR REVIEW
+**Branch:** `claude/FIX-016-tool-routes`
+
+**Found by:** an end-to-end pass over the shipped stack (real registry, policy, router, agent; only the machine edges instrumented). 23/27 checks passed and every security boundary held, but reachability did not.
+
+**Scope:** 19 of 30 registered tools had no route from any user phrase. Nothing between a sentence and `ToolRegistry.execute()` comes from the model — the ADR-009 planner proposes `system.openApp` and nothing else — so those tools could not run at all. Worse, the request did not stop: it fell through to `ask()` and, with a provider connected, the model answered from general knowledge with `state: 'success'`. "How much RAM do I have?" returned a confident wrong figure, and **"keep my PC awake for two hours" replied "I have kept your PC awake" while no blocker was held**. That is an action falsely reported as done, which is why this became an ADR rather than a bug fix.
+
+**Changes:**
+
+- `packages/agent-core/tool-routes.cjs` (new) — one ordered route table. Every existing inline route migrated verbatim, plus routes for `system.info`, `system.storage`, `system.processSummary`, `system.keepAwake.start/stop/status`, `filesystem.scan`, `filesystem.diskUsage`, `folder.create`, `file.move`, `file.rename`.
+- A forbidden scan scope (`C:\`, whole computer, `\\server\share`, Program Files) is now refused *before* an approval card exists. It would have been refused by the tool, but only after the user was asked to approve a scan that was always going to fail.
+- `INTENTIONALLY_UNROUTED` records the eight tools with no route and why; a test fails the build if a tool is registered with neither a route nor a reason.
+- `electron/file-access.cjs` — `resolveAgainstRoots()`. Bare names ("move report.md into Archive") resolved against the process working directory, so every relative path failed. `file.save` worked only because FIX-011 special-cased it. Composition stays in file-access; containment is unchanged and still runs after.
+- `electron/tools/file.cjs` — `file.rename` validation is now idempotent. See below.
+- Skills page reports `unroutableTools` separately from `missingTools`.
+
+**Latent bug found by routing:** giving `file.rename` a route ran it through the agent for the first time. The agent validates to build the approval card, then `ToolRegistry.execute()` validates again on purpose — but the tool took `path` and returned `source`, so the second pass rejected the first pass's output and the rename failed *after* the user approved. Fixed, with a test asserting idempotency across every write tool rather than only the one that broke.
+
+**Validation:** `npm run verify` 531/531, exit 0. Documented phrases reaching a tool: 4/16 → 13/16. Of the remainder, `presentation.create` is the documented host-side flow (deck text → `file.save`), one was a probe artefact, and `file.search` still needs the literal phrasing "find files named X" — recorded as a limitation, not fixed, because a broad `find X` route would hijack ordinary questions.
+
+**Not done, deliberately:** a runtime guard refusing provider answers for unrouted action skills. Once the routes existed, every demonstrated false claim was fixed at the cause, and the guard would have broken `document-assistant` and `presentation-builder`, which legitimately produce text that `file.save` writes. Reasoning recorded in ADR-022.
+### 2026-08-18 — FIX-015 — Skill routing accuracy
+
+**Status:** READY FOR REVIEW
+**Branch:** `claude/FIX-015-skill-routing`
+
+**Scope:** the fourth routing defect, fixed at the cause rather than by another boost. Three compounding faults in `packages/skills/router.cjs`:
+
+1. `triggerScore` fell back to `message.includes(word)` — a raw substring test with no word boundary, so a trigger word matched inside any longer word. Screenshot Inspector triggers on "at", which is inside "what", "that" and "create". Measured effect: ordinary conversation loaded skill prompts. "I am not sure what that means" and "is that the same as what we saw" both selected Critical Thinking.
+2. Function words counted in the denominator, so a trigger describing its skill well scored *worse* than a vague one. File Organizer's "Move these reports into folders by year" scored 0.33 and fell under the 0.34 threshold; Calendar Assistant's "Move my meeting" scored 0.50 on "move" alone and won.
+3. The router ignored whether a skill could run. "Move the invoice into the archive folder" selected Calendar Assistant — all four of its tools missing — and dead-ended on "installed, but its tools are not registered yet", while File Organizer sat available.
+
+**Fixes:** word-boundary matching with a prefix rule for morphology ("files"/"file", both sides ≥4 chars, ≤3 difference); function words and apostrophe fragments added to `STOP_WORDS`; a 0.02 subtractive tie-break preferring a runnable skill. The tie-break is deliberately tiny — sized as a multiplier it flipped "find the latest email from Sarah" from Email Assistant to Web Search, which would have sent a private request to Serper as a public search query. It orders candidates and never gates them, so an unavailable skill that is the best match is still selected and still reported honestly.
+
+**Files touched:** `packages/skills/router.cjs`, `tests/skill-routing.test.cjs` (new).
+
+**Validation:** `npm run verify` 523/523, exit 0. Measured on a corpus of realistic phrasings: 17/19 → 19/19. Self-routing (every skill's own documented triggers): 81/81 both before and after. The new tests were checked against the pre-fix router and fail 2 of 8 there, so they discriminate.
+
+**Known limitation, not fixed here:** a two-word trigger whose only match is a generic verb still scores 0.50 and clears the threshold. "Create a presentation about..." reduces to `[create, presentation]`, so "can you name the document I created that afternoon" selects Presentation Builder. This is trigger data, not router logic — the fix is to give ellipsis triggers their noun, across the affected `SKILL.md` files. Tuning the router further would mean re-tuning the app-launcher and calculator boosts, which deserves its own measured change rather than being bolted on here.
+
+**Note for Cursor:** a stash containing your `FIX-overlay-hide-compact` workbook update (marking it DONE, PR #64) was accidentally popped during this session and re-stashed intact as `stash@{0}`, labelled "recovered: Cursor FIX-overlay-hide-compact workbook update". It was never committed. Nothing was lost; apply it when convenient.
 
 ---
 

@@ -24,11 +24,13 @@ const { createSecurityPolicy, applySessionPermissionHandler } = require('./secur
 const { createWindowsVoice } = require('./voice-win.cjs')
 const { IPC } = require('../packages/contracts/ipc-channels.cjs')
 const { createSkillRegistry, createSkillRouter, createSkillLoader } = require('../packages/skills/index.cjs')
+const { routableToolIds } = require('../packages/agent-core/tool-routes.cjs')
 const { createFileAccess } = require('./file-access.cjs')
 const { createHandyTranscriber, candidateExecutables } = require('./handy-stt.cjs')
 const { createSpeaker } = require('./speech/index.cjs')
 const { createFilesystemScan } = require('./filesystem-scan.cjs')
 const { createScreenCapture } = require('./screen-capture.cjs')
+const { createAppCatalog, createExecFileLauncher, createWindowsFocus } = require('./app-catalog.cjs')
 
 let overlayWindow
 let controlWindow
@@ -327,7 +329,13 @@ function createProviders() {
 }
 
 function createSkillRuntime(toolRegistry) {
-  const registry = createSkillRegistry({ rootDir: PROJECT_ROOT, toolRegistry })
+  const registry = createSkillRegistry({
+    rootDir: PROJECT_ROOT,
+    toolRegistry,
+    // Reachability, not just registration. A tool with no route cannot be
+    // asked for, so the Skills page must not present it as usable. FIX-016.
+    routableTools: routableToolIds()
+  })
   const loader = createSkillLoader({ registry })
   const router = createSkillRouter({ registry, toolRegistry })
   if (registry.loadError) {
@@ -348,7 +356,7 @@ if (!hasSingleInstanceLock) {
     showOverlay({ inactive: true })
   })
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     store = new JsonStore(app)
     runtimeConfig = loadRuntimeConfig({ rootDir: PROJECT_ROOT })
     security = createSecurityPolicy({
@@ -387,6 +395,10 @@ if (!hasSingleInstanceLock) {
     speaker = createSpeaker({ settings: store.getSettings(), logActivity })
     providers = createProviders()
     const screenCapture = createDesktopScreenCapture()
+    // Start Menu catalog is the allow-list. Built once here; tools look up
+    // opaque ids rather than accepting a path. RATA-016 / ADR-021.
+    const appCatalog = createAppCatalog()
+    await appCatalog.refresh()
     const registry = createToolRegistry({
       dependencies: {
         spawnProcess: spawn,
@@ -421,6 +433,9 @@ if (!hasSingleInstanceLock) {
         }),
         screenCapture,
         screenCaptureEnabled: () => store.getSettings().screenCaptureEnabled === true,
+        catalog: appCatalog,
+        launchApp: createExecFileLauncher(),
+        focusApp: createWindowsFocus(),
         visionGenerate: async ({ question, image }) => providers.generate({
           prompt: question,
           messages: [

@@ -64,4 +64,6 @@ export type RataSettings = {
   ttsProvider: TtsProviderId
   /** Whether Rata should speak. Separate from `ttsProvider` on purpose. */
   speakReplies: boolean
+  /** Bring a running catalogued app to the front. Confirmed by default. Launch always asks. */
+  appFocusConfirm: boolean
 }

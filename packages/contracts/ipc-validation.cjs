@@ -61,7 +61,10 @@ const settingValidators = Object.assign(Object.create(null), {
   ttsProvider: value => typeof value === 'string' && TTS_PROVIDER_IDS.includes(value),
   // Whether Rata should speak. Separate from ttsProvider on purpose: turning
   // speech off must not discard a configured voice.
-  speakReplies: value => typeof value === 'boolean'
+  speakReplies: value => typeof value === 'boolean',
+  // Focusing a running catalogued app. Confirmed by default. Launch is always
+  // confirmed and is not this setting. ADR-021.
+  appFocusConfirm: value => typeof value === 'boolean'
 })
 
 /** The complete set of writable settings. Use this rather than `key in obj`. */
