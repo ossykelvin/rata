@@ -78,6 +78,7 @@ One line per agent. Keep it current — this is the first thing another agent re
 | Cursor | FIX overlay min/close | `cursor/FIX-overlay-min-close` | DONE, PR pending |
 | Cursor | FIX voice permission gate | `cursor/FIX-voice-permission-gate` | DONE, PR #62 |
 | Cursor | FIX critical-thinking provider | `cursor/FIX-critical-thinking-provider` | DONE, PR pending |
+| Claude | RATA-004 speech adapters (Lane C, taken over) | `claude/RATA-004-speech-adapters` | READY FOR REVIEW |
 | Claude | P0-0 backlog + guardrails | `claude/P0-0-backlog-and-guardrails` | DONE, merged as #2 |
 | Codex | P0-1 modular IPC | `codex/P0-1-modular-ipc-boundary` | DRAFT PR #4 |
 | Cursor | RATA-003 character animation | `cursor/rata-003-character-animation-9241` | DONE, PR #5 |
@@ -888,6 +889,31 @@ What the new module *does* add is a **stricter** gate in front of that one, neve
 **Validation:** `npm run verify` passed (`check:node`, 23 tests, `typecheck`, `vite build`). GUI smoke still blocked: `window.rata` is undefined until Codex P0-1.
 
 **Blocked on:** preload/`window.rata` for Electron smoke. Real character art remains BLOCKED-ON-HUMAN. Lane C (RATA-004) waits on Lane A streaming.
+
+---
+
+### 2026-10-30 — RATA-004 — Speech adapters (Lane C, taken over from Cursor)
+
+**Status:** READY FOR REVIEW
+**Branch:** `claude/RATA-004-speech-adapters`
+**ADR:** ADR-023
+
+**Scope:** the remaining Lane C acceptance criteria — configurable STT/TTS provider, interrupt/cancel, audio not retained.
+
+**What was actually wrong:**
+
+1. **Provider choice lived in the renderer.** `useVoice` started the local recorder and, if `getUserMedia` threw, fell back to the Windows recognizer. Provider policy in the renderer, decided by exception handling, and not configurable at all.
+2. **TTS did not exist.** The Permissions page had a "Spoken replies" switch bound to `voiceEnabled` — declared, validated, typed, rendered, and read by nothing. Its own help text said "not wired yet". The settings-level form of the ADR-022 defect.
+
+**Changes:** `electron/speech/{index,tts-windows,speak.ps1}.cjs` (selection, warm synthesizer, script), `electron/ipc/speech.cjs`, `electron/bridge/speech.cjs`, speech channels and validators in `packages/contracts/`, `sttProvider`/`ttsProvider`/`speakReplies` settings, real Permissions controls, `useVoice` executing the resolved mode, `useAgentConversation` speaking non-approval replies. `voiceEnabled` retired.
+
+**Measured, not assumed:** cold spawn to first audio 322ms vs 27ms warm, which is why the child is kept warm; killing stops synthesis in progress at 26% of a full run, which is why cancel is a kill rather than a `SpeakCompleted` handler — that handler would be a PowerShell ScriptBlock on a runspace-less thread-pool thread, the exact thing that killed `voice-listen.ps1` with no stderr and exit code 2.
+
+**Validation:** `npm run verify` 544/544, exit 0. 29 new tests. The real adapter (not a fake) was driven end to end and produced 110,478 bytes of audio with no warnings, rendered to a file so the check stayed silent.
+
+**Caught in my own tests:** two of the first 28 were vacuous — one guarded on a `defaults` export that does not exist, the other compared an empty array with itself. Both replaced with real assertions (a `JsonStore` over an empty userData dir; the actual spawn argument vector).
+
+**Not done, by choice:** cloud STT/TTS adapters. The adapter seam exists and a cloud provider is now one more entry, but none is wired, so no audio leaves the machine. Adding one is an egress decision needing its own review.
 
 ---
 

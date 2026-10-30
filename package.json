@@ -65,6 +65,10 @@
       {
         "from": "electron/voice-listen.ps1",
         "to": "voice-listen.ps1"
+      },
+      {
+        "from": "electron/speech/speak.ps1",
+        "to": "speak.ps1"
       }
     ],
     "win": {

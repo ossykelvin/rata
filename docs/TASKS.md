@@ -27,7 +27,7 @@ Acceptance:
 
 ## RATA-004 - Production voice
 
-**Status:** First STT slice landed. Browser speech recognition, push-to-talk, permission state, and main-process media gating are in. Configurable cloud STT/TTS adapters remain.
+**Status:** Done (RATA-004 / ADR-023). Push-to-talk, permission state and main-process media gating landed earlier. Provider selection now lives in the main process behind the `sttProvider` setting, `ttsProvider` plus `speakReplies` drive Windows speech synthesis, and speech is interruptible. Cloud STT/TTS adapters remain unimplemented by choice: no cloud speech provider is wired, so no audio leaves the machine.
 
 Add STT and TTS adapters.
 

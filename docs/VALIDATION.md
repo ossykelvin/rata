@@ -70,4 +70,11 @@ Then verify:
 37. Open Control Center → Activity after a capture. The event names the capture and the pixel size / byte count. It must not contain a data URL, base64, or raw image bytes. The screenshot is not on disk.
 38. Turn **Screen capture** off again. Further “what is on my screen?” requests refuse before capture. There is no “remember this choice” control that skips the approval card.
 
+39. Control Center → Permissions shows **Speech to text** (Auto / Local / Windows recognizer), **Spoken replies** and **Voice**. With Handy installed, Auto and Local both dictate; selecting **Local** on a machine without Handy must say so rather than silently using the Windows recognizer.
+40. Turn **Spoken replies** on and set **Voice** to Windows. Ask `what is 36 * 14?`. Rata speaks the reply. Ask a question with an approval card (`copy Hello Rata to clipboard`) — the card is **not** spoken.
+41. While Rata is speaking a long reply, click the microphone. Speech stops immediately and does not appear in the transcript.
+42. While Rata is speaking, turn **Spoken replies** off in Control Center. The current utterance stops.
+43. Set **Voice** to Off while **Spoken replies** is on. Rata stays silent — both switches are required.
+44. Open Control Center → Activity after speaking. No utterance text is recorded, and no `.wav` appears under Documents, Downloads or Desktop.
+
 The Control Center window, Windows taskbar, and system tray use `public/24_dialog_avatar_reply.png`. Packaged Windows builds take the same file as `win.icon`.

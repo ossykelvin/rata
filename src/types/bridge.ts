@@ -2,7 +2,7 @@ import type { ActivityEvent } from './activity'
 import type { AgentReply } from './agent'
 import type { CharacterState } from './character'
 import type { ProvidersSnapshot } from './providers'
-import type { RataSettings } from './settings'
+import type { RataSettings, SpeechCapabilities } from './settings'
 import type { SkillsSnapshot } from './skills'
 
 export type RataBridge = {
@@ -26,4 +26,14 @@ export type RataBridge = {
   onVoiceTranscript(callback: (payload: { transcript: string; error?: string }) => void): () => void
   /** Sends a 16 kHz mono WAV for local transcription. RATA-009. */
   transcribeAudio(audio: Uint8Array): Promise<{ transcript: string }>
+  /**
+   * Speaks a reply the user is already reading. Returns `ok: false` with a
+   * reason when spoken replies are off — not an error, since that is the
+   * default. RATA-004.
+   */
+  speakText(text: string): Promise<{ ok: boolean; id?: string; reason?: string }>
+  /** Stops speech immediately. Always allowed, even when speech is off. */
+  cancelSpeech(): Promise<{ ok: boolean; cancelled: boolean }>
+  /** What the main process says speech can do right now. */
+  speechCapabilities(): Promise<SpeechCapabilities>
 }

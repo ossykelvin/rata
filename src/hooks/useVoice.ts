@@ -22,15 +22,24 @@ export function useVoice(options: {
   const listeningRef = useRef(false)
   const heardRef = useRef(false)
   const pressAtRef = useRef(0)
-  // RATA-009: record locally and transcribe with Handy when it is installed.
-  // The Windows recognizer stays as the fallback, so a machine without Handy
-  // behaves exactly as before.
   // Lazily constructed: `useRef(createAudioRecorder())` would build and discard
   // a recorder on every render, since the argument is evaluated each time even
   // though only the first value is kept.
   const recorderRef = useRef<AudioRecorder | null>(null)
   if (!recorderRef.current) recorderRef.current = createAudioRecorder()
   const localRef = useRef(false)
+  /**
+   * Which speech-to-text path to run, as resolved by the main process.
+   *
+   * This used to be decided here: start the local recorder, and if
+   * `getUserMedia` threw, fall back to the Windows recognizer. That made
+   * provider policy a renderer concern — and the renderer is not a boundary,
+   * which is why `microphoneEnabled` is re-checked in main rather than trusted
+   * from the UI. It also meant the choice could not be configured, and that
+   * Handy's availability was discovered by exception. RATA-004.
+   */
+  const sttModeRef = useRef<'local' | 'windows' | 'none'>('windows')
+  const sttReasonRef = useRef<string | null>(null)
   const [listening, setListening] = useState(false)
   const [permission, setPermission] = useState<VoicePermissionState>(
     microphoneEnabled ? 'prompt' : 'off'
@@ -44,6 +53,23 @@ export function useVoice(options: {
 
   useEffect(() => {
     setPermission(microphoneEnabled ? 'granted' : 'off')
+  }, [microphoneEnabled])
+
+  // Re-read on every settings change, because the user may have switched
+  // provider or installed the local transcriber since the last press.
+  useEffect(() => {
+    let cancelled = false
+    void window.rata.speechCapabilities().then(capabilities => {
+      if (cancelled) return
+      sttModeRef.current = capabilities.stt.mode
+      sttReasonRef.current = capabilities.stt.reason
+    }).catch(() => {
+      // Leave the default. A capability query that fails must not disable the
+      // microphone outright.
+    })
+    return () => {
+      cancelled = true
+    }
   }, [microphoneEnabled])
 
   useEffect(() => {
@@ -76,21 +102,41 @@ export function useVoice(options: {
         onMessage?.('Microphone is disabled in Control Center.')
         return
       }
+      if (sttModeRef.current === 'none') {
+        // Say which provider is missing. "I couldn't access speech
+        // recognition" with no detail is the unfalsifiable message that made
+        // the earlier voice failures so hard to diagnose.
+        onMessage?.(sttReasonRef.current || 'No speech to text provider is available.')
+        onError?.()
+        return
+      }
+
       heardRef.current = false
       setListen(true)
       onMessage?.("I'm listening…")
 
-      // Prefer local transcription. getUserMedia is refused by the main
-      // process when the microphone setting is off, so this path is gated by
-      // the same boundary as the recognizer.
-      try {
-        await recorderRef.current!.start()
-        localRef.current = true
-        return
-      } catch {
-        localRef.current = false
+      // Stop Rata talking before the microphone opens, so the recording does
+      // not contain the synthesizer. The main process does the same for the
+      // Windows recognizer; the local path has no IPC call to hang it on.
+      void window.rata.cancelSpeech().catch(() => {})
+
+      if (sttModeRef.current === 'local') {
+        try {
+          await recorderRef.current!.start()
+          localRef.current = true
+          return
+        } catch {
+          // The resolved mode said local was available, so a failure here is a
+          // real fault rather than a reason to silently use another provider.
+          localRef.current = false
+          setListen(false)
+          onMessage?.("I couldn't start recording. Check that a microphone is connected.")
+          onError?.()
+          return
+        }
       }
 
+      localRef.current = false
       try {
         await window.rata.startVoiceListening()
       } catch {

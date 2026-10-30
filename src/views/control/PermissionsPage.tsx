@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import type { ControlCenterContextValue, ControlPageRegistration } from './model'
+import type { RataSettings } from '../../types'
 
 export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
   const { settings, setSetting } = ctx
@@ -57,8 +58,35 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
         <input type="checkbox" checked={settings.microphoneEnabled} onChange={e => setSetting('microphoneEnabled', e.target.checked)} />
       </label>
       <label className="setting-row">
-        <div><strong>Spoken replies</strong><span>Text-to-speech is not wired yet. This keeps the existing setting visible without enabling a provider.</span></div>
-        <input type="checkbox" checked={settings.voiceEnabled} onChange={e => setSetting('voiceEnabled', e.target.checked)} />
+        <div>
+          <strong>Speech to text</strong>
+          <span>
+            Which recognizer turns your voice into text. Local keeps the audio on this machine and is more accurate,
+            but needs Handy installed. Auto uses it when it is there and the Windows recognizer otherwise.
+          </span>
+        </div>
+        <select value={settings.sttProvider} onChange={e => setSetting('sttProvider', e.target.value as RataSettings['sttProvider'])}>
+          <option value="auto">Auto</option>
+          <option value="local">Local (Handy)</option>
+          <option value="windows">Windows recognizer</option>
+        </select>
+      </label>
+      <label className="setting-row">
+        <div>
+          <strong>Spoken replies</strong>
+          <span>
+            Off by default. When on, Rata speaks replies you can already read. Approval cards are never spoken, and
+            speech stops the moment you start talking.
+          </span>
+        </div>
+        <input type="checkbox" checked={settings.speakReplies} onChange={e => setSetting('speakReplies', e.target.checked)} />
+      </label>
+      <label className="setting-row">
+        <div><strong>Voice</strong><span>Which synthesizer speaks. Windows uses the voices installed on this machine. Nothing is sent off the machine.</span></div>
+        <select value={settings.ttsProvider} onChange={e => setSetting('ttsProvider', e.target.value as RataSettings['ttsProvider'])}>
+          <option value="off">Off</option>
+          <option value="windows">Windows</option>
+        </select>
       </label>
     </section>
   )
