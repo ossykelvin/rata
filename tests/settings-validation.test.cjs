@@ -149,6 +149,17 @@ test('a fresh store ships screen capture off', () => {
   assert.equal(store.getSettings().screenCaptureEnabled, false)
 })
 
+test('invalid appFocusConfirm falls back on, the safe direction', () => {
+  const store = storeFromDisk({ settings: { appFocusConfirm: 'false' } })
+  assert.equal(store.getSettings().appFocusConfirm, true)
+  assert.match(store.getActivity()[0].detail, /appFocusConfirm/)
+})
+
+test('a fresh store ships app focus confirmation on', () => {
+  const store = freshStore()
+  assert.equal(store.getSettings().appFocusConfirm, true)
+})
+
 test('invalid microphone and confirmation settings cannot loosen policy from disk', () => {
   const store = storeFromDisk({
     settings: {
@@ -156,7 +167,8 @@ test('invalid microphone and confirmation settings cannot loosen policy from dis
       clipboardConfirm: 'false',
       webSearchConfirm: 0,
       webFetchConfirm: null,
-      fileWriteConfirm: 'false'
+      fileWriteConfirm: 'false',
+      appFocusConfirm: 'false'
     }
   })
   const settings = store.getSettings()
@@ -165,5 +177,6 @@ test('invalid microphone and confirmation settings cannot loosen policy from dis
   assert.equal(settings.webSearchConfirm, true)
   assert.equal(settings.webFetchConfirm, true)
   assert.equal(settings.fileWriteConfirm, true)
-  assert.equal(store.getActivity().length, 5)
+  assert.equal(settings.appFocusConfirm, true)
+  assert.equal(store.getActivity().length, 6)
 })

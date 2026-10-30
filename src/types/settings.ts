@@ -30,4 +30,6 @@ export type RataSettings = {
    * provider. Off by default. Confirmation is always when this is on.
    */
   screenCaptureEnabled: boolean
+  /** Bring a running catalogued app to the front. Confirmed by default. Launch always asks. */
+  appFocusConfirm: boolean
 }

@@ -65,6 +65,14 @@
       {
         "from": "electron/voice-listen.ps1",
         "to": "voice-listen.ps1"
+      },
+      {
+        "from": "electron/windows/list-process-executables.ps1",
+        "to": "windows/list-process-executables.ps1"
+      },
+      {
+        "from": "electron/windows/focus-pid.ps1",
+        "to": "windows/focus-pid.ps1"
       }
     ],
     "win": {

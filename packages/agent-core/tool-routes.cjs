@@ -339,7 +339,16 @@ const INTENTIONALLY_UNROUTED = Object.freeze({
   'filesystem.hash': 'Verification helper with no standalone user phrasing.',
   'document.create': 'The model returns text and the host writes it through file.save; see FIX-013.',
   'presentation.create': 'Deck content comes from the skill prompt; the host writes it through file.save.',
-  'presentation.render': 'Rendering follows creation in the same host-side flow.'
+  'presentation.render': 'Rendering follows creation in the same host-side flow.',
+  // RATA-016. app.launch and app.focus take a catalog id, and no single user
+  // phrase can supply one: the id only exists after app.find has listed
+  // matches. Reaching them needs a two-step find-then-act flow, which the
+  // ADR-009 planner does not do (it proposes system.openApp and nothing
+  // else). "open notepad" already routes to system.openApp, so the common
+  // case is served. Routing these properly is planner work, not a phrase.
+  'app.find': 'First step of a two-step flow; its results supply the ids the other two require.',
+  'app.launch': 'Takes a catalog id that only app.find can produce, so no single phrase can reach it.',
+  'app.focus': 'Takes a catalog id that only app.find can produce, so no single phrase can reach it.'
 })
 
 /** Every tool id reachable from a user request. Asserted against the registry. */
