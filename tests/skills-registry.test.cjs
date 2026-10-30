@@ -96,6 +96,8 @@ test('mock agent executes calculator through policy and reports missing skill to
   assert.deepEqual(registry.summarize(registry.get('filesystem-scan')).missingTools, [])
   assert.equal(registry.summarize(registry.get('screenshot-inspector')).status, 'ready')
   assert.deepEqual(registry.summarize(registry.get('screenshot-inspector')).missingTools, [])
+  assert.equal(registry.summarize(registry.get('app-launcher')).status, 'ready')
+  assert.deepEqual(registry.summarize(registry.get('app-launcher')).missingTools, [])
 })
 
 // --- FIX-014: the subject matter must not decide the skill ---------------

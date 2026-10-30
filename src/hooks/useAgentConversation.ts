@@ -16,7 +16,31 @@ export function useAgentConversation(options?: { initialMessage?: string }) {
     setLastMessage(reply.message)
     setAgentState(reply.state ?? (reply.approval ? 'awaiting_approval' : 'idle'))
     setApproval(reply.approval)
+    speakReply(reply)
     return reply
+  }
+
+  /**
+   * Speaks a reply the user is already reading. RATA-004.
+   *
+   * The main process decides whether anything is actually said: it re-checks
+   * `ttsProvider` and `speakReplies` and returns `ok: false` when speech is
+   * off, which is the default. Asking unconditionally keeps that one decision
+   * in one place instead of mirroring the settings here.
+   *
+   * An approval card is never spoken. The text on it is what the user is being
+   * asked to authorize, and hearing a summary while reading the real thing
+   * invites approving the wrong action — the same reason FIX-012 put the
+   * content preview on the card itself.
+   */
+  function speakReply(reply: AgentReply) {
+    if (reply.approval) return
+    const text = reply.message?.trim()
+    if (!text) return
+    void window.rata.speakText(text).catch(() => {
+      // Silence is an acceptable outcome. A synthesizer failure must not
+      // interrupt a reply the user can already read.
+    })
   }
 
   async function sendMessage(value: string) {

@@ -1,11 +1,35 @@
 /** Provider ids accepted by the `provider` setting. Mirrors PROVIDER_IDS. */
 export type ProviderId = 'mock' | 'gemini' | 'openrouter' | 'auto'
 
+/** Mirrors STT_PROVIDER_IDS / TTS_PROVIDER_IDS in the contracts package. */
+export type SttProviderId = 'auto' | 'local' | 'windows'
+export type TtsProviderId = 'off' | 'windows'
+
+/**
+ * What the main process says Rata can actually do right now.
+ *
+ * `stt.mode` is the resolved decision, not the setting: a user who asked for
+ * the local transcriber on a machine without it gets `none` plus a `reason`,
+ * rather than a microphone button that silently does nothing.
+ */
+export type SpeechCapabilities = {
+  stt: {
+    mode: 'local' | 'windows' | 'none'
+    requested: SttProviderId
+    reason: string | null
+    localAvailable: boolean
+    windowsAvailable: boolean
+  }
+  tts: {
+    provider: TtsProviderId
+    speaking: boolean
+  }
+}
+
 export type RataSettings = {
   alwaysOnTop: boolean
   opacity: number
   doNotDisturb: boolean
-  voiceEnabled: boolean
   microphoneEnabled: boolean
   provider: ProviderId
   clipboardConfirm: boolean
@@ -35,4 +59,16 @@ export type RataSettings = {
    * and synthesized keystrokes. Off by default. Every action confirms when on.
    */
   windowsBridgeEnabled: boolean
+  /**
+   * Which speech-to-text path to use. `auto` prefers the local transcriber
+   * when it is installed. The resolved mode comes from the main process via
+   * `speechCapabilities()` — the renderer executes it, it does not choose it.
+   */
+  sttProvider: SttProviderId
+  /** How Rata could speak. `off` by default, so a fresh install is silent. */
+  ttsProvider: TtsProviderId
+  /** Whether Rata should speak. Separate from `ttsProvider` on purpose. */
+  speakReplies: boolean
+  /** Bring a running catalogued app to the front. Confirmed by default. Launch always asks. */
+  appFocusConfirm: boolean
 }

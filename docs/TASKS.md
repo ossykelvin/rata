@@ -27,7 +27,7 @@ Acceptance:
 
 ## RATA-004 - Production voice
 
-**Status:** First STT slice landed. Browser speech recognition, push-to-talk, permission state, and main-process media gating are in. Configurable cloud STT/TTS adapters remain.
+**Status:** Done (RATA-004 / ADR-023). Push-to-talk, permission state and main-process media gating landed earlier. Provider selection now lives in the main process behind the `sttProvider` setting, `ttsProvider` plus `speakReplies` drive Windows speech synthesis, and speech is interruptible. Cloud STT/TTS adapters remain unimplemented by choice: no cloud speech provider is wired, so no audio leaves the machine.
 
 Add STT and TTS adapters.
 
@@ -136,3 +136,19 @@ Acceptance:
 - executable and denied-name destinations refused
 - `file.delete` stays disabled
 - `file-organizer` reports available
+
+## RATA-016 - Application launcher
+
+**Owner suggestion:** Cursor implementation, Claude review
+
+Register `app.find`, `app.launch` and `app.focus` so Application Launcher can run. The model names a catalog id; the adapter resolves that id to a target it discovered itself. See ADR-021.
+
+Acceptance:
+- Start Menu catalog is the allow-list; no tool schema accepts a path
+- `.exe` only; scripts, installers, uninstallers and LOLBins refused at catalog-build, including innocuous shortcut labels whose target is `powershell.exe` / `cmd.exe`
+- `app.launch` confirmation always; no args; `execFile` with `shell: false`; no elevation
+- resolved path only on the approval card; audit records app identity and outcome
+- `app.focus` does not start a second instance
+- `system.openApp` unchanged; planner and communicator enums unchanged
+- `app-launcher` reports available
+

@@ -69,6 +69,17 @@ Then verify:
 36. Turn **Screen capture** on, set a vision-capable provider, and ask again. The first card asks to capture the primary display. After Allow, a second card shows the **actual screenshot**, not a title. Allow sends that image; Cancel does not. The analysed reply is what the provider returned.
 37. Open Control Center → Activity after a capture. The event names the capture and the pixel size / byte count. It must not contain a data URL, base64, or raw image bytes. The screenshot is not on disk.
 38. Turn **Screen capture** off again. Further “what is on my screen?” requests refuse before capture. There is no “remember this choice” control that skips the approval card.
+39. Control Center → Skills shows **Application Launcher** as ready, with `app.find`, `app.launch` and `app.focus` listed as available.
+40. Ask Rata to find Notepad (or another Start Menu app). The reply names matches and catalog ids, not filesystem paths. Ask it to launch that match. The approval card names the **real executable path**. After Allow, the app starts. Cancel starts nothing.
+41. Ask Rata to open PowerShell, or a Start Menu shortcut whose label is innocuous (“System Tools”) but whose target is `powershell.exe` or `cmd.exe`. It must refuse. No `powershell.exe` / `cmd.exe` process is started by `app.launch`.
+42. If the app is already running, ask Rata to bring it to the front. It should focus the existing window rather than starting a second copy. If focus is not possible, the reply says so and does not launch again. Activity records the app name and outcome, not the target path and not the window title.
+
+39. Control Center → Permissions shows **Speech to text** (Auto / Local / Windows recognizer), **Spoken replies** and **Voice**. With Handy installed, Auto and Local both dictate; selecting **Local** on a machine without Handy must say so rather than silently using the Windows recognizer.
+40. Turn **Spoken replies** on and set **Voice** to Windows. Ask `what is 36 * 14?`. Rata speaks the reply. Ask a question with an approval card (`copy Hello Rata to clipboard`) — the card is **not** spoken.
+41. While Rata is speaking a long reply, click the microphone. Speech stops immediately and does not appear in the transcript.
+42. While Rata is speaking, turn **Spoken replies** off in Control Center. The current utterance stops.
+43. Set **Voice** to Off while **Spoken replies** is on. Rata stays silent — both switches are required.
+44. Open Control Center → Activity after speaking. No utterance text is recorded, and no `.wav` appears under Documents, Downloads or Desktop.
 
 45. Control Center → Permissions shows **Desktop automation**, off by default. With it off, asking Rata to control another application must refuse and no `Rata.WindowsBridge.exe` process should exist in Task Manager.
 46. Turn **Desktop automation** on. Open Notepad. Ask Rata to list windows — the approval card appears first, and after Allow the reply names Notepad. Terminals, Task Manager, regedit and any password manager must **not** appear in the list, and neither must Rata's own windows.

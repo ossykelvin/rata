@@ -24,11 +24,14 @@ const { createSecurityPolicy, applySessionPermissionHandler } = require('./secur
 const { createWindowsVoice } = require('./voice-win.cjs')
 const { IPC } = require('../packages/contracts/ipc-channels.cjs')
 const { createSkillRegistry, createSkillRouter, createSkillLoader } = require('../packages/skills/index.cjs')
+const { routableToolIds } = require('../packages/agent-core/tool-routes.cjs')
 const { createFileAccess } = require('./file-access.cjs')
 const { createHandyTranscriber, candidateExecutables } = require('./handy-stt.cjs')
 const { createWindowsBridge } = require('./windows-bridge.cjs')
+const { createSpeaker } = require('./speech/index.cjs')
 const { createFilesystemScan } = require('./filesystem-scan.cjs')
 const { createScreenCapture } = require('./screen-capture.cjs')
+const { createAppCatalog, createExecFileLauncher, createWindowsFocus } = require('./app-catalog.cjs')
 
 let overlayWindow
 let controlWindow
@@ -42,6 +45,7 @@ let providers
 let voice
 let transcriber
 let windowsBridge
+let speaker
 
 const isDev = !app.isPackaged
 const APP_ID = 'uk.koptechnology.rata'
@@ -327,7 +331,13 @@ function createProviders() {
 }
 
 function createSkillRuntime(toolRegistry) {
-  const registry = createSkillRegistry({ rootDir: PROJECT_ROOT, toolRegistry })
+  const registry = createSkillRegistry({
+    rootDir: PROJECT_ROOT,
+    toolRegistry,
+    // Reachability, not just registration. A tool with no route cannot be
+    // asked for, so the Skills page must not present it as usable. FIX-016.
+    routableTools: routableToolIds()
+  })
   const loader = createSkillLoader({ registry })
   const router = createSkillRouter({ registry, toolRegistry })
   if (registry.loadError) {
@@ -348,7 +358,7 @@ if (!hasSingleInstanceLock) {
     showOverlay({ inactive: true })
   })
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     store = new JsonStore(app)
     runtimeConfig = loadRuntimeConfig({ rootDir: PROJECT_ROOT })
     security = createSecurityPolicy({
@@ -385,8 +395,16 @@ if (!hasSingleInstanceLock) {
     // spawned on the first allowed call, so a user who never turns desktop
     // automation on never has a bridge process running. ADR-024.
     windowsBridge = createWindowsBridge({ logActivity })
+    // Built from the stored settings, and rebuilt when they change. A speaker
+    // holds a warm child process configured with a voice and rate, so changing
+    // either means replacing it rather than mutating it. RATA-004.
+    speaker = createSpeaker({ settings: store.getSettings(), logActivity })
     providers = createProviders()
     const screenCapture = createDesktopScreenCapture()
+    // Start Menu catalog is the allow-list. Built once here; tools look up
+    // opaque ids rather than accepting a path. RATA-016 / ADR-021.
+    const appCatalog = createAppCatalog()
+    await appCatalog.refresh()
     const registry = createToolRegistry({
       dependencies: {
         spawnProcess: spawn,
@@ -423,6 +441,9 @@ if (!hasSingleInstanceLock) {
         }),
         screenCapture,
         screenCaptureEnabled: () => store.getSettings().screenCaptureEnabled === true,
+        catalog: appCatalog,
+        launchApp: createExecFileLauncher(),
+        focusApp: createWindowsFocus(),
         visionGenerate: async ({ question, image }) => providers.generate({
           prompt: question,
           messages: [
@@ -462,7 +483,17 @@ if (!hasSingleInstanceLock) {
         logActivity,
         Notification,
         getVoice: () => voice,
-        getTranscriber: () => transcriber
+        getTranscriber: () => transcriber,
+        getSpeaker: () => speaker,
+        // Settings changes replace the speaker. A warm child is configured at
+        // spawn time with a voice and rate, so it cannot be reconfigured in
+        // place; the old one is disposed so no orphan process is left holding
+        // the audio device.
+        rebuildSpeaker: settings => {
+          speaker?.dispose?.()
+          speaker = createSpeaker({ settings, logActivity })
+          return speaker
+        }
       }
     })
     createOverlay()
@@ -502,6 +533,7 @@ if (!hasSingleInstanceLock) {
     // to exit or a powershell.exe is left behind after Rata quits.
     voice?.dispose?.()
     windowsBridge?.dispose?.()
+    speaker?.dispose?.()
   })
   app.on('window-all-closed', event => {
     event?.preventDefault?.()

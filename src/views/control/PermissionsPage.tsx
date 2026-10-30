@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import type { ControlCenterContextValue, ControlPageRegistration } from './model'
+import type { RataSettings } from '../../types'
 
 export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
   const { settings, setSetting } = ctx
@@ -7,6 +8,8 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
     ['Read local context', 'read', 'Automatic'],
     ['Evaluate arithmetic', 'read', 'Automatic'],
     ['Open approved Windows apps', 'safe-write', 'Automatic'],
+    ['Launch a catalogued application', 'safe-write', 'Always ask'],
+    ['Focus a running application', 'safe-write', settings.appFocusConfirm ? 'Ask every time' : 'Automatic'],
     ['Write to clipboard', 'safe-write', settings.clipboardConfirm ? 'Ask every time' : 'Automatic'],
     ['Find files by name', 'read', 'Automatic'],
     ['Read file contents', 'read', settings.fileReadConfirm ? 'Ask every time' : 'Automatic'],
@@ -15,7 +18,7 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
     ['Capture the screen and send it to your AI provider', 'read', settings.screenCaptureEnabled ? 'Always ask' : 'Off'],
     ['Send email / invite attendees', 'external-write', 'Always ask'],
     ['Delete files / cancel meetings', 'destructive', 'Always ask']
-  ], [settings.clipboardConfirm, settings.fileReadConfirm, settings.fileWriteConfirm, settings.weatherConfirm, settings.screenCaptureEnabled])
+  ], [settings.clipboardConfirm, settings.fileReadConfirm, settings.fileWriteConfirm, settings.weatherConfirm, settings.screenCaptureEnabled, settings.appFocusConfirm])
 
   return (
     <section className="panel page-panel">
@@ -62,14 +65,43 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
           </span>
         </div>
         <input type="checkbox" checked={settings.windowsBridgeEnabled} onChange={e => setSetting('windowsBridgeEnabled', e.target.checked)} />
+        <div><strong>Confirm focusing an app</strong><span>Bring an already-running catalogued application to the front. Launching an application always asks, even when this is off. The approval card for a launch names the real executable path.</span></div>
+        <input type="checkbox" checked={settings.appFocusConfirm} onChange={e => setSetting('appFocusConfirm', e.target.checked)} />
       </label>
       <label className="setting-row">
         <div><strong>Microphone</strong><span>Allow speech-to-text from the overlay and Chat. Main process denies media permission when this is off.</span></div>
         <input type="checkbox" checked={settings.microphoneEnabled} onChange={e => setSetting('microphoneEnabled', e.target.checked)} />
       </label>
       <label className="setting-row">
-        <div><strong>Spoken replies</strong><span>Text-to-speech is not wired yet. This keeps the existing setting visible without enabling a provider.</span></div>
-        <input type="checkbox" checked={settings.voiceEnabled} onChange={e => setSetting('voiceEnabled', e.target.checked)} />
+        <div>
+          <strong>Speech to text</strong>
+          <span>
+            Which recognizer turns your voice into text. Local keeps the audio on this machine and is more accurate,
+            but needs Handy installed. Auto uses it when it is there and the Windows recognizer otherwise.
+          </span>
+        </div>
+        <select value={settings.sttProvider} onChange={e => setSetting('sttProvider', e.target.value as RataSettings['sttProvider'])}>
+          <option value="auto">Auto</option>
+          <option value="local">Local (Handy)</option>
+          <option value="windows">Windows recognizer</option>
+        </select>
+      </label>
+      <label className="setting-row">
+        <div>
+          <strong>Spoken replies</strong>
+          <span>
+            Off by default. When on, Rata speaks replies you can already read. Approval cards are never spoken, and
+            speech stops the moment you start talking.
+          </span>
+        </div>
+        <input type="checkbox" checked={settings.speakReplies} onChange={e => setSetting('speakReplies', e.target.checked)} />
+      </label>
+      <label className="setting-row">
+        <div><strong>Voice</strong><span>Which synthesizer speaks. Windows uses the voices installed on this machine. Nothing is sent off the machine.</span></div>
+        <select value={settings.ttsProvider} onChange={e => setSetting('ttsProvider', e.target.value as RataSettings['ttsProvider'])}>
+          <option value="off">Off</option>
+          <option value="windows">Windows</option>
+        </select>
       </label>
     </section>
   )
