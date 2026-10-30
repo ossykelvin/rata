@@ -42,7 +42,11 @@ const settingValidators = Object.assign(Object.create(null), {
   communicatorEnabled: value => typeof value === 'boolean',
   // Master switch for screen.capture and vision.analyze. Off by default.
   // Confirmation is always, independent of this setting. ADR-020.
-  screenCaptureEnabled: value => typeof value === 'boolean'
+  screenCaptureEnabled: value => typeof value === 'boolean',
+  // Master switch for the native Windows bridge: window control, UI
+  // Automation and input synthesis. Off by default. Confirmation stays always
+  // when on. ADR-024.
+  windowsBridgeEnabled: value => typeof value === 'boolean'
 })
 
 /** The complete set of writable settings. Use this rather than `key in obj`. */

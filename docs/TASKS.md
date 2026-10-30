@@ -40,6 +40,8 @@ Acceptance:
 
 ## RATA-005 - Native Windows bridge
 
+**Status:** Implemented (ADR-024), pending independent review. Window list/focus, UI Automation inspect/invoke/set-value, keyboard input behind seven `desktop.*` tools, an intersected process allow-list with a non-negotiable deny-list, per-call correlation IDs, and an authenticated named pipe. Mouse APIs and packaging are not done; see ADR-024 "Limits I could not close".
+
 Build `Rata.WindowsBridge` in C#/.NET using local authenticated IPC.
 
 Acceptance:

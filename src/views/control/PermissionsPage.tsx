@@ -53,6 +53,17 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
         <input type="checkbox" checked={settings.screenCaptureEnabled} onChange={e => setSetting('screenCaptureEnabled', e.target.checked)} />
       </label>
       <label className="setting-row">
+        <div>
+          <strong>Desktop automation</strong>
+          <span>
+            Off by default. When on, Rata can list and focus windows of allowed applications, read their controls and
+            type into them. Every one of those actions asks first, and Rata will not touch terminals, password managers
+            or Windows security prompts.
+          </span>
+        </div>
+        <input type="checkbox" checked={settings.windowsBridgeEnabled} onChange={e => setSetting('windowsBridgeEnabled', e.target.checked)} />
+      </label>
+      <label className="setting-row">
         <div><strong>Microphone</strong><span>Allow speech-to-text from the overlay and Chat. Main process denies media permission when this is off.</span></div>
         <input type="checkbox" checked={settings.microphoneEnabled} onChange={e => setSetting('microphoneEnabled', e.target.checked)} />
       </label>

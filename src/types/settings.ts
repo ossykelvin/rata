@@ -30,4 +30,9 @@ export type RataSettings = {
    * provider. Off by default. Confirmation is always when this is on.
    */
   screenCaptureEnabled: boolean
+  /**
+   * Master switch for driving other applications: window focus, UI Automation
+   * and synthesized keystrokes. Off by default. Every action confirms when on.
+   */
+  windowsBridgeEnabled: boolean
 }

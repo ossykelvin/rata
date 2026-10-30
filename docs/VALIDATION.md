@@ -70,4 +70,11 @@ Then verify:
 37. Open Control Center → Activity after a capture. The event names the capture and the pixel size / byte count. It must not contain a data URL, base64, or raw image bytes. The screenshot is not on disk.
 38. Turn **Screen capture** off again. Further “what is on my screen?” requests refuse before capture. There is no “remember this choice” control that skips the approval card.
 
+45. Control Center → Permissions shows **Desktop automation**, off by default. With it off, asking Rata to control another application must refuse and no `Rata.WindowsBridge.exe` process should exist in Task Manager.
+46. Turn **Desktop automation** on. Open Notepad. Ask Rata to list windows — the approval card appears first, and after Allow the reply names Notepad. Terminals, Task Manager, regedit and any password manager must **not** appear in the list, and neither must Rata's own windows.
+47. Ask Rata to type into Notepad while Notepad is in the foreground. The approval card shows the exact text. After Allow the text appears in Notepad. Cancel types nothing.
+48. Repeat with Notepad **not** in the foreground (click Control Center first). Rata must refuse, and nothing is typed anywhere.
+49. Open Control Center → Activity. Each bridge call appears with a correlation id. No window titles from refused calls, and no pipe names or file paths, appear in the log.
+50. Quit Rata from the tray. `Rata.WindowsBridge.exe` must exit with it.
+
 The Control Center window, Windows taskbar, and system tray use `public/24_dialog_avatar_reply.png`. Packaged Windows builds take the same file as `win.icon`.

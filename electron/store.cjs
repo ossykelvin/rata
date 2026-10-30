@@ -22,7 +22,10 @@ const defaults = {
     // Opt-in. Both communicator stages send text to a provider. ADR-012.
     communicatorEnabled: false,
     // Master switch. Off by default; confirmation stays always when on. ADR-020.
-    screenCaptureEnabled: false
+    screenCaptureEnabled: false,
+    // Master switch for driving other applications. Off by default; every
+    // action still confirms when on. ADR-024.
+    windowsBridgeEnabled: false
   },
   activity: []
 }
@@ -41,7 +44,8 @@ const safeDiskFallbackSettings = Object.freeze({
   fileWriteConfirm: true,
   weatherConfirm: true,
   communicatorEnabled: false,
-  screenCaptureEnabled: false
+  screenCaptureEnabled: false,
+  windowsBridgeEnabled: false
 })
 
 function isRecord(value) {

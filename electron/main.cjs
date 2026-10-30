@@ -26,6 +26,7 @@ const { IPC } = require('../packages/contracts/ipc-channels.cjs')
 const { createSkillRegistry, createSkillRouter, createSkillLoader } = require('../packages/skills/index.cjs')
 const { createFileAccess } = require('./file-access.cjs')
 const { createHandyTranscriber, candidateExecutables } = require('./handy-stt.cjs')
+const { createWindowsBridge } = require('./windows-bridge.cjs')
 const { createFilesystemScan } = require('./filesystem-scan.cjs')
 const { createScreenCapture } = require('./screen-capture.cjs')
 
@@ -40,6 +41,7 @@ let runtimeConfig
 let providers
 let voice
 let transcriber
+let windowsBridge
 
 const isDev = !app.isPackaged
 const APP_ID = 'uk.koptechnology.rata'
@@ -379,6 +381,10 @@ if (!hasSingleInstanceLock) {
       },
       logActivity
     })
+    // Constructed eagerly but started lazily: the child process is only
+    // spawned on the first allowed call, so a user who never turns desktop
+    // automation on never has a bridge process running. ADR-024.
+    windowsBridge = createWindowsBridge({ logActivity })
     providers = createProviders()
     const screenCapture = createDesktopScreenCapture()
     const registry = createToolRegistry({
@@ -389,6 +395,8 @@ if (!hasSingleInstanceLock) {
         listStorage: createWindowsVolumeLister(statfsSync),
         listProcesses: createWindowsProcessLister(spawn),
         powerSaveBlocker,
+        windowsBridge,
+        windowsBridgeEnabled: () => store.getSettings().windowsBridgeEnabled === true,
         clock: {
           now: () => Date.now(),
           setTimer: setTimeout,
@@ -493,6 +501,7 @@ if (!hasSingleInstanceLock) {
     // The recognizer is a long-lived warm process now, so it has to be told
     // to exit or a powershell.exe is left behind after Rata quits.
     voice?.dispose?.()
+    windowsBridge?.dispose?.()
   })
   app.on('window-all-closed', event => {
     event?.preventDefault?.()

@@ -36,6 +36,13 @@ const TOOLS_DIR = path.join(__dirname, '..', 'electron', 'tools')
 const EXPECTED_TOOL_IDS = [
   'calculator.evaluate',
   'clipboard.write',
+  'desktop.focusWindow',
+  'desktop.inspect',
+  'desktop.invoke',
+  'desktop.listWindows',
+  'desktop.pressKeys',
+  'desktop.setValue',
+  'desktop.type',
   'document.create',
   'file.delete',
   'file.move',
