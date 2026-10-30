@@ -135,7 +135,16 @@ function validateManifest(raw) {
   })
 }
 
-function toPublicSkill(skill, { availableTools = [], missingTools = [] } = {}) {
+/**
+ * `unroutableTools` are registered and callable, but no user phrase reaches
+ * them. The Skills page previously derived readiness from registration alone,
+ * so nine skills showed "ready" while unable to perform their core function —
+ * and with a provider connected the model answered instead, which is how "keep
+ * my PC awake" came back as "I have kept your PC awake" with no blocker held.
+ * Reported separately from `missingTools`: the tool exists, the sentence does
+ * not reach it, and those are different problems with different fixes.
+ */
+function toPublicSkill(skill, { availableTools = [], missingTools = [], unroutableTools = [] } = {}) {
   const ready = missingTools.length === 0
   const partial = availableTools.length > 0 && missingTools.length > 0
   return {
@@ -151,6 +160,7 @@ function toPublicSkill(skill, { availableTools = [], missingTools = [] } = {}) {
     selectable: skill.selectable !== false,
     availableTools,
     missingTools,
+    unroutableTools,
     status: ready ? 'ready' : partial ? 'partial' : 'unavailable'
   }
 }

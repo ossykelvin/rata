@@ -77,7 +77,11 @@ function loadSkillFragments(rootDir, skillsPath = 'skills') {
 }
 
 function createSkillRegistry(options = {}) {
-  const { rootDir, skillsPath = 'skills', manifestPath, toolRegistry = null } = options
+  // routableTools is injected rather than imported: the skills package must not
+  // depend on agent-core, which owns the route table. Composition happens in
+  // main.cjs, the same way toolRegistry arrives.
+  const { rootDir, skillsPath = 'skills', manifestPath, toolRegistry = null, routableTools = null } = options
+  const routable = routableTools ? new Set(routableTools) : null
   if (typeof rootDir !== 'string' || !rootDir) throw new TypeError('Skill registry requires rootDir.')
 
   let pack = null
@@ -124,7 +128,12 @@ function createSkillRegistry(options = {}) {
       ? skill.tools.filter(id => toolRegistry.has(id))
       : []
     const missingTools = skill.tools.filter(id => !availableTools.includes(id))
-    return toPublicSkill(skill, { availableTools, missingTools })
+    // Only meaningful for tools that exist: an unregistered tool is already
+    // reported as missing, and listing it twice would overstate the problem.
+    const unroutableTools = routable
+      ? availableTools.filter(id => !routable.has(id))
+      : []
+    return toPublicSkill(skill, { availableTools, missingTools, unroutableTools })
   }
 
   return {

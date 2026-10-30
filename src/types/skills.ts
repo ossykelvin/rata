@@ -10,6 +10,8 @@ export type InstalledSkill = {
   triggers: string[]
   availableTools: string[]
   missingTools: string[]
+  /** Registered and callable, but no user phrase reaches them yet. */
+  unroutableTools: string[]
   status: 'ready' | 'partial' | 'unavailable'
 }
 
