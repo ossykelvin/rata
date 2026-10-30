@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- UIAutomationClient ships with the Windows Desktop SDK, which a
+         -windows target framework plus UseWPF brings in. -->
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Rata.WindowsBridge</AssemblyName>
+    <RootNamespace>Rata.WindowsBridge</RootNamespace>
+    <!-- Treat warnings as errors: this process holds UI Automation and input
+         synthesis, so a sloppy build is not acceptable here. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Required by the LibraryImport source generator, which emits the
+         P/Invoke marshalling. No hand-written pointer code exists in this
+         project; the alternative, DllImport, does marshalling at runtime
+         instead of compile time and is the weaker option for a component
+         that holds UI Automation and input synthesis. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+</Project>

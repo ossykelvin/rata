@@ -56,6 +56,15 @@ export function PermissionsPage({ ctx }: { ctx: ControlCenterContextValue }) {
         <input type="checkbox" checked={settings.screenCaptureEnabled} onChange={e => setSetting('screenCaptureEnabled', e.target.checked)} />
       </label>
       <label className="setting-row">
+        <div>
+          <strong>Desktop automation</strong>
+          <span>
+            Off by default. When on, Rata can list and focus windows of allowed applications, read their controls and
+            type into them. Every one of those actions asks first, and Rata will not touch terminals, password managers
+            or Windows security prompts.
+          </span>
+        </div>
+        <input type="checkbox" checked={settings.windowsBridgeEnabled} onChange={e => setSetting('windowsBridgeEnabled', e.target.checked)} />
         <div><strong>Confirm focusing an app</strong><span>Bring an already-running catalogued application to the front. Launching an application always asks, even when this is off. The approval card for a launch names the real executable path.</span></div>
         <input type="checkbox" checked={settings.appFocusConfirm} onChange={e => setSetting('appFocusConfirm', e.target.checked)} />
       </label>

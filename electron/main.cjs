@@ -27,6 +27,7 @@ const { createSkillRegistry, createSkillRouter, createSkillLoader } = require('.
 const { routableToolIds } = require('../packages/agent-core/tool-routes.cjs')
 const { createFileAccess } = require('./file-access.cjs')
 const { createHandyTranscriber, candidateExecutables } = require('./handy-stt.cjs')
+const { createWindowsBridge } = require('./windows-bridge.cjs')
 const { createSpeaker } = require('./speech/index.cjs')
 const { createFilesystemScan } = require('./filesystem-scan.cjs')
 const { createScreenCapture } = require('./screen-capture.cjs')
@@ -43,6 +44,7 @@ let runtimeConfig
 let providers
 let voice
 let transcriber
+let windowsBridge
 let speaker
 
 const isDev = !app.isPackaged
@@ -389,6 +391,10 @@ if (!hasSingleInstanceLock) {
       },
       logActivity
     })
+    // Constructed eagerly but started lazily: the child process is only
+    // spawned on the first allowed call, so a user who never turns desktop
+    // automation on never has a bridge process running. ADR-024.
+    windowsBridge = createWindowsBridge({ logActivity })
     // Built from the stored settings, and rebuilt when they change. A speaker
     // holds a warm child process configured with a voice and rate, so changing
     // either means replacing it rather than mutating it. RATA-004.
@@ -407,6 +413,8 @@ if (!hasSingleInstanceLock) {
         listStorage: createWindowsVolumeLister(statfsSync),
         listProcesses: createWindowsProcessLister(spawn),
         powerSaveBlocker,
+        windowsBridge,
+        windowsBridgeEnabled: () => store.getSettings().windowsBridgeEnabled === true,
         clock: {
           now: () => Date.now(),
           setTimer: setTimeout,
@@ -524,6 +532,7 @@ if (!hasSingleInstanceLock) {
     // The recognizer is a long-lived warm process now, so it has to be told
     // to exit or a powershell.exe is left behind after Rata quits.
     voice?.dispose?.()
+    windowsBridge?.dispose?.()
     speaker?.dispose?.()
   })
   app.on('window-all-closed', event => {

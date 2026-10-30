@@ -348,7 +348,21 @@ const INTENTIONALLY_UNROUTED = Object.freeze({
   // case is served. Routing these properly is planner work, not a phrase.
   'app.find': 'First step of a two-step flow; its results supply the ids the other two require.',
   'app.launch': 'Takes a catalog id that only app.find can produce, so no single phrase can reach it.',
-  'app.focus': 'Takes a catalog id that only app.find can produce, so no single phrase can reach it.'
+  'app.focus': 'Takes a catalog id that only app.find can produce, so no single phrase can reach it.',
+  // RATA-005 / ADR-024. Every desktop tool takes a window handle, and a handle
+  // only exists after desktop.listWindows has returned one. Acting on another
+  // application is inherently a multi-step flow — list, then inspect, then
+  // invoke the element that inspection named — and no single sentence can
+  // carry the handle or the element id. Routing these needs the planner work
+  // in RATA-009, not a phrase. Until then the capability is reachable only
+  // through a skill that can hold state across turns.
+  'desktop.listWindows': 'First step of a multi-step flow; its results supply the handles the others require.',
+  'desktop.focusWindow': 'Takes a window handle that only desktop.listWindows can produce.',
+  'desktop.inspect': 'Takes a window handle that only desktop.listWindows can produce.',
+  'desktop.invoke': 'Takes an element id that only desktop.inspect can produce.',
+  'desktop.setValue': 'Takes an element id that only desktop.inspect can produce.',
+  'desktop.type': 'Takes a window handle, and requires that window to be in the foreground at call time.',
+  'desktop.pressKeys': 'Takes a window handle, and requires that window to be in the foreground at call time.'
 })
 
 /** Every tool id reachable from a user request. Asserted against the registry. */

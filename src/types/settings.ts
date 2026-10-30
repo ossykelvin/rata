@@ -55,6 +55,11 @@ export type RataSettings = {
    */
   screenCaptureEnabled: boolean
   /**
+   * Master switch for driving other applications: window focus, UI Automation
+   * and synthesized keystrokes. Off by default. Every action confirms when on.
+   */
+  windowsBridgeEnabled: boolean
+  /**
    * Which speech-to-text path to use. `auto` prefers the local transcriber
    * when it is installed. The resolved mode comes from the main process via
    * `speechCapabilities()` — the renderer executes it, it does not choose it.

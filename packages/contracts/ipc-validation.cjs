@@ -52,6 +52,10 @@ const settingValidators = Object.assign(Object.create(null), {
   // Master switch for screen.capture and vision.analyze. Off by default.
   // Confirmation is always, independent of this setting. ADR-020.
   screenCaptureEnabled: value => typeof value === 'boolean',
+  // Master switch for the native Windows bridge: window control, UI
+  // Automation and input synthesis. Off by default. Confirmation stays always
+  // when on. ADR-024.
+  windowsBridgeEnabled: value => typeof value === 'boolean',
   // Which speech-to-text path to use. 'auto' prefers the local transcriber
   // when it is installed. Constrained to known ids for the same reason as
   // `provider`: the renderer must not be able to name a provider the runtime

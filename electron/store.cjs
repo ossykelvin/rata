@@ -22,6 +22,9 @@ const defaults = {
     communicatorEnabled: false,
     // Master switch. Off by default; confirmation stays always when on. ADR-020.
     screenCaptureEnabled: false,
+    // Master switch for driving other applications. Off by default; every
+    // action still confirms when on. ADR-024.
+    windowsBridgeEnabled: false,
     // Speech. 'auto' prefers the local transcriber when it is installed.
     // Rata stays silent until the user opts in, so a fresh install does not
     // start talking. RATA-004.
@@ -49,6 +52,7 @@ const safeDiskFallbackSettings = Object.freeze({
   weatherConfirm: true,
   communicatorEnabled: false,
   screenCaptureEnabled: false,
+  windowsBridgeEnabled: false,
   // Corrupt settings must not leave Rata talking or recording.
   sttProvider: 'auto',
   ttsProvider: 'off',
