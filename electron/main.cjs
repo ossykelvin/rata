@@ -24,6 +24,7 @@ const { createSecurityPolicy, applySessionPermissionHandler } = require('./secur
 const { createWindowsVoice } = require('./voice-win.cjs')
 const { IPC } = require('../packages/contracts/ipc-channels.cjs')
 const { createSkillRegistry, createSkillRouter, createSkillLoader } = require('../packages/skills/index.cjs')
+const { routableToolIds } = require('../packages/agent-core/tool-routes.cjs')
 const { createFileAccess } = require('./file-access.cjs')
 const { createHandyTranscriber, candidateExecutables } = require('./handy-stt.cjs')
 const { createFilesystemScan } = require('./filesystem-scan.cjs')
@@ -325,7 +326,13 @@ function createProviders() {
 }
 
 function createSkillRuntime(toolRegistry) {
-  const registry = createSkillRegistry({ rootDir: PROJECT_ROOT, toolRegistry })
+  const registry = createSkillRegistry({
+    rootDir: PROJECT_ROOT,
+    toolRegistry,
+    // Reachability, not just registration. A tool with no route cannot be
+    // asked for, so the Skills page must not present it as usable. FIX-016.
+    routableTools: routableToolIds()
+  })
   const loader = createSkillLoader({ registry })
   const router = createSkillRouter({ registry, toolRegistry })
   if (registry.loadError) {

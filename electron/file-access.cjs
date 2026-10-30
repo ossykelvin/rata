@@ -161,6 +161,49 @@ function sameVolume(left, right) {
   return path.parse(left).root.toLowerCase() === path.parse(right).root.toLowerCase()
 }
 
+/**
+ * Turn what the user typed into an absolute candidate path.
+ *
+ * A person says "move report.md into Archive", not "move C:\Users\me\Documents\
+ * report.md". `path.resolve` alone would resolve those against the process
+ * working directory — the application's own install folder — so every bare name
+ * failed with "That file is not available". `file.save` worked only because
+ * FIX-011 special-cased it; move, rename and folder creation did not, which is
+ * the same defect a second time.
+ *
+ * This composes candidates only; it grants nothing. The result still goes
+ * through `realpathSync` and the containment check below, so a relative input
+ * that climbs out ("..\..\evil.md") resolves outside the roots and is rejected
+ * exactly as before. Roots are tried in order and the first existing match
+ * wins, which makes resolution deterministic rather than dependent on cwd.
+ */
+function resolveAgainstRoots(input, roots, fsApi = fs) {
+  if (path.isAbsolute(input)) return path.resolve(input)
+  // People name a root the way it appears in Explorer — "Documents/Archive".
+  // Matching the leading segment against a root's own folder name keeps that
+  // working for a target that does not exist yet, such as a folder about to be
+  // created. The remainder is still joined and containment-checked below.
+  const segments = input.split(/[\\/]+/).filter(Boolean)
+  if (segments.length) {
+    const named = roots.find(root => path.basename(root).toLowerCase() === segments[0].toLowerCase())
+    // "Documents" alone names the root itself; "Documents/Archive" names a
+    // child of it. Both are resolved here so a caller never joins root paths.
+    if (named) return segments.length === 1 ? named : path.join(named, ...segments.slice(1))
+  }
+  for (const root of roots) {
+    const candidate = path.join(root, input)
+    try {
+      fsApi.statSync(candidate)
+      return candidate
+    } catch {
+      // Try the next root; a non-existent candidate is not an error here.
+    }
+  }
+  // Nothing exists under any root. Fall back to the first root rather than the
+  // working directory, so "not found" refers to a place Rata may actually read.
+  return roots.length ? path.join(roots[0], input) : path.resolve(input)
+}
+
 function resolveWithinRoots(input, roots, fsApi = fs, options = {}) {
   if (typeof input !== 'string' || !input.trim()) {
     throw new FileAccessError('A file path is required.', 'invalid-path')
@@ -177,7 +220,7 @@ function resolveWithinRoots(input, roots, fsApi = fs, options = {}) {
 
   let resolved
   try {
-    resolved = realpathSync(path.resolve(input), fsApi)
+    resolved = realpathSync(resolveAgainstRoots(input, roots, fsApi), fsApi)
   } catch {
     // Do not echo the OS error: it distinguishes "denied" from "missing" and
     // would turn this into a probe for paths outside the roots.
