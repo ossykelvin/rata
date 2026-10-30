@@ -8,6 +8,16 @@ const MAX_PROVIDER_LENGTH = 64
  */
 const PROVIDER_IDS = Object.freeze(['mock', 'gemini', 'openrouter', 'auto'])
 
+/**
+ * Speech provider ids. Mirrors STT_PROVIDERS / TTS_PROVIDERS in
+ * electron/speech/index.cjs; duplicated rather than imported so this contracts
+ * package stays dependency-free. RATA-004.
+ */
+const STT_PROVIDER_IDS = Object.freeze(['auto', 'local', 'windows'])
+const TTS_PROVIDER_IDS = Object.freeze(['off', 'windows'])
+/** Longest utterance the renderer may ask Rata to speak. */
+const MAX_SPEAK_LENGTH = 4_000
+
 // Null-prototype map on purpose. A plain object literal inherits
 // Object.prototype members, so a dynamic `settingValidators[key]` lookup
 // resolves inherited functions for keys like `constructor` and `toString` and
@@ -17,7 +27,6 @@ const settingValidators = Object.assign(Object.create(null), {
   alwaysOnTop: value => typeof value === 'boolean',
   opacity: value => typeof value === 'number' && Number.isFinite(value) && value >= 0.55 && value <= 1,
   doNotDisturb: value => typeof value === 'boolean',
-  voiceEnabled: value => typeof value === 'boolean',
   microphoneEnabled: value => typeof value === 'boolean',
   // Constrained to known ids. An arbitrary slug was accepted before, which
   // meant the renderer could name a provider the runtime does not implement.
@@ -43,6 +52,16 @@ const settingValidators = Object.assign(Object.create(null), {
   // Master switch for screen.capture and vision.analyze. Off by default.
   // Confirmation is always, independent of this setting. ADR-020.
   screenCaptureEnabled: value => typeof value === 'boolean',
+  // Which speech-to-text path to use. 'auto' prefers the local transcriber
+  // when it is installed. Constrained to known ids for the same reason as
+  // `provider`: the renderer must not be able to name a provider the runtime
+  // does not implement. RATA-004.
+  sttProvider: value => typeof value === 'string' && STT_PROVIDER_IDS.includes(value),
+  // How Rata could speak. 'off' by default, so a fresh install is silent.
+  ttsProvider: value => typeof value === 'string' && TTS_PROVIDER_IDS.includes(value),
+  // Whether Rata should speak. Separate from ttsProvider on purpose: turning
+  // speech off must not discard a configured voice.
+  speakReplies: value => typeof value === 'boolean',
   // Focusing a running catalogued app. Confirmed by default. Launch is always
   // confirmed and is not this setting. ADR-021.
   appFocusConfirm: value => typeof value === 'boolean'
@@ -118,15 +137,43 @@ function parseAudioForTranscription(payload) {
   return { audio: bytes }
 }
 
+/**
+ * Validates a renderer request for Rata to speak. RATA-004.
+ *
+ * The text is clamped rather than refused on length, so a long reply is still
+ * spoken in part; refusing would make long answers silently unspoken. Control
+ * characters are stripped because the utterance crosses a line-based stdin
+ * protocol to the synthesizer, and a newline inside one would be read as the
+ * end of the command.
+ */
+function parseSpeakRequest(payload) {
+  const value = requireRecord(payload, 'Speak request')
+  if (typeof value.text !== 'string' || !value.text.trim()) {
+    throw new TypeError('Speak request requires text.')
+  }
+  const text = value.text
+    // eslint-disable-next-line no-control-regex -- stripping control bytes is the point
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, MAX_SPEAK_LENGTH)
+  if (!text) throw new TypeError('Speak request requires text.')
+  return { text }
+}
+
 module.exports = {
   MAX_AUDIO_BYTES,
   MAX_MESSAGE_LENGTH,
+  MAX_SPEAK_LENGTH,
   PROVIDER_IDS,
   SETTING_KEYS,
+  STT_PROVIDER_IDS,
+  TTS_PROVIDER_IDS,
   isKnownSetting,
   parseAgentMessage,
   parseApprovalRequest,
   parseAudioForTranscription,
   parseSettingChange,
+  parseSpeakRequest,
   validateSettingValue
 }

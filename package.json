@@ -67,6 +67,10 @@
         "to": "voice-listen.ps1"
       },
       {
+        "from": "electron/speech/speak.ps1",
+        "to": "speak.ps1"
+      },
+      {
         "from": "electron/windows/list-process-executables.ps1",
         "to": "windows/list-process-executables.ps1"
       },

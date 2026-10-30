@@ -8,7 +8,6 @@ const defaults = {
     alwaysOnTop: true,
     opacity: 1,
     doNotDisturb: false,
-    voiceEnabled: false,
     microphoneEnabled: true,
     // Stays 'mock' so a fresh install performs no network egress until the
     // user opts in. See docs/decisions/ADR-007-ai-provider-chain.md.
@@ -23,6 +22,12 @@ const defaults = {
     communicatorEnabled: false,
     // Master switch. Off by default; confirmation stays always when on. ADR-020.
     screenCaptureEnabled: false,
+    // Speech. 'auto' prefers the local transcriber when it is installed.
+    // Rata stays silent until the user opts in, so a fresh install does not
+    // start talking. RATA-004.
+    sttProvider: 'auto',
+    ttsProvider: 'off',
+    speakReplies: false,
     // Focusing a catalogued app is confirmed by default. Launch stays always. ADR-021.
     appFocusConfirm: true
   },
@@ -44,6 +49,10 @@ const safeDiskFallbackSettings = Object.freeze({
   weatherConfirm: true,
   communicatorEnabled: false,
   screenCaptureEnabled: false,
+  // Corrupt settings must not leave Rata talking or recording.
+  sttProvider: 'auto',
+  ttsProvider: 'off',
+  speakReplies: false,
   appFocusConfirm: true
 })
 

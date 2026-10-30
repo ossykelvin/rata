@@ -27,6 +27,7 @@ const { createSkillRegistry, createSkillRouter, createSkillLoader } = require('.
 const { routableToolIds } = require('../packages/agent-core/tool-routes.cjs')
 const { createFileAccess } = require('./file-access.cjs')
 const { createHandyTranscriber, candidateExecutables } = require('./handy-stt.cjs')
+const { createSpeaker } = require('./speech/index.cjs')
 const { createFilesystemScan } = require('./filesystem-scan.cjs')
 const { createScreenCapture } = require('./screen-capture.cjs')
 const { createAppCatalog, createExecFileLauncher, createWindowsFocus } = require('./app-catalog.cjs')
@@ -42,6 +43,7 @@ let runtimeConfig
 let providers
 let voice
 let transcriber
+let speaker
 
 const isDev = !app.isPackaged
 const APP_ID = 'uk.koptechnology.rata'
@@ -387,6 +389,10 @@ if (!hasSingleInstanceLock) {
       },
       logActivity
     })
+    // Built from the stored settings, and rebuilt when they change. A speaker
+    // holds a warm child process configured with a voice and rate, so changing
+    // either means replacing it rather than mutating it. RATA-004.
+    speaker = createSpeaker({ settings: store.getSettings(), logActivity })
     providers = createProviders()
     const screenCapture = createDesktopScreenCapture()
     // Start Menu catalog is the allow-list. Built once here; tools look up
@@ -469,7 +475,17 @@ if (!hasSingleInstanceLock) {
         logActivity,
         Notification,
         getVoice: () => voice,
-        getTranscriber: () => transcriber
+        getTranscriber: () => transcriber,
+        getSpeaker: () => speaker,
+        // Settings changes replace the speaker. A warm child is configured at
+        // spawn time with a voice and rate, so it cannot be reconfigured in
+        // place; the old one is disposed so no orphan process is left holding
+        // the audio device.
+        rebuildSpeaker: settings => {
+          speaker?.dispose?.()
+          speaker = createSpeaker({ settings, logActivity })
+          return speaker
+        }
       }
     })
     createOverlay()
@@ -508,6 +524,7 @@ if (!hasSingleInstanceLock) {
     // The recognizer is a long-lived warm process now, so it has to be told
     // to exit or a powershell.exe is left behind after Rata quits.
     voice?.dispose?.()
+    speaker?.dispose?.()
   })
   app.on('window-all-closed', event => {
     event?.preventDefault?.()
